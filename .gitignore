@@ -1,0 +1,8 @@
+vars.mk
+target
+/config/config.yaml
+*sess.vim
+*.exe
+*.stackdump
+*.un~
+

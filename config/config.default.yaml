@@ -1,0 +1,10 @@
+---
+# configure our primary database
+database:
+  connstr: 'postgresql://postgres@localhost:5433'
+
+# logging configuration
+logging:
+  # the log level (ignore all messages with a log level lower than this)
+  level: 'info'
+
