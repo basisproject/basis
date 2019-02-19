@@ -26,6 +26,13 @@ where
         Schema { view }
     }
 
+    pub fn state_hash(&self) -> Vec<Hash> {
+        vec![self.accounts().merkle_root()]
+    }
+
+    // -------------------------------------------------------------------------
+    // Accounts
+    // -------------------------------------------------------------------------
     pub fn accounts(&self) -> ProofMapIndex<&T, PublicKey, Account> {
         ProofMapIndex::new("conductor.accounts", &self.view)
     }
@@ -38,6 +45,9 @@ where
         self.accounts().get(pub_key)
     }
 
+    // -------------------------------------------------------------------------
+    // Companies
+    // -------------------------------------------------------------------------
     pub fn companies(&self) -> ProofMapIndex<&T, Hash, Company> {
         ProofMapIndex::new("conductor.companies", &self.view)
     }
@@ -48,10 +58,6 @@ where
 
     pub fn company(&self, id: &str) -> Option<Company> {
         self.companies().get(&crypto::hash(id.as_bytes()))
-    }
-
-    pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.accounts().merkle_root()]
     }
 }
 

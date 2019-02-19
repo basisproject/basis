@@ -3,8 +3,6 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
 
-#![deny(unsafe_code, bare_trait_objects)]
-
 mod error;
 #[macro_use]
 mod util;
@@ -63,8 +61,9 @@ mod tests {
         testkit.create_block_with_transactions(txvec![
             account::Create::sign(&region_pkey, &region_skey, AccountType::Region, "region::6970d03b-56d5-42db-8012-9bf4131add14::bank::general"),
             account::Issue::sign(&region_pkey, &region_skey, 1000000 * 100, 1),
-            account::Create::sign(&larry_pkey, &larry_skey, AccountType::Person, "Larry Weber"),
+            account::Create::sign(&larry_pkey, &larry_skey, AccountType::Person, "Larry"),
             account::Transfer::sign(&region_pkey, &larry_skey, &larry_pkey, 100 * 100, 2),
+            account::Update::sign(&larry_pkey, &larry_skey, "Larry Weber"),
         ]);
 
         // ---------------------------------------------------------------------

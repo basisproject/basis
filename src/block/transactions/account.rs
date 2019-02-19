@@ -6,12 +6,36 @@ use exonum::{
 use crate::block::{
     SERVICE_ID,
     schema::Schema,
-    transactions::TransactionError,
     models::proto,
     models::account::AccountType,
 };
 
-const ERROR_SENDER_SAME_AS_RECEIVER: u8 = 0;
+#[derive(Debug, Fail)]
+#[repr(u8)]
+pub enum TransactionError {
+    #[fail(display = "Invalid account type")]
+    InvalidAccountType = 0,
+
+    #[fail(display = "Account already exists")]
+    AccountAlreadyExists = 1,
+
+    #[fail(display = "Sender doesn't exist")]
+    SenderNotFound = 2,
+
+    #[fail(display = "Receiver doesn't exist")]
+    ReceiverNotFound = 3,
+
+    #[fail(display = "Account not found")]
+    AccountNotFound = 4,
+
+    #[fail(display = "Insufficient currency amount")]
+    InsufficientCurrencyAmount = 5,
+
+    #[fail(display = "Sender is same as receiver")]
+    SenderSameAsReceiver = 6,
+}
+
+define_exec_error!(TransactionError);
 
 #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::account::Create")]
@@ -98,7 +122,7 @@ impl Transaction for Transfer {
         let amount = self.amount;
 
         if from == to {
-            return Err(ExecutionError::new(ERROR_SENDER_SAME_AS_RECEIVER));
+            Err(TransactionError::SenderSameAsReceiver)?
         }
 
         let sender = schema.account(from).ok_or(TransactionError::SenderNotFound)?;
