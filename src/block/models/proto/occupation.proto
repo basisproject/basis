@@ -1,0 +1,27 @@
+syntax = "proto3";
+package conductor.occupation;
+import "helpers.proto";
+
+message Occupation {
+  string id = 1;
+  string name = 2;
+  repeated string path = 3;
+  bool active = 4;
+  uint64 history_len = 5;
+  exonum.Hash history_hash = 6;
+}
+
+message Create {
+  string name = 1;
+  repeated string path = 2;
+  bool active = 3;
+}
+
+message Update {
+  string id = 1;
+  string name = 2;
+  repeated string path = 3;
+  bool active = 4;
+  uint64 seed = 5;
+}
+

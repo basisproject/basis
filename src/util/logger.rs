@@ -8,7 +8,7 @@ use crate::config;
 /// a simple wrapper (pretty much direct from documentation) that sets up
 /// logging to STDOUT (and file if config allows) via fern/log
 pub fn setup_logger() -> CResult<()> {
-    let levelstr: String = match env::var("TURTL_LOGLEVEL") {
+    let levelstr: String = match env::var("CONDUCTOR_LOGLEVEL") {
         Ok(x) => x,
         Err(_) => config::get("logging.level")?,
     };
@@ -35,6 +35,7 @@ pub fn setup_logger() -> CResult<()> {
             ))
         })
         .level(level)
+        .level_for("exonum::node::consensus", log::LevelFilter::Warn)
         .chain(std::io::stdout());
     match config.apply() {
         Ok(_) => {}

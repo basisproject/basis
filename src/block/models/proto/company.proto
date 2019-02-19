@@ -1,0 +1,30 @@
+syntax = "proto3";
+package conductor.company;
+import "helpers.proto";
+
+message Company {
+  string id = 1;
+  uint32 company_type = 2;
+  string name = 3;
+  string meta = 4;
+  bool active = 5;
+  uint64 history_len = 6;
+  exonum.Hash history_hash = 7;
+}
+
+message Create {
+  uint32 company_type = 1;
+  string name = 2;
+  string meta = 3;
+}
+
+message Update {
+  string id = 1;
+  string name = 2;
+  string meta = 3;
+}
+
+message Close {
+  string id = 1;
+}
+

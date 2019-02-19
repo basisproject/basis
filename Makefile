@@ -5,12 +5,12 @@ VARS ?= vars.mk
 -include $(VARS)
 
 CARGO ?= $(shell which cargo)
-FEATURES ?= 
+FEATURES ?= with-serde
 override CARGO_BUILD_ARGS += --features "$(FEATURES)"
 
 all: build
 
-build: 
+build:
 	$(CARGO) build $(CARGO_BUILD_ARGS)
 
 release: override CARGO_BUILD_ARGS += --release
@@ -34,7 +34,7 @@ test-st:
 	$(CARGO) test $(TEST) $(CARGO_BUILD_ARGS) -- --nocapture --test-threads 1
 
 macros:
-	$(CARGO) rustc -- -Z unstable-options --pretty=expanded
+	$(CARGO) rustc $(CARGO_BUILD_ARGS) -- --pretty=expanded
 
 clean:
 	rm -rf target/

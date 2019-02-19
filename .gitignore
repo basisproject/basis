@@ -5,4 +5,5 @@ target
 *.exe
 *.stackdump
 *.un~
+*.dll
 

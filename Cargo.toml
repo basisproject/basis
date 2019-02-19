@@ -3,23 +3,36 @@ name = "conductor"
 version = "0.1.0"
 authors = ["Andrew Danger Lyon <orthecreedence@gmail.com>"]
 edition = "2018"
-
-[lib]
-name = "conductor"
-crate-type = ["dylib"]		# ["dylib", "staticlib"]
-doctest = false				# these annoy me
-
-[workspace]
-members = []
-exclude = []
+keywords = ["distributed", "economic", "automation"]
 
 [dependencies]
 config = "0.9.2"
+exonum = "0.10.3"
+exonum-derive = "0.10.0"
+exonum-configuration = "0.10.2"
+failure = "0.1.5"
 fern = "0.5.7"
 lazy_static = "1.2.0"
 log = "0.4.6"
 postgres = "0.15.2"
-quick-error = "1.2.2"
+protobuf = "2.2.0"
 serde = "1.0.84"
+serde_derive = "1.0.84"
+serde_json = "1.0.38"
 time = "0.1.42"
+
+[patch.crates-io]
+exonum_sodiumoxide = { path = "../exonum-container/exonum_sodiumoxide" }
+
+[dev-dependencies]
+exonum-testkit = "0.10.2"
+pretty_assertions = "0.5.1"
+assert_matches = "1.2.0"
+hex = "0.3.2"
+
+[build-dependencies]
+exonum-build = "0.10.0"
+
+[features]
+with-serde = []
 

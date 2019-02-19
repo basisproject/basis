@@ -1,16 +1,19 @@
-use ::quick_error::quick_error;
+// Workaround for `failure` see https://github.com/rust-lang-nursery/failure/issues/223 and
+// ECR-1771 for the details.
+#![allow(bare_trait_objects)]
+
 use ::config::ConfigError;
 
-quick_error! {
-    #[derive(Debug)]
-    /// Conductor's main error object.
-    pub enum CError {
-        ConfigError(err: ConfigError) {
-            cause(err)
-            description("config error")
-            display("config error: {}", err)
-        }
-    }
+#[derive(Debug, Fail)]
+pub enum CError {
+    #[fail(display = "Configuration error")]
+    ConfigError(#[fail(cause)] ConfigError),
+
+    #[fail(display = "Invalid account type")]
+    InvalidAccountType,
+
+    #[fail(display = "Invalid company type")]
+    InvalidCompanyType,
 }
 
 pub type CResult<T> = Result<T, CError>;

@@ -1,0 +1,16 @@
+syntax = "proto3";
+package conductor.product_order;
+import "helpers.proto";
+
+message Order {
+  message OfferingPurchase {
+    string offering_id = 1;
+    uint64 quantity = 2;
+  }
+
+  string id = 1;
+  repeated OfferingPurchase products = 2;
+  string delivery = 3;
+  uint64 seed = 4;
+}
+
