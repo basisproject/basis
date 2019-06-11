@@ -101,13 +101,14 @@ impl Transaction for Update {
 #[exonum(pb = "proto::account::Transfer", serde_pb_convert)]
 pub struct Transfer {
     pub to: PublicKey,
+    pub memo: String,
     pub amount: u64,
     pub seed: u64,
 }
 
 impl Transfer {
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, &to: &PublicKey, amount: u64, seed: u64) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self { to, amount, seed }, SERVICE_ID, *pk, sk)
+    pub fn sign(pk: &PublicKey, sk: &SecretKey, &to: &PublicKey, memo: &str, amount: u64, seed: u64) -> Signed<RawTransaction> {
+        Message::sign_transaction(Self { to, memo: memo.to_owned(), amount, seed }, SERVICE_ID, *pk, sk)
     }
 }
 
@@ -140,13 +141,14 @@ impl Transaction for Transfer {
 #[derive(Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::account::Issue", serde_pb_convert)]
 pub struct Issue {
+    pub memo: String,
     pub amount: u64,
     pub seed: u64,
 }
 
 impl Issue {
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, amount: u64, seed: u64) ->  Signed<RawTransaction> {
-        Message::sign_transaction(Self { amount, seed }, SERVICE_ID, *pk, sk)
+    pub fn sign(pk: &PublicKey, sk: &SecretKey, memo: &str, amount: u64, seed: u64) ->  Signed<RawTransaction> {
+        Message::sign_transaction(Self { memo: memo.to_owned(), amount, seed }, SERVICE_ID, *pk, sk)
     }
 }
 

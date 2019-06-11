@@ -60,9 +60,9 @@ mod tests {
         let (larry_pkey, larry_skey) = crypto::gen_keypair();
         testkit.create_block_with_transactions(txvec![
             account::Create::sign(&region_pkey, &region_skey, AccountType::Region, "region::6970d03b-56d5-42db-8012-9bf4131add14::bank::general"),
-            account::Issue::sign(&region_pkey, &region_skey, 1000000 * 100, 1),
+            account::Issue::sign(&region_pkey, &region_skey, "Initial balance", 1000000 * 100, 1),
             account::Create::sign(&larry_pkey, &larry_skey, AccountType::Person, "Larry"),
-            account::Transfer::sign(&region_pkey, &larry_skey, &larry_pkey, 100 * 100, 2),
+            account::Transfer::sign(&region_pkey, &larry_skey, &larry_pkey, "Alright, Parker...shut up, thank you, Parker. Shut up.", 100 * 100, 2),
             account::Update::sign(&larry_pkey, &larry_skey, "Larry Weber"),
         ]);
 

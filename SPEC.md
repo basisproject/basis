@@ -1,0 +1,88 @@
+- companies
+  - settings
+    - payment requirements
+      - immediate (pos, consumer)
+        - requires instant ACH/credit card/native balance
+      - net 15/30/etc
+      - IOU ;) ;)
+  - users
+    - native
+    - mobile
+    - saml
+    - spending limits
+  - accounts (bank, credit)
+    - dolla (ACH)
+    - stripe (credit)
+    - native balance (eg, paypal/venmo)
+  - access restrictions
+    - per-department
+    - per-user (overrides department)
+    - permissions
+      - purchase
+      - view all transactions
+      - view department transactions
+  - purchasing departments
+    - contains users
+    - associated with account
+    - spending limits
+  - product/service departments
+    - contains users
+    - associated with account
+    - products
+      - info
+        - name
+        - id/sku/item#
+        - photos
+        - desc
+        - location
+        - weight per unit (g)
+        - dimensions (mm)
+        - tags (discoverability)
+        - meta (json hash)
+      - inventory
+    - product offerings
+      - 1:N on products
+      - product pricing
+        - fixed
+        - conditional
+          - bulk
+          - buyer
+    - services
+      - info
+        - name
+        - description
+      - pricing
+- orders
+  - type
+    - quote
+      - pricing filled in by seller
+    - purchase
+  - process status
+    - new
+    - processing
+    - shipped
+    - delivered
+    - cancelled
+  - payment status
+    - unpaid
+    - sent
+    - received
+  - cancel
+    - partial
+    - full
+  - returns
+    - partial
+    - full
+    - shipping costs? buyer or seller pays shipping?
+- shipping
+  - seller decides carriers
+  - per-order
+    - based on product(s) location
+  - automated quotes
+- payments
+  - credit card (consumer/smb)
+    - seller decides who covers fees (can be automated based on amount)
+      - do CC companies mandate that sellers cover this?
+  - direct ach (consumer/smb)
+  - delayed payment aka checks (corporate)
+
