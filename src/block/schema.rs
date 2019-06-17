@@ -1,10 +1,11 @@
+use chrono::{DateTime, Utc};
 use exonum::{
     crypto::{self, Hash, PublicKey},
-    storage::{Fork, ProofListIndex, ProofMapIndex, Snapshot},
+    storage::{Fork, MapIndex, ProofListIndex, ProofMapIndex, Snapshot},
 };
+use crate::block::transactions::access::Role;
 use crate::block::models::{
-    account::{Account, AccountType},
-    company::{Company, CompanyType},
+    user::{User},
 };
 
 #[derive(Debug)]
@@ -27,123 +28,126 @@ where
     }
 
     pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.accounts().merkle_root()]
+        vec![self.users().merkle_root()]
     }
 
     // -------------------------------------------------------------------------
-    // Accounts
+    // Users
     // -------------------------------------------------------------------------
-    pub fn accounts(&self) -> ProofMapIndex<&T, PublicKey, Account> {
-        ProofMapIndex::new("conductor.accounts", &self.view)
+    pub fn users(&self) -> ProofMapIndex<&T, Hash, User> {
+        ProofMapIndex::new("conductor.users.table", &self.view)
     }
 
-    pub fn account_history(&self, public_key: &PublicKey) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("conductor.accounts.history", public_key, &self.view)
+    pub fn users_idx_pubkey(&self) -> MapIndex<&T, PublicKey, String> {
+        MapIndex::new("conductor.users.idx_pubkey", &self.view)
     }
 
-    pub fn account(&self, pub_key: &PublicKey) -> Option<Account> {
-        self.accounts().get(pub_key)
+    pub fn users_idx_email(&self) -> MapIndex<&T, String, String> {
+        MapIndex::new("conductor.users.idx_email", &self.view)
     }
 
-    // -------------------------------------------------------------------------
-    // Companies
-    // -------------------------------------------------------------------------
-    pub fn companies(&self) -> ProofMapIndex<&T, Hash, Company> {
-        ProofMapIndex::new("conductor.companies", &self.view)
+    pub fn users_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
+        ProofListIndex::new_in_family("conductor.users.history", &crypto::hash(id.as_bytes()), &self.view)
     }
 
-    pub fn company_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("conductor.companies.history", id, &self.view)
+    pub fn get_user(&self, id: &str) -> Option<User> {
+        self.users().get(&crypto::hash(id.as_bytes()))
     }
 
-    pub fn company(&self, id: &str) -> Option<Company> {
-        self.companies().get(&crypto::hash(id.as_bytes()))
+    pub fn get_user_by_pubkey(&self, pubkey: &PublicKey) -> Option<User> {
+        if let Some(id) = self.users_idx_pubkey().get(pubkey) {
+            self.users().get(&crypto::hash(id.as_bytes()))
+        } else {
+            None
+        }
+    }
+
+    pub fn get_user_by_email(&self, email: &str) -> Option<User> {
+        if let Some(id) = self.users_idx_email().get(email) {
+            self.users().get(&crypto::hash(id.as_bytes()))
+        } else {
+            None
+        }
     }
 }
 
 impl<'a> Schema<&'a mut Fork> {
     // -------------------------------------------------------------------------
-    // Accounts
+    // Users
     // -------------------------------------------------------------------------
-    pub fn accounts_mut(&mut self) -> ProofMapIndex<&mut Fork, PublicKey, Account> {
-        ProofMapIndex::new("conductor.accounts", &mut self.view)
+    pub fn users_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, User> {
+        ProofMapIndex::new("conductor.users.table", &mut self.view)
     }
 
-    pub fn account_history_mut(&mut self, public_key: &PublicKey) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("conductor.accounts.history", public_key, &mut self.view)
+    pub fn users_idx_pubkey_mut(&mut self) -> MapIndex<&mut Fork, PublicKey, String> {
+        MapIndex::new("conductor.users.idx_pubkey", &mut self.view)
     }
 
-    pub fn account_create(&mut self, key: &PublicKey, account_type: AccountType, name: &str, transaction: &Hash) {
-        let account = {
-            let mut history = self.account_history_mut(key);
+    pub fn users_idx_email_mut(&mut self) -> MapIndex<&mut Fork, String, String> {
+        MapIndex::new("conductor.users.idx_email", &mut self.view)
+    }
+
+    pub fn users_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
+        ProofListIndex::new_in_family("conductor.users.history", &crypto::hash(id.as_bytes()), &mut self.view)
+    }
+
+    pub fn users_create(&mut self, id: &str, pubkey: &PublicKey, roles: &Vec<Role>, email: &str, name: &str, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
+        let user = {
+            let mut history = self.users_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            Account::new(key, account_type, name, 0, history.len(), &history_hash)
+            User::new(id, pubkey, roles, email, name, meta, created, created, history.len(), &history_hash)
         };
-        self.accounts_mut().put(key, account);
+        self.users_mut().put(&crypto::hash(id.as_bytes()), user);
+        self.users_idx_pubkey_mut().put(pubkey, id.to_owned());
+        self.users_idx_email_mut().put(&email.to_owned(), id.to_owned());
     }
 
-    pub fn account_update(&mut self, account: Account, name: &str, transaction: &Hash) {
-        let account = {
-            let mut history = self.account_history_mut(&account.pub_key);
+    pub fn users_update(&mut self, user: User, id: &str, email: Option<&str>, name: Option<&str>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let old_email = user.email.clone();
+        let user = {
+            let mut history = self.users_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            account.update(name, &history_hash)
+            user.update(email, name, meta, updated, &history_hash)
         };
-        self.accounts_mut().put(&account.pub_key, account.clone());
+        let new_email = user.email.clone();
+        self.users_mut().put(&crypto::hash(id.as_bytes()), user);
+        if email.is_some() && email != Some(old_email.as_str()) {
+            self.users_idx_email_mut().remove(&old_email);
+            self.users_idx_email_mut().put(&new_email, id.to_owned());
+        }
     }
 
-    pub fn account_adjust_balance(&mut self, account: Account, amount: u64, negative: bool, transaction: &Hash) {
-        let account = {
-            let mut history = self.account_history_mut(&account.pub_key);
+    pub fn users_set_pubkey(&mut self, user: User, id: &str, pubkey: &PublicKey, updated: &DateTime<Utc>, transaction: &Hash) {
+        let pubkey_old = user.pubkey.clone();
+        let user = {
+            let mut history = self.users_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            let balance = account.balance;
-            let new_balance = if negative { balance - amount } else { balance + amount };
-            account.set_balance(new_balance, &history_hash)
+            user.set_pubkey(pubkey, updated, &history_hash)
         };
-        self.accounts_mut().put(&account.pub_key, account.clone());
+        self.users_mut().put(&crypto::hash(id.as_bytes()), user);
+        self.users_idx_pubkey_mut().remove(&pubkey_old);
+        self.users_idx_pubkey_mut().put(pubkey, id.to_owned());
     }
 
-    // -------------------------------------------------------------------------
-    // Companies
-    // -------------------------------------------------------------------------
-    pub fn companies_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Company> {
-        ProofMapIndex::new("conductor.companies", &mut self.view)
-    }
-
-    pub fn company_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("conductor.companies.history", id, &mut self.view)
-    }
-
-    pub fn company_create(&mut self, id: &str, company_type: CompanyType, name: &str, meta: &str, transaction: &Hash) {
-        let company = {
-            let mut history = self.company_history_mut(id);
+    pub fn users_set_roles(&mut self, user: User, id: &str, roles: &Vec<Role>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let user = {
+            let mut history = self.users_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            Company::new(id, company_type, name, meta, true, history.len(), &history_hash)
+            user.set_roles(roles, updated, &history_hash)
         };
-        self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
+        self.users_mut().put(&crypto::hash(id.as_bytes()), user);
     }
 
-    pub fn company_update(&mut self, company: Company, name: &str, meta: &str, transaction: &Hash) {
-        let company = {
-            let mut history = self.company_history_mut(company.id.as_str());
-            history.push(*transaction);
-            let history_hash = history.merkle_root();
-            company.update(name, meta, &history_hash)
-        };
-        self.companies_mut().put(&crypto::hash(company.id.as_bytes()), company);
-    }
-
-    pub fn company_close(&mut self, company: Company, transaction: &Hash) {
-        let company = {
-            let mut history = self.company_history_mut(company.id.as_str());
-            history.push(*transaction);
-            let history_hash = history.merkle_root();
-            company.close(&history_hash)
-        };
-        self.companies_mut().put(&crypto::hash(company.id.as_bytes()), company);
+    pub fn users_delete(&mut self, user: User, id: &str, transaction: &Hash) {
+        let mut history = self.users_history_mut(id);
+        history.push(*transaction);
+        self.users_mut().remove(&crypto::hash(id.as_bytes()));
+        self.users_idx_pubkey_mut().remove(&user.pubkey);
+        self.users_idx_email_mut().remove(&user.email);
     }
 }
 

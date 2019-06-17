@@ -6,6 +6,7 @@ VARS ?= vars.mk
 
 CARGO ?= $(shell which cargo)
 FEATURES ?= with-serde
+TARGET := ./target/debug/conductor
 override CARGO_BUILD_ARGS += --features "$(FEATURES)"
 
 all: build
@@ -17,7 +18,13 @@ release: override CARGO_BUILD_ARGS += --release
 release: build
 
 run:
-	$(CARGO) run $(CARGO_BUILD_ARGS)
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- run --node-config config/block/config.toml --db-path play/db/ --public-api-address 0.0.0.0:13007 --consensus-key-pass pass --service-key-pass pass
+
+reconfig: all
+	mkdir -p config/block/
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-template config/block/common.toml --validators-count=1
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-config config/block/common.toml config/block/node.pub.toml config/block/node.sec.toml --peer-address 127.0.0.1:6969 -c config/block/consensus.toml -s config/block/service.toml -n
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- finalize --public-api-address 0.0.0.0:13007 --private-api-address 0.0.0.0:13008 config/block/node.sec.toml config/block/config.toml --public-configs config/block/node.pub.toml
 
 test:
 	$(CARGO) test $(TEST) $(CARGO_BUILD_ARGS) -- --nocapture

@@ -10,6 +10,8 @@ mod config;
 mod block;
 
 use crate::error::CResult;
+use exonum::helpers::fabric::NodeBuilder;
+use exonum_configuration as configuration;
 
 pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
     config::init(default_config, local_config)?;
@@ -18,7 +20,7 @@ pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
         Ok(_) => {}
         Err(e) => {
             println!("conductor::init() -- problem setting up logging: {}", e);
-            return Err(e);
+            //return Err(e);
         }
     };
     Ok(())
@@ -26,7 +28,15 @@ pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
 
 fn main() {
     init("./config/config.default.yaml", "./config/config.yaml").unwrap();
-    println!("init...");
+    exonum::crypto::init();
+    if let Err(err) = exonum::helpers::init_logger() {
+       warn!("conductor::main() -- error initializing exonum logger: {}", err);
+    }
+
+    let node = NodeBuilder::new()
+        .with_service(Box::new(configuration::ServiceFactory))
+        .with_service(Box::new(block::ServiceFactory));
+    node.run();
 }
 
 #[cfg(test)]
@@ -35,9 +45,8 @@ mod tests {
     use exonum::crypto;
     use exonum_testkit::{TestKit, TestKitBuilder, txvec};
     use crate::block::{
-        transactions::account,
+        transactions::user,
         schema::Schema,
-        models::account::AccountType,
         Service,
     };
 

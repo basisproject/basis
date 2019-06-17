@@ -9,11 +9,8 @@ pub enum CError {
     #[fail(display = "Configuration error")]
     ConfigError(#[fail(cause)] ConfigError),
 
-    #[fail(display = "Invalid account type")]
-    InvalidAccountType,
-
-    #[fail(display = "Invalid company type")]
-    InvalidCompanyType,
+    #[fail(display = "Invalid role")]
+    InvalidRole,
 }
 
 pub type CResult<T> = Result<T, CError>;

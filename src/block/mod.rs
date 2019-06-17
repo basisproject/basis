@@ -1,22 +1,42 @@
 pub mod models;
 pub mod schema;
 pub mod transactions;
-
-pub use crate::block::schema::Schema;
+pub mod api;
 
 use exonum::{
-    api::ServiceApiBuilder,
-    blockchain::{self, Transaction, TransactionSet},
-    crypto::Hash,
+    api::{ServiceApiBuilder},
+    blockchain::{self, Transaction, TransactionSet, TransactionMessage},
+    crypto::{Hash},
     helpers::fabric::{self, Context},
     messages::RawTransaction,
     storage::Snapshot,
+    storage::proof_map_index::MapProof,
+    storage::proof_list_index::ListProof,
 };
-
+pub use crate::block::schema::Schema;
 use crate::block::transactions::TransactionGroup;
 
-const SERVICE_ID: u16 = 128;
-const SERVICE_NAME: &str = "rsc";
+pub const SERVICE_ID: u16 = 128;
+pub const SERVICE_NAME: &str = "conductor";
+
+#[derive(Debug, Fail)]
+#[repr(u8)]
+pub enum ApiError {
+    #[fail(display = "Bad query")]
+    BadQuery = 0,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ObjectProof<T> {
+    table: MapProof<Hash, Hash>,
+    object: MapProof<Hash, T>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ObjectHistory {
+    pub proof: ListProof<Hash>,
+    pub transactions: Vec<TransactionMessage>,
+}
 
 #[derive(Default, Debug)]
 pub struct Service;
@@ -40,6 +60,7 @@ impl blockchain::Service for Service {
     }
 
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
+        api::user::UserApi::wire(builder);
     }
 }
 

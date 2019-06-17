@@ -1,0 +1,15 @@
+public_key = '2b890d05f28750ed47b3d29ed9a221dc6978d12e1814d13f903fbceb7c7a0d00'
+
+[secret_key]
+ciphertext = '2524fd3f90a683a375e6ed4da74f9efdf0ccfc3bb5e2721f766efbd1cdedd920'
+mac = '4a2c7725ea9c1ba435ef56d5520d011a'
+kdf = 'scrypt-nacl'
+cipher = 'xsalsa20-poly1305'
+
+[secret_key.kdfparams]
+salt = '3b1921987c9753918bac7b01c1dd0ff8c1c1a091dba90bc39f95e7b57731444b'
+memlimit = 16777216
+opslimit = 524288
+
+[secret_key.cipherparams]
+iv = 'f03f5b6cb3846e19a5b9a3fc4464555b787be6ca82f4a2cd'

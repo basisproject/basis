@@ -1,0 +1,56 @@
+syntax = "proto3";
+package conductor.user;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+message User {
+	string id = 1;
+	exonum.PublicKey pubkey = 2;
+	repeated string roles = 3;
+	string email = 4;
+	string name = 5;
+	string meta = 6;
+	google.protobuf.Timestamp created = 7;
+	google.protobuf.Timestamp updated = 8;
+	uint64 history_len = 9;
+	exonum.Hash history_hash = 10;
+}
+
+message TxCreate {
+	string id = 1;
+	exonum.PublicKey pubkey = 2;
+	repeated string roles = 3;
+	string email = 4;
+	string name = 5;
+	string meta = 6;
+	google.protobuf.Timestamp created = 7;
+}
+
+message TxUpdate {
+	string id = 1;
+	string email = 2;
+	string name = 3;
+	string meta = 4;
+	google.protobuf.Timestamp updated = 5;
+}
+
+message TxSetPubkey {
+	string id = 1;
+	exonum.PublicKey pubkey = 2;
+	string memo = 3;
+	google.protobuf.Timestamp updated = 4;
+}
+
+message TxSetRoles {
+	string id = 1;
+	repeated string roles = 2;
+	string memo = 3;
+	google.protobuf.Timestamp updated = 4;
+}
+
+message TxDelete {
+	string id = 1;
+	string memo = 2;
+	google.protobuf.Timestamp deleted = 3;
+}
+
