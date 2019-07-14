@@ -19,5 +19,5 @@ address = "127.0.0.1:6969"
 [node.services_public_configs]
 
 [node.validator_keys]
-consensus_key = "2b890d05f28750ed47b3d29ed9a221dc6978d12e1814d13f903fbceb7c7a0d00"
-service_key = "2ed65f5986e74641ab3ce8713b04750ae88552f208d93132f2b75143d295a21c"
+consensus_key = "e075824958382b0c79a9e5d0d785a193a17c3cf18023642d9b7a3c94e14700cd"
+service_key = "3b9991f80804ca690ef7ccfb02a6a8be87abd89ec8e2fd5b7a9f197b6aa970b4"
