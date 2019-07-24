@@ -1,17 +1,14 @@
 use ::fern;
 use ::log;
 use ::time;
-use ::std::{self, env};
+use ::std;
 use crate::error::CResult;
 use crate::config;
 
 /// a simple wrapper (pretty much direct from documentation) that sets up
 /// logging to STDOUT (and file if config allows) via fern/log
 pub fn setup_logger() -> CResult<()> {
-    let levelstr: String = match env::var("FACTOR_LOGLEVEL") {
-        Ok(x) => x,
-        Err(_) => config::get("logging.level")?,
-    };
+    let levelstr: String = config::get("logging.level")?;
     let level = match levelstr.to_lowercase().as_ref() {
         "error" => log::LevelFilter::Error,
         "warn" => log::LevelFilter::Warn,
