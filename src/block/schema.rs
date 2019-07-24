@@ -35,19 +35,19 @@ where
     // Users
     // -------------------------------------------------------------------------
     pub fn users(&self) -> ProofMapIndex<&T, Hash, User> {
-        ProofMapIndex::new("conductor.users.table", &self.view)
+        ProofMapIndex::new("factor.users.table", &self.view)
     }
 
     pub fn users_idx_pubkey(&self) -> MapIndex<&T, PublicKey, String> {
-        MapIndex::new("conductor.users.idx_pubkey", &self.view)
+        MapIndex::new("factor.users.idx_pubkey", &self.view)
     }
 
     pub fn users_idx_email(&self) -> MapIndex<&T, String, String> {
-        MapIndex::new("conductor.users.idx_email", &self.view)
+        MapIndex::new("factor.users.idx_email", &self.view)
     }
 
     pub fn users_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("conductor.users.history", &crypto::hash(id.as_bytes()), &self.view)
+        ProofListIndex::new_in_family("factor.users.history", &crypto::hash(id.as_bytes()), &self.view)
     }
 
     pub fn get_user(&self, id: &str) -> Option<User> {
@@ -76,19 +76,19 @@ impl<'a> Schema<&'a mut Fork> {
     // Users
     // -------------------------------------------------------------------------
     pub fn users_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, User> {
-        ProofMapIndex::new("conductor.users.table", &mut self.view)
+        ProofMapIndex::new("factor.users.table", &mut self.view)
     }
 
     pub fn users_idx_pubkey_mut(&mut self) -> MapIndex<&mut Fork, PublicKey, String> {
-        MapIndex::new("conductor.users.idx_pubkey", &mut self.view)
+        MapIndex::new("factor.users.idx_pubkey", &mut self.view)
     }
 
     pub fn users_idx_email_mut(&mut self) -> MapIndex<&mut Fork, String, String> {
-        MapIndex::new("conductor.users.idx_email", &mut self.view)
+        MapIndex::new("factor.users.idx_email", &mut self.view)
     }
 
     pub fn users_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("conductor.users.history", &crypto::hash(id.as_bytes()), &mut self.view)
+        ProofListIndex::new_in_family("factor.users.history", &crypto::hash(id.as_bytes()), &mut self.view)
     }
 
     pub fn users_create(&mut self, id: &str, pubkey: &PublicKey, roles: &Vec<Role>, email: &str, name: &str, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {

@@ -1,0 +1,6 @@
+syntax = "proto3";
+package factor.company;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+

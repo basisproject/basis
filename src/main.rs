@@ -19,7 +19,7 @@ pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
     match util::logger::setup_logger() {
         Ok(_) => {}
         Err(e) => {
-            println!("conductor::init() -- problem setting up logging: {}", e);
+            println!("factor::init() -- problem setting up logging: {}", e);
             //return Err(e);
         }
     };
@@ -30,7 +30,7 @@ fn main() {
     init("./config/config.default.yaml", "./config/config.yaml").unwrap();
     exonum::crypto::init();
     if let Err(err) = exonum::helpers::init_logger() {
-       warn!("conductor::main() -- error initializing exonum logger: {}", err);
+       warn!("factor::main() -- error initializing exonum logger: {}", err);
     }
 
     let node = NodeBuilder::new()
