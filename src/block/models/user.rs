@@ -126,6 +126,7 @@ pub mod tests {
         assert_eq!(user.created, user2.created);
         assert!(user.updated != user2.updated);
         assert_eq!(user2.updated, date2);
+        assert_eq!(user.history_len, user2.history_len - 1);
         assert!(user.history_hash != user2.history_hash);
         assert_eq!(user2.history_hash, hash);
         util::sleep(100);
@@ -152,6 +153,7 @@ pub mod tests {
         assert_eq!(user.created, user2.created);
         assert!(user.updated != user2.updated);
         assert_eq!(user2.updated, date2);
+        assert_eq!(user.history_len, user2.history_len - 1);
         assert!(user.history_hash != user2.history_hash);
         assert_eq!(user2.history_hash, hash);
     }
@@ -170,6 +172,7 @@ pub mod tests {
         assert_eq!(user.created, user2.created);
         assert!(user.updated != user2.updated);
         assert_eq!(user2.updated, date2);
+        assert_eq!(user.history_len, user2.history_len - 1);
         assert!(user.history_hash != user2.history_hash);
         assert_eq!(user2.history_hash, hash);
     }

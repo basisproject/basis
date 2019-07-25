@@ -180,6 +180,7 @@ impl Company {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::util;
 
     #[test]
     fn permissions_work() {
@@ -237,5 +238,82 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::OrderUpdatePaymentStatus));
         assert!(!member_admin.can(&Permission::OrderCancel));
         assert!(!member_admin.can(&Permission::Order));
+    }
+
+    fn make_date() -> DateTime<Utc> {
+        chrono::offset::Utc::now()
+    }
+
+    fn make_hash() -> Hash {
+        Hash::new([1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4])
+    }
+
+    fn make_company() -> Company {
+        let date = make_date();
+        Company::new(
+            "1dd0ec02-1c6d-4791-8ba5-eb9e16964c26",
+            CompanyType::Private,
+            "homayun@friendless.com",
+            "LEMONADE STANDS UNLIMITED",
+            &date,
+            &date,
+            0,
+            &make_hash()
+        )
+    }
+
+    #[test]
+    fn updates() {
+        let company = make_company();
+        util::sleep(100);
+        let date2 = make_date();
+        let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let company2 = company.clone().update(None, None, &date2, &hash2);
+        assert_eq!(company.id, company2.id);
+        assert_eq!(company.ty, company2.ty);
+        assert_eq!(company.email, company2.email);
+        assert_eq!(company.name, company2.name);
+        assert_eq!(company.created, company2.created);
+        assert!(company.updated != company2.updated);
+        assert_eq!(company2.updated, date2);
+        assert_eq!(company.history_len, company2.history_len - 1);
+        assert!(company.history_hash != company2.history_hash);
+        assert_eq!(company2.history_hash, hash2);
+        util::sleep(100);
+        let date3 = make_date();
+        let hash3 = Hash::new([1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4]);
+        let company3 = company2.clone().update(Some("spiffy@jiffy.com"), Some("I AM THE WALRUS"), &date3, &hash3);
+        assert_eq!(company2.id, company3.id);
+        assert_eq!(company2.ty, company3.ty);
+        assert!(company2.email != company3.email);
+        assert!(company2.name != company3.name);
+        assert_eq!(company3.email, "spiffy@jiffy.com");
+        assert_eq!(company3.name, "I AM THE WALRUS");
+        assert_eq!(company2.created, company3.created);
+        assert!(company2.updated != company3.updated);
+        assert_eq!(company3.updated, date3);
+        assert_eq!(company2.history_len, company3.history_len - 1);
+        assert!(company2.history_hash != company3.history_hash);
+        assert_eq!(company3.history_hash, hash3);
+    }
+
+    #[test]
+    fn sets_type() {
+        let company = make_company();
+        util::sleep(100);
+        let date2 = make_date();
+        let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let company2 = company.clone().set_type(CompanyType::Member, &date2, &hash2);
+        assert_eq!(company.id, company2.id);
+        assert!(company.ty != company2.ty);
+        assert_eq!(company2.ty, CompanyType::Member);
+        assert_eq!(company.email, company2.email);
+        assert_eq!(company.name, company2.name);
+        assert_eq!(company.created, company2.created);
+        assert!(company.updated != company2.updated);
+        assert_eq!(company2.updated, date2);
+        assert_eq!(company.history_len, company2.history_len - 1);
+        assert!(company.history_hash != company2.history_hash);
+        assert_eq!(company2.history_hash, hash2);
     }
 }
