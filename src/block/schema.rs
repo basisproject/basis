@@ -3,9 +3,11 @@ use exonum::{
     crypto::{self, Hash, PublicKey},
     storage::{Fork, MapIndex, ProofListIndex, ProofMapIndex, Snapshot},
 };
-use crate::block::transactions::access::Role;
+use crate::block::models::access::Role;
 use crate::block::models::{
-    user::{User},
+    user::User,
+    company::{Company, CompanyType, Role as CompanyRole},
+    company_member::CompanyMember,
 };
 
 #[derive(Debug)]
@@ -68,6 +70,36 @@ where
         } else {
             None
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Companies
+    // -------------------------------------------------------------------------
+    pub fn companies(&self) -> ProofMapIndex<&T, Hash, Company> {
+        ProofMapIndex::new("factor.companies.table", &self.view)
+    }
+
+    pub fn companies_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
+        ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &self.view)
+    }
+
+    pub fn get_company(&self, id: &str) -> Option<Company> {
+        self.companies().get(&crypto::hash(id.as_bytes()))
+    }
+
+    // -------------------------------------------------------------------------
+    // Company members
+    // -------------------------------------------------------------------------
+    pub fn companies_members(&self, company_id: &str) -> ProofMapIndex<&T, Hash, CompanyMember> {
+        ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &self.view)
+    }
+
+    pub fn companies_members_history(&self, company_id: &str) -> ProofListIndex<&T, Hash> {
+        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(company_id.as_bytes()), &self.view)
+    }
+
+    pub fn get_company_member(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
+        self.companies_members(company_id).get(&crypto::hash(user_id.as_bytes()))
     }
 }
 
@@ -148,6 +180,75 @@ impl<'a> Schema<&'a mut Fork> {
         self.users_mut().remove(&crypto::hash(id.as_bytes()));
         self.users_idx_pubkey_mut().remove(&user.pubkey);
         self.users_idx_email_mut().remove(&user.email);
+    }
+
+    // -------------------------------------------------------------------------
+    // Companies
+    // -------------------------------------------------------------------------
+    pub fn companies_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Company> {
+        ProofMapIndex::new("factor.companies.table", &mut self.view)
+    }
+
+    pub fn companies_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
+        ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &mut self.view)
+    }
+
+    pub fn companies_create(&mut self, id: &str, ty: CompanyType, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
+        let company = {
+            let mut history = self.companies_history_mut(id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            Company::new(id, ty, email, name, created, created, history.len(), &history_hash)
+        };
+        self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
+    }
+
+    pub fn companies_update(&mut self, company: Company, id: &str, email: Option<&str>, name: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let company = {
+            let mut history = self.companies_history_mut(id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            company.update(email, name, updated, &history_hash)
+        };
+        self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
+    }
+
+    pub fn companies_set_type(&mut self, company: Company, id: &str, ty: CompanyType, updated: &DateTime<Utc>, transaction: &Hash) {
+        let company = {
+            let mut history = self.companies_history_mut(id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            company.set_type(ty, updated, &history_hash)
+        };
+        self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
+    }
+
+    pub fn companies_delete(&mut self, id: &str, transaction: &Hash) {
+        let mut history = self.companies_history_mut(id);
+        history.push(*transaction);
+        self.companies_mut().remove(&crypto::hash(id.as_bytes()));
+        self.companies_members_mut(id).clear();
+    }
+
+    // -------------------------------------------------------------------------
+    // Company members
+    // -------------------------------------------------------------------------
+    pub fn companies_members_mut(&mut self, company_id: &str) -> ProofMapIndex<&mut Fork, Hash, CompanyMember> {
+        ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &mut self.view)
+    }
+
+    pub fn companies_members_history_mut(&mut self, company_id: &str) -> ProofListIndex<&mut Fork, Hash> {
+        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(company_id.as_bytes()), &mut self.view)
+    }
+
+    pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, created: &DateTime<Utc>, transaction: &Hash) {
+        let member = {
+            let mut history = self.companies_members_history_mut(company_id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            CompanyMember::new(user_id, roles, created, created, history.len(), &history_hash)
+        };
+        self.companies_members_mut(company_id).put(&crypto::hash(user_id.as_bytes()), member);
     }
 }
 

@@ -3,4 +3,46 @@ package factor.company;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 
+enum CompanyType {
+	UNKNOWN = 0;
+	PUBLIC = 1;
+	MEMBER = 2;
+	PRIVATE = 3;
+}
+
+message Company {
+	string id = 1;
+	CompanyType ty = 2;
+	string email = 3;
+	string name = 4;
+	google.protobuf.Timestamp created = 5;
+	google.protobuf.Timestamp updated = 6;
+	uint64 history_len = 7;
+	exonum.Hash history_hash = 8;
+}
+
+message TxCreatePrivate {
+	string id = 1;
+	string email = 2;
+	string name = 3;
+	google.protobuf.Timestamp created = 4;
+}
+
+message TxUpdate {
+	string id = 1;
+	string email = 2;
+	string name = 3;
+	google.protobuf.Timestamp updated = 4;
+}
+
+message TxSetType {
+	string id = 1;
+	CompanyType ty = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxDelete {
+	string id = 1;
+	string memo = 2;
+}
 

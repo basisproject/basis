@@ -4,3 +4,6 @@ logging:
   # the log level (ignore all messages with a log level lower than this)
   level: 'info'
 
+tests:
+  bootstrap_user_key: false
+

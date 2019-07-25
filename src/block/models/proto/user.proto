@@ -51,6 +51,5 @@ message TxSetRoles {
 message TxDelete {
 	string id = 1;
 	string memo = 2;
-	google.protobuf.Timestamp deleted = 3;
 }
 

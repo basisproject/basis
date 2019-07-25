@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use hex::FromHex;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
@@ -8,9 +9,11 @@ use crate::block::{
     SERVICE_ID,
     schema::Schema,
     models::proto,
-    transactions::access::{self, Permission, Role},
+    models::access::{Permission, Role},
+    transactions::access,
 };
 use crate::util::{self, protobuf::empty_opt};
+use crate::config;
 use super::CommonError;
 
 #[derive(Debug, Fail)]
@@ -65,7 +68,10 @@ impl Transaction for TxCreate {
 
         let mut schema = Schema::new(context.fork());
 
-        access::check(&mut schema, pubkey, Permission::UserCreate)?;
+        let bootstrap_key = PublicKey::from_hex(config::get::<String>("tests.bootstrap_user_key").unwrap_or(String::from("")));
+        if bootstrap_key.is_err() || bootstrap_key.as_ref() != Ok(&pubkey) {
+            access::check(&mut schema, pubkey, Permission::UserCreate)?;
+        }
 
         if schema.get_user(self.id.as_str()).is_some() {
             Err(TransactionError::IDExists)?

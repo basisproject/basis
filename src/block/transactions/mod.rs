@@ -23,11 +23,16 @@ pub enum CommonError {
 
     #[fail(display = "Insufficient privileges")]
     InsufficientPrivileges = 1,
+
+    #[fail(display = "User not found")]
+    UserNotFound = 2,
 }
 define_exec_error!(CommonError);
 
 pub mod access;
 pub mod user;
+pub mod company;
+pub mod company_member;
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
 pub enum TransactionGroup {
@@ -36,6 +41,11 @@ pub enum TransactionGroup {
     UserSetPubkey(user::TxSetPubkey),
     UserSetRoles(user::TxSetRoles),
     UserDelete(user::TxDelete),
+
+    CompanyCreatePrivate(company::TxCreatePrivate),
+    CompanyUpdate(company::TxUpdate),
+    CompanySetType(company::TxSetType),
+    CompanyDelete(company::TxDelete),
 }
 
 

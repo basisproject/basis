@@ -1,3 +1,6 @@
+use ::std::thread;
+use ::std::time::Duration;
+
 macro_rules! do_lock {
     ($lock:expr) => {{
         //println!(" >>> lock {} ({}::{})", stringify!($lock), file!(), line!());
@@ -27,5 +30,11 @@ macro_rules! lockw {
 
 pub mod logger;
 pub mod time;
+#[macro_use]
 pub mod protobuf;
+
+/// Go to sleeeeep
+pub fn sleep(millis: u64) {
+    thread::sleep(Duration::from_millis(millis));
+}
 
