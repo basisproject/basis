@@ -47,8 +47,7 @@ pub enum Role {
     Admin,
     MemberAdmin,
     ProductAdmin,
-    Buyer,
-    Seller,
+    Purchaser,
 }
 
 impl Role {
@@ -73,11 +72,7 @@ impl Role {
                 vec![
                 ]
             }
-            Role::Buyer => {
-                vec![
-                ]
-            }
-            Role::Seller => {
+            Role::Purchaser => {
                 vec![
                 ]
             }
@@ -317,3 +312,4 @@ pub mod tests {
         assert_eq!(company2.history_hash, hash2);
     }
 }
+
