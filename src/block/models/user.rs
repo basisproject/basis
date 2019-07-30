@@ -82,7 +82,6 @@ impl User {
 
 pub mod tests {
     use super::*;
-    use std::str::FromStr;
     use crate::util;
 
     fn make_date() -> DateTime<Utc> {

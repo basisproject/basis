@@ -4,6 +4,9 @@ logging:
   # the log level (ignore all messages with a log level lower than this)
   level: 'info'
 
+# testing config
 tests:
+  # set this to a public key (hex string), which can then be used on the client
+  # side to create a SuperAdmin user for testing
   bootstrap_user_key: false
 
