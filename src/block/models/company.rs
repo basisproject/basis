@@ -123,6 +123,7 @@ impl ProtobufConvert for Role {
 pub struct Company {
     pub id: String,
     pub ty: CompanyType,
+    pub region_id: String,  // should be an Option, but protobufs are stupid
     pub email: String,
     pub name: String,
     pub created: DateTime<Utc>,
@@ -132,10 +133,11 @@ pub struct Company {
 }
 
 impl Company {
-    pub fn new(id: &str, ty: CompanyType, email: &str, name: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
+    pub fn new(id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             ty: ty,
+            region_id: region_id.map(|x| x.to_owned()).unwrap_or("".to_owned()),
             email: email.to_owned(),
             name: name.to_owned(),
             created: created.clone(),
@@ -149,6 +151,7 @@ impl Company {
         Self::new(
             &self.id,
             self.ty,
+            Some(&self.region_id),
             email.unwrap_or(&self.email),
             name.unwrap_or(&self.name),
             &self.created,
@@ -162,6 +165,7 @@ impl Company {
         Self::new(
             &self.id,
             ty,
+            Some(&self.region_id),
             &self.email,
             &self.name,
             &self.created,
@@ -248,6 +252,7 @@ pub mod tests {
         Company::new(
             "1dd0ec02-1c6d-4791-8ba5-eb9e16964c26",
             CompanyType::Private,
+            None,
             "homayun@friendless.com",
             "LEMONADE STANDS UNLIMITED",
             &date,
@@ -266,6 +271,7 @@ pub mod tests {
         let company2 = company.clone().update(None, None, &date2, &hash2);
         assert_eq!(company.id, company2.id);
         assert_eq!(company.ty, company2.ty);
+        assert_eq!(company.region_id, company2.region_id);
         assert_eq!(company.email, company2.email);
         assert_eq!(company.name, company2.name);
         assert_eq!(company.created, company2.created);

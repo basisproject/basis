@@ -193,12 +193,12 @@ impl<'a> Schema<&'a mut Fork> {
         ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &mut self.view)
     }
 
-    pub fn companies_create(&mut self, id: &str, ty: CompanyType, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_create(&mut self, id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let company = {
             let mut history = self.companies_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            Company::new(id, ty, email, name, created, created, history.len(), &history_hash)
+            Company::new(id, ty, region_id, email, name, created, created, history.len(), &history_hash)
         };
         self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
     }
