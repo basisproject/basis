@@ -46,6 +46,10 @@ pub enum TransactionGroup {
     CompanyUpdate(company::TxUpdate),
     CompanySetType(company::TxSetType),
     CompanyDelete(company::TxDelete),
+
+    CompanyMemberCreate(company_member::TxCreate),
+    CompanyMemberSetRoles(company_member::TxSetRoles),
+    CompanyMemberDelete(company_member::TxDelete),
 }
 
 

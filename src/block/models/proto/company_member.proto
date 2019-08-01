@@ -8,7 +8,28 @@ message CompanyMember {
 	repeated string roles = 2;
 	google.protobuf.Timestamp created = 3;
 	google.protobuf.Timestamp updated = 4;
-	uint64 history_len = 5;
-	exonum.Hash history_hash = 6;
+}
+
+message TxCreate {
+	string company_id = 1;
+	string user_id = 2;
+	repeated string roles = 3;
+	string memo = 4;
+	google.protobuf.Timestamp created = 5;
+}
+
+message TxSetRoles {
+	string company_id = 1;
+	string user_id = 2;
+	repeated string roles = 3;
+	string memo = 4;
+	google.protobuf.Timestamp updated = 5;
+}
+
+message TxDelete {
+	string company_id = 1;
+	string user_id = 2;
+	string memo = 3;
+	google.protobuf.Timestamp deleted = 4;
 }
 

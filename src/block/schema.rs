@@ -94,10 +94,6 @@ where
         ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &self.view)
     }
 
-    pub fn companies_members_history(&self, company_id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(company_id.as_bytes()), &self.view)
-    }
-
     pub fn get_company_member(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
         self.companies_members(company_id).get(&crypto::hash(user_id.as_bytes()))
     }
@@ -193,14 +189,15 @@ impl<'a> Schema<&'a mut Fork> {
         ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &mut self.view)
     }
 
-    pub fn companies_create(&mut self, id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_create(&mut self, id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) -> Company {
         let company = {
             let mut history = self.companies_history_mut(id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
             Company::new(id, ty, region_id, email, name, created, created, history.len(), &history_hash)
         };
-        self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
+        self.companies_mut().put(&crypto::hash(id.as_bytes()), company.clone());
+        company
     }
 
     pub fn companies_update(&mut self, company: Company, id: &str, email: Option<&str>, name: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -223,11 +220,10 @@ impl<'a> Schema<&'a mut Fork> {
         self.companies_mut().put(&crypto::hash(id.as_bytes()), company);
     }
 
-    pub fn companies_delete(&mut self, id: &str, transaction: &Hash) {
-        let mut history = self.companies_history_mut(id);
-        history.push(*transaction);
+    pub fn companies_delete(&mut self, id: &str) {
         self.companies_mut().remove(&crypto::hash(id.as_bytes()));
         self.companies_members_mut(id).clear();
+        self.companies_history_mut(id).clear();
     }
 
     // -------------------------------------------------------------------------
@@ -237,18 +233,42 @@ impl<'a> Schema<&'a mut Fork> {
         ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &mut self.view)
     }
 
-    pub fn companies_members_history_mut(&mut self, company_id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(company_id.as_bytes()), &mut self.view)
-    }
-
-    pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, created: &DateTime<Utc>, transaction: &Hash) {
-        let member = {
-            let mut history = self.companies_members_history_mut(company_id);
+    pub fn companies_members_create(&mut self, company: Company, user_id: &str, roles: &Vec<CompanyRole>, created: &DateTime<Utc>, transaction: &Hash) {
+        let company_id = &company.id.clone();
+        let member = CompanyMember::new(user_id, roles, created, created);
+        let company = {
+            let mut history = self.companies_history_mut(company_id);
             history.push(*transaction);
             let history_hash = history.merkle_root();
-            CompanyMember::new(user_id, roles, created, created, history.len(), &history_hash)
+            company.update_raw(created, &history_hash)
         };
         self.companies_members_mut(company_id).put(&crypto::hash(user_id.as_bytes()), member);
+        self.companies_mut().put(&crypto::hash(company_id.as_bytes()), company);
+    }
+
+    pub fn companies_members_set_roles(&mut self, company: Company, member: CompanyMember, roles: &Vec<CompanyRole>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let company_id = &company.id.clone();
+        let member = member.set_roles(roles, updated);
+        let company = {
+            let mut history = self.companies_history_mut(company_id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            company.update_raw(updated, &history_hash)
+        };
+        self.companies_members_mut(company_id).put(&crypto::hash(member.user_id.as_bytes()), member);
+        self.companies_mut().put(&crypto::hash(company_id.as_bytes()), company);
+    }
+
+    pub fn companies_members_delete(&mut self, company: Company, user_id: &str, deleted: &DateTime<Utc>, transaction: &Hash) {
+        let company_id = &company.id.clone();
+        let company = {
+            let mut history = self.companies_history_mut(company_id);
+            history.push(*transaction);
+            let history_hash = history.merkle_root();
+            company.update_raw(deleted, &history_hash)
+        };
+        self.companies_members_mut(company_id).remove(&crypto::hash(user_id.as_bytes()));
+        self.companies_mut().put(&crypto::hash(company_id.as_bytes()), company);
     }
 }
 

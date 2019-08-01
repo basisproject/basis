@@ -161,6 +161,20 @@ impl Company {
         )
     }
 
+    pub fn update_raw(self, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+        Self::new(
+            &self.id,
+            self.ty,
+            Some(&self.region_id),
+            &self.email,
+            &self.name,
+            &self.created,
+            updated,
+            self.history_len + 1,
+            history_hash
+        )
+    }
+
     pub fn set_type(self, ty: CompanyType, updated: &DateTime<Utc>, history_hash: &Hash) -> Self { 
         Self::new(
             &self.id,
@@ -296,6 +310,20 @@ pub mod tests {
         assert_eq!(company2.history_len, company3.history_len - 1);
         assert!(company2.history_hash != company3.history_hash);
         assert_eq!(company3.history_hash, hash3);
+        util::sleep(100);
+        let date4 = make_date();
+        let hash4 = Hash::new([1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4]);
+        let company4 = company3.clone().update_raw(&date4, &hash4);
+        assert_eq!(company3.id, company4.id);
+        assert_eq!(company3.ty, company4.ty);
+        assert_eq!(company3.email, company4.email);
+        assert_eq!(company3.name, company4.name);
+        assert_eq!(company3.created, company4.created);
+        assert!(company3.updated != company4.updated);
+        assert_eq!(company4.updated, date4);
+        assert_eq!(company3.history_len, company4.history_len - 1);
+        assert!(company3.history_hash != company4.history_hash);
+        assert_eq!(company4.history_hash, hash4);
     }
 
     #[test]

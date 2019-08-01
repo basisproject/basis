@@ -19,6 +19,7 @@ pub enum Permission {
     CompanyAdminUpdate,
     CompanyAdminDelete,
     CompanySetType,
+    CompanyUpdateMembers,
 }
 
 /// Define the system-wide roles users can have.
@@ -60,7 +61,9 @@ impl Role {
             Role::User => {
                 vec![
                     Permission::UserUpdate,
+                    Permission::UserDelete,
                     Permission::CompanyCreatePrivate,
+                    Permission::CompanyUpdateMembers,
                 ]
             }
         }
