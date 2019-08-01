@@ -1,7 +1,8 @@
 const Promise = require('bluebird');
 const uuid = require('uuid/v4');
 const Exonum = require('exonum-client');
-const transactions = require('../helpers/transactions');
+const trans = require('../helpers/transactions');
+const tx = trans.types;
 const bootstrap = require('../helpers/bootstrap');
 const config = require('../helpers/config');
 const Users = require('../helpers/users');
@@ -14,6 +15,7 @@ describe('users', function() {
 	});
 
 	afterAll((done) => {
+		trans.clear_users();
 		bootstrap.unload().then(done).catch(done.fail);
 	});
 
@@ -25,15 +27,16 @@ describe('users', function() {
 	const sandra_user_id = uuid();
 	const {publicKey: sandra_pubkey, secretKey: sandra_seckey} = Exonum.keyPair();
 	const sandra_email = 'sandra@thatscool.net';
-	transactions.add_user('root', config.bootstrap_user.pub, config.bootstrap_user.sec);
-	transactions.add_user('jerry', jerry_pubkey, jerry_seckey);
-	transactions.add_user('sandra', sandra_pubkey, sandra_seckey);
+
+	trans.add_user('root', config.bootstrap_user.pub, config.bootstrap_user.sec);
+	trans.add_user('jerry', jerry_pubkey, jerry_seckey);
+	trans.add_user('sandra', sandra_pubkey, sandra_seckey);
 
 	it('can be created', async () => {
 		// create jerry
 		let jerry = await Users.get({id: jerry_user_id});
 		expect(jerry).toBe(null);
-		var txid = await transactions.send_as('root', 'factor.user.TxCreate', {
+		var txid = await trans.send_as('root', tx.user.TxCreate, {
 			id: jerry_user_id,
 			pubkey: jerry_pubkey,
 			roles: ['User'],
@@ -43,7 +46,7 @@ describe('users', function() {
 			created: new Date().toISOString(),
 		});
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.id).toBe(jerry_user_id);
@@ -51,7 +54,7 @@ describe('users', function() {
 		// create sandra
 		let sandra = await Users.get({id: sandra_user_id});
 		expect(sandra).toBe(null);
-		var txid = await transactions.send_as('root', 'factor.user.TxCreate', {
+		var txid = await trans.send_as('root', tx.user.TxCreate, {
 			id: sandra_user_id,
 			pubkey: sandra_pubkey,
 			roles: ['User'],
@@ -61,14 +64,14 @@ describe('users', function() {
 			created: new Date().toISOString(),
 		});
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		sandra = await Users.get({id: sandra_user_id});
 		expect(sandra.id).toBe(sandra_user_id);
 	});
 
 	it('can update themselves', async () => {
-		var txid = await transactions.send_as('jerry', 'factor.user.TxUpdate', {
+		var txid = await trans.send_as('jerry', tx.user.TxUpdate, {
 			id: jerry_user_id,
 			email: jerry_email_new,
 			name: 'jerry *THE JERJER* anderson',
@@ -76,7 +79,7 @@ describe('users', function() {
 			updated: new Date().toISOString(),
 		});
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.email).toBe(jerry_email_new);
@@ -91,9 +94,9 @@ describe('users', function() {
 			meta: '{"friends":0}',
 			updated: new Date().toISOString(),
 		};
-		var txid = await transactions.send_as('sandra', 'factor.user.TxUpdate', data2);
+		var txid = await trans.send_as('sandra', tx.user.TxUpdate, data2);
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(false);
 		expect(status.committed).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
@@ -102,20 +105,20 @@ describe('users', function() {
 	});
 
 	it('can have their permissions changed by admin', async () => {
-		var txid = await transactions.send_as('root', 'factor.user.TxSetRoles', {
+		var txid = await trans.send_as('root', tx.user.TxSetRoles, {
 			id: sandra_user_id,
 			roles: ['IdentityAdmin'],
 			memo: 'great job, sandra. you\'ve earned this',
 			updated: new Date().toISOString(),
 		});
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 	});
 
 	it('lets users with correct permissions edit other users', async () => {
 		// sandra CAN NOW abuse her power and update jerjer the jerkjerk
-		var txid = await transactions.send_as('sandra', 'factor.user.TxUpdate', {
+		var txid = await trans.send_as('sandra', tx.user.TxUpdate, {
 			id: jerry_user_id,
 			email: 'jerry.sux@jerry.is.NOT.cool.net',
 			name: 'jerry *THE JERKJERK* JERKSTON',
@@ -123,10 +126,14 @@ describe('users', function() {
 			updated: new Date().toISOString(),
 		});
 		await Promise.delay(200);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.email).not.toBe(jerry_email_new);
+	});
+
+	it('can have their pubkey changed by an admin', async () => {
+		//var txid = await trans.send_as('root', 'factor.
 	});
 
 	it('can be deleted', async () => {
@@ -143,9 +150,9 @@ describe('users', function() {
 		await Promise.delay(100);
 		var user = await Users.get({id: jerry_user_id});
 		expect(user.id).toBe(jerry_user_id);
-		var txid = await transactions.send('factor.user.TxDelete', data, params);
+		var txid = await trans.send(tx.user.TxDelete, data, params);
 		await Promise.delay(100);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		user = await Users.get({id: jerry_user_id});
 		expect(user).toBe(null);
@@ -163,9 +170,9 @@ describe('users', function() {
 		await Promise.delay(100);
 		var user = await Users.get({email: sandra_email});
 		expect(user.id).toBe(sandra_user_id);
-		var txid = await transactions.send('factor.user.TxDelete', data, params);
+		var txid = await trans.send(tx.user.TxDelete, data, params);
 		await Promise.delay(100);
-		var status = await transactions.status(txid);
+		var status = await trans.status(txid);
 		expect(status.success).toBe(true);
 		user = await Users.get({id: sandra_user_id});
 		expect(user).toBe(null);

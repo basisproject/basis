@@ -3,25 +3,36 @@ const rp = require('request-promise');
 const protobuf = require('./protobuf');
 const config = require('./config');
 
+const types = {};
 const message_id_map = {
-	'factor.user.TxCreate': 0,
-	'factor.user.TxUpdate': 1,
-	'factor.user.TxSetPubkey': 2,
-	'factor.user.TxSetRoles': 3,
-	'factor.user.TxDelete': 4,
+	'user.TxCreate': 0,
+	'user.TxUpdate': 1,
+	'user.TxSetPubkey': 2,
+	'user.TxSetRoles': 3,
+	'user.TxDelete': 4,
 
-    'factor.company.TxCreatePrivate': 5,
-    'factor.company.TxUpdate': 6,
-    'factor.company.TxSetType': 7,
-    'factor.company.TxDelete': 8,
+    'company.TxCreatePrivate': 5,
+    'company.TxUpdate': 6,
+    'company.TxSetType': 7,
+    'company.TxDelete': 8,
 
-    'factor.company_member.TxCreate': 9,
-    'factor.company_member.TxSetRoles': 10,
-    'factor.company_member.TxDelete': 11,
+    'company_member.TxCreate': 9,
+    'company_member.TxSetRoles': 10,
+    'company_member.TxDelete': 11,
 };
+Object.keys(message_id_map).forEach((key) => {
+	const [type, tx] = key.split('.');
+	if(!types[type]) types[type] = {};
+	types[type][tx] = {
+		type: `factor.${key}`,
+		msg_id: message_id_map[key],
+	}
+});
+
+exports.types = types;
 
 exports.make = (type, data, params) => {
-	const Transaction = protobuf.root.lookupType(type);
+	const Transaction = protobuf.root.lookupType(type.type);
 	const map_types = {
 		'google.protobuf.Timestamp': 'Timestamp',
 		'exonum.Hash': 'Hash',
@@ -43,7 +54,7 @@ exports.make = (type, data, params) => {
 		schema: Transaction,
 		author: params.pubkey,
 		service_id: params.service_id || config.service_id,
-		message_id: params.message_id || message_id_map[type],
+		message_id: params.message_id || type.msg_id,
 	});
 	return trans;
 };

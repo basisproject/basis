@@ -1,6 +1,7 @@
 const Promise = require('bluebird');
 const config = require('../helpers/config');
-const transactions = require('../helpers/transactions');
+const trans = require('../helpers/transactions');
+const tx = trans.types;
 const Users = require('../helpers/users');
 
 exports.load = async function() {
@@ -16,11 +17,10 @@ exports.load = async function() {
 	const params = {
 		pubkey: config.bootstrap_user.pub,
 		privkey: config.bootstrap_user.sec,
-		message_id: 0,
 	};
-	const txid = await transactions.send('factor.user.TxCreate', data, params);
+	const txid = await trans.send(tx.user.TxCreate, data, params);
 	await Promise.delay(200);
-	const status = await transactions.status(txid);
+	const status = await trans.status(txid);
 	if(!status.success) {
 		throw new Error('helpers/bootstrap::load() -- user create failed: '+JSON.stringify(status));
 	}
@@ -38,9 +38,9 @@ exports.unload = async function() {
 		privkey: config.bootstrap_user.sec,
 		message_id: 4,
 	};
-	const txid = await transactions.send('factor.user.TxDelete', data, params);
+	const txid = await trans.send(tx.user.TxDelete, data, params);
 	await Promise.delay(100);
-	const status = await transactions.status(txid);
+	const status = await trans.status(txid);
 	if(!status.success) {
 		throw new Error('helpers/bootstrap::unload() -- user delete failed: '+JSON.stringify(status));
 	}

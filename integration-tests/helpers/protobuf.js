@@ -75,7 +75,7 @@ protos.define('exonum').add(Pubkey.type);
 protos.define('exonum').add(Hash.type);
 exports.root = protos;
 
-exports.load = function() {
+function load() {
 	const files = fs.readdirSync(config.protobuf_dir)
 	return Promise.map(files, function(protofile) {
 		if(protofile.match(/^\./) || !protofile.match(/\.proto$/)) return;
@@ -85,4 +85,5 @@ exports.load = function() {
 		protos.loadSync(fullpath);
 	});
 };
+load();
 
