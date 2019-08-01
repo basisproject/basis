@@ -91,6 +91,34 @@ exports.get = async (txid) => {
 	return res;
 };
 
+exports.wait = async (txid, options) => {
+	options || (options = {});
+	let timeout = false;
+	setTimeout(() => timeout = true, options.timeout || 10000);
+	let trans = null;
+	while(true) {
+		const res = await rp({
+			url: `${config.endpoint}/explorer/v1/transactions?hash=${txid}`,
+			json: true,
+		});
+		if(timeout) {
+			if(options.raw) {
+				throw new Error(`helpers/transactions::wait() -- timeout`);
+			}
+			return {missing: true};
+		}
+		if(res && res.type != 'unknown') {
+			trans = res;
+			break;
+		}
+	}
+	if(options.raw) return trans;
+	return {
+		committed: trans.type == 'committed',
+		success: trans.status.type == 'success',
+	}
+};
+
 exports.status = async (txid) => {
 	const res = await exports.get(txid);
 	if(!res || res.type == 'unknown') return {missing: true};

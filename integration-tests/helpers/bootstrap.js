@@ -19,8 +19,7 @@ exports.load = async function() {
 		privkey: config.bootstrap_user.sec,
 	};
 	const txid = await trans.send(tx.user.TxCreate, data, params);
-	await Promise.delay(200);
-	const status = await trans.status(txid);
+	const status = await trans.wait(txid);
 	if(!status.success) {
 		throw new Error('helpers/bootstrap::load() -- user create failed: '+JSON.stringify(status));
 	}
@@ -39,8 +38,7 @@ exports.unload = async function() {
 		message_id: 4,
 	};
 	const txid = await trans.send(tx.user.TxDelete, data, params);
-	await Promise.delay(100);
-	const status = await trans.status(txid);
+	const status = await trans.wait(txid);
 	if(!status.success) {
 		throw new Error('helpers/bootstrap::unload() -- user delete failed: '+JSON.stringify(status));
 	}

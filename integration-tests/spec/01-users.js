@@ -45,8 +45,7 @@ describe('users', function() {
 			meta: '{}',
 			created: new Date().toISOString(),
 		});
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.id).toBe(jerry_user_id);
@@ -63,8 +62,7 @@ describe('users', function() {
 			meta: '{}',
 			created: new Date().toISOString(),
 		});
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		sandra = await Users.get({id: sandra_user_id});
 		expect(sandra.id).toBe(sandra_user_id);
@@ -78,8 +76,7 @@ describe('users', function() {
 			meta: '{"friends":99}',
 			updated: new Date().toISOString(),
 		});
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.email).toBe(jerry_email_new);
@@ -95,8 +92,7 @@ describe('users', function() {
 			updated: new Date().toISOString(),
 		};
 		var txid = await trans.send_as('sandra', tx.user.TxUpdate, data2);
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(false);
 		expect(status.committed).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
@@ -111,8 +107,7 @@ describe('users', function() {
 			memo: 'great job, sandra. you\'ve earned this',
 			updated: new Date().toISOString(),
 		});
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 	});
 
@@ -125,54 +120,58 @@ describe('users', function() {
 			meta: '{"friends":0}',
 			updated: new Date().toISOString(),
 		});
-		await Promise.delay(200);
-		var status = await trans.status(txid);
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		var jerry = await Users.get({id: jerry_user_id});
 		expect(jerry.email).not.toBe(jerry_email_new);
 	});
 
 	it('can have their pubkey changed by an admin', async () => {
-		//var txid = await trans.send_as('root', 'factor.
+		const {publicKey: sandra_pubkey2, secretKey: sandra_seckey2} = Exonum.keyPair();
+		var txid = await trans.send_as('root', tx.user.TxSetPubkey, {
+			id: sandra_user_id,
+			pubkey: sandra_pubkey2,
+			memo: 'sandra lost her key. again.',
+			updated: new Date().toISOString(),
+		});
+		trans.add_user('sandra2', sandra_pubkey2, sandra_seckey2);
+		var status = await trans.wait(txid);
+		expect(status.success).toBe(true);
 	});
 
-	it('can be deleted', async () => {
-		var data = {
+	it('cannot update with an old pubkey', async () => {
+		var txid = await trans.send_as('sandra', tx.user.TxUpdate, {
+			id: sandra_user_id,
+			email: 'sandra@is.kewl.net',
+			updated: new Date().toISOString(),
+		});
+		var status = await trans.wait(txid);
+		expect(status.success).toBe(false);
+		var sandra = await Users.get({id: sandra_user_id});
+		expect(sandra.email).toBe(sandra_email);
+	});
+
+	it('can self-delete', async () => {
+		var user = await Users.get({id: jerry_user_id});
+		expect(user.id).toBe(jerry_user_id);
+		var txid = await trans.send_as('jerry', tx.user.TxDelete, {
 			id: jerry_user_id,
 			memo: `just gettin deleted, huh? thats cool...`,
 			deleted: new Date().toISOString(),
-		};
-		var params = {
-			pubkey: jerry_pubkey,
-			privkey: jerry_seckey,
-			message_id: 4,
-		};
-		await Promise.delay(100);
-		var user = await Users.get({id: jerry_user_id});
-		expect(user.id).toBe(jerry_user_id);
-		var txid = await trans.send(tx.user.TxDelete, data, params);
-		await Promise.delay(100);
-		var status = await trans.status(txid);
+		});
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		user = await Users.get({id: jerry_user_id});
 		expect(user).toBe(null);
 
-		var data = {
-			id: sandra_user_id,
-			memo: `just gettin deleted, huh? thats cool...`,
-			deleted: new Date().toISOString(),
-		};
-		var params = {
-			pubkey: sandra_pubkey,
-			privkey: sandra_seckey,
-			message_id: 4,
-		};
-		await Promise.delay(100);
 		var user = await Users.get({email: sandra_email});
 		expect(user.id).toBe(sandra_user_id);
-		var txid = await trans.send(tx.user.TxDelete, data, params);
-		await Promise.delay(100);
-		var status = await trans.status(txid);
+		var txid = await trans.send_as('sandra2', tx.user.TxDelete, {
+			id: sandra_user_id,
+			memo: `i hate this stupid system`,
+			deleted: new Date().toISOString(),
+		});
+		var status = await trans.wait(txid);
 		expect(status.success).toBe(true);
 		user = await Users.get({id: sandra_user_id});
 		expect(user).toBe(null);
