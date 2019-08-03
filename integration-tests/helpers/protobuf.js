@@ -77,7 +77,7 @@ exports.root = protos;
 
 function load() {
 	const files = fs.readdirSync(config.protobuf_dir)
-	return Promise.map(files, function(protofile) {
+	files.forEach(function(protofile) {
 		if(protofile.match(/^\./) || !protofile.match(/\.proto$/)) return;
 		const fullpath = fs.realpathSync(config.protobuf_dir+'/'+protofile);
 		const name = path.basename(fullpath, '.proto');

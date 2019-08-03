@@ -66,6 +66,24 @@ describe('users', function() {
 		expect(status.success).toBe(true);
 		sandra = await Users.get({id: sandra_user_id});
 		expect(sandra.id).toBe(sandra_user_id);
+
+		// needs a valid email
+		const slappy_user_id = uuid();
+		let slappy = await Users.get({id: slappy_user_id});
+		const {publicKey: slappy_pubkey, secretKey: slappy_seckey} = Exonum.keyPair();
+		expect(slappy).toBe(null);
+		var txid = await trans.send_as('root', tx.user.TxCreate, {
+			id: slappy_user_id,
+			pubkey: slappy_pubkey,
+			roles: ['User'],
+			email: 'HIGH ENERGY ALPHA MALE',
+			name: 'slappy',
+			meta: '',
+			created: new Date().toISOString(),
+		});
+		var status = await trans.wait(txid);
+		expect(status.success).toBe(false);
+		expect(status.description.match(/invalid email/i)).toBeTruthy();
 	});
 
 	it('can update themselves', async () => {

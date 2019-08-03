@@ -91,6 +91,15 @@ exports.get = async (txid) => {
 	return res;
 };
 
+function extract_status(trans) {
+	return {
+		committed: trans.type == 'committed',
+		success: trans.status.type == 'success',
+		code: trans.status.code,
+		description: trans.status.description,
+	}
+}
+
 exports.wait = async (txid, options) => {
 	options || (options = {});
 	let timeout = false;
@@ -113,18 +122,12 @@ exports.wait = async (txid, options) => {
 		}
 	}
 	if(options.raw) return trans;
-	return {
-		committed: trans.type == 'committed',
-		success: trans.status.type == 'success',
-	}
+	return extract_status(trans);
 };
 
 exports.status = async (txid) => {
 	const res = await exports.get(txid);
 	if(!res || res.type == 'unknown') return {missing: true};
-	return {
-		committed: res.type == 'committed',
-		success: res.status.type == 'success',
-	};
+	return extract_status(res);
 };
 

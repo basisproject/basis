@@ -5,3 +5,4 @@ config/local.js
 sess.vim
 *.un~
 *.stackdump
+play/
