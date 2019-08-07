@@ -265,7 +265,6 @@ impl TxDelete {
 impl Transaction for TxDelete {
     fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
-        let hash = context.tx_hash();
 
         let mut schema = Schema::new(context.fork());
 
@@ -287,7 +286,7 @@ impl Transaction for TxDelete {
             Err(CommonError::InvalidTime)?
         }
 
-        schema.users_delete(user, &self.id, &hash);
+        schema.users_delete(user, &self.id);
         Ok(())
     }
 }

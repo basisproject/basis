@@ -89,8 +89,8 @@ impl Transaction for TxCreatePrivate {
         } else if !self.email.contains("@") {
             Err(TransactionError::InvalidEmail)?
         } else {
-            let company = schema.companies_create(&self.id, CompanyType::Private, None, &self.email, &self.name, &self.created, &hash);
-            schema.companies_members_create(company, &user.id, &vec![CompanyRole::Owner], &self.created, &hash);
+            schema.companies_create(&self.id, CompanyType::Private, None, &self.email, &self.name, &self.created, &hash);
+            schema.companies_members_create(&self.id, &user.id, &vec![CompanyRole::Owner], &self.created, &hash);
             Ok(())
         }
     }

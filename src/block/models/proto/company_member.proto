@@ -8,6 +8,8 @@ message CompanyMember {
 	repeated string roles = 2;
 	google.protobuf.Timestamp created = 3;
 	google.protobuf.Timestamp updated = 4;
+	uint64 history_len = 8;
+	exonum.Hash history_hash = 9;
 }
 
 message TxCreate {

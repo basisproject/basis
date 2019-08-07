@@ -56,10 +56,9 @@ impl Transaction for TxCreate {
 
         let mut schema = Schema::new(context.fork());
 
-        let company = match schema.get_company(&self.company_id) {
-            Some(x) => x,
-            None => Err(TransactionError::CompanyNotFound)?,
-        };
+        if schema.get_company(&self.company_id).is_none() {
+            Err(TransactionError::CompanyNotFound)?;
+        }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberCreate)?;
@@ -76,7 +75,7 @@ impl Transaction for TxCreate {
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_create(company, &self.user_id, &self.roles, &self.created, &hash);
+            schema.companies_members_create(&self.company_id, &self.user_id, &self.roles, &self.created, &hash);
             Ok(())
         }
     }
@@ -106,10 +105,9 @@ impl Transaction for TxSetRoles {
 
         let mut schema = Schema::new(context.fork());
 
-        let company = match schema.get_company(&self.company_id) {
-            Some(x) => x,
-            None => Err(TransactionError::CompanyNotFound)?,
-        };
+        if schema.get_company(&self.company_id).is_none() {
+            Err(TransactionError::CompanyNotFound)?;
+        }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberUpdate)?;
@@ -128,7 +126,7 @@ impl Transaction for TxSetRoles {
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_set_roles(company, member, &self.roles, &self.updated, &hash);
+            schema.companies_members_set_roles(&self.company_id, member, &self.roles, &self.updated, &hash);
             Ok(())
         }
     }
@@ -153,14 +151,12 @@ impl TxDelete {
 impl Transaction for TxDelete {
     fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
-        let hash = context.tx_hash();
 
         let mut schema = Schema::new(context.fork());
 
-        let company = match schema.get_company(&self.company_id) {
-            Some(x) => x,
-            None => Err(TransactionError::CompanyNotFound)?,
-        };
+        if schema.get_company(&self.company_id).is_none() {
+            Err(TransactionError::CompanyNotFound)?;
+        }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberDelete)?;
@@ -177,7 +173,7 @@ impl Transaction for TxDelete {
         } else if !util::time::is_current(&self.deleted) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.companies_members_delete(company, &self.user_id, &self.deleted, &hash);
+        schema.companies_members_delete(&self.company_id, &self.user_id);
         Ok(())
     }
 }
