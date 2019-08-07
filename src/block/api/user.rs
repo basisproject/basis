@@ -1,6 +1,6 @@
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
-    blockchain::{self, BlockProof},
+    blockchain,
     crypto::{self, Hash, PublicKey},
     helpers::Height,
     storage::proof_map_index::MapProof,
@@ -11,6 +11,8 @@ use crate::block::{
     ApiError,
     ObjectProof,
     ObjectHistory,
+    ListResult,
+    ProofResult,
     schema::Schema,
     SERVICE_ID,
 };
@@ -22,30 +24,17 @@ pub struct UsersQuery {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UsersResult {
-    pub users: Vec<models::user::User>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct UserQuery {
     pub id: Option<String>,
     pub pubkey: Option<PublicKey>,
     pub email: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserResult {
-    pub block_proof: Option<BlockProof>,
-    pub user_proof: ObjectProof<models::user::User>,
-    pub user_history: Option<ObjectHistory>,
-    pub user: Option<models::user::User>,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct UserApi;
 
 impl UserApi {
-    pub fn get_users(state: &ServiceApiState, query: UsersQuery) -> api::Result<UsersResult> {
+    pub fn get_users(state: &ServiceApiState, query: UsersQuery) -> api::Result<ListResult<models::user::User>> {
         let snapshot = state.snapshot();
         let schema = Schema::new(&snapshot);
 
@@ -60,12 +49,12 @@ impl UserApi {
             .take(per_page)
             .map(|x| x.1)
             .collect::<Vec<_>>();
-        Ok(UsersResult {
-            users,
+        Ok(ListResult {
+            items: users,
         })
     }
 
-    pub fn get_user(state: &ServiceApiState, query: UserQuery) -> api::Result<UserResult> {
+    pub fn get_user(state: &ServiceApiState, query: UserQuery) -> api::Result<ProofResult<models::user::User>> {
         let snapshot = state.snapshot();
         let system_schema = blockchain::Schema::new(&snapshot);
         let schema = Schema::new(&snapshot);
@@ -106,11 +95,11 @@ impl UserApi {
                 transactions,
             }
         });
-        Ok(UserResult {
+        Ok(ProofResult {
             block_proof,
-            user_proof: object_proof,
-            user_history,
-            user,
+            item_proof: object_proof,
+            item_history: user_history,
+            item: user,
         })
     }
 
@@ -120,5 +109,4 @@ impl UserApi {
             .endpoint("v1/users/info", Self::get_user);
     }
 }
-
 

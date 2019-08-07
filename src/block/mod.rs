@@ -5,7 +5,7 @@ pub mod api;
 
 use exonum::{
     api::{ServiceApiBuilder},
-    blockchain::{self, Transaction, TransactionSet, TransactionMessage},
+    blockchain::{self, Transaction, TransactionSet, TransactionMessage, BlockProof},
     crypto::{Hash},
     helpers::fabric::{self, Context},
     messages::RawTransaction,
@@ -38,6 +38,19 @@ pub struct ObjectHistory {
     pub transactions: Vec<TransactionMessage>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProofResult<T> {
+    pub block_proof: Option<BlockProof>,
+    pub item_proof: ObjectProof<T>,
+    pub item_history: Option<ObjectHistory>,
+    pub item: Option<T>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListResult<T> {
+    pub items: Vec<T>,
+}
+
 #[derive(Default, Debug)]
 pub struct Service;
 
@@ -62,6 +75,7 @@ impl blockchain::Service for Service {
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
         api::user::UserApi::wire(builder);
         api::company::CompanyApi::wire(builder);
+        //api::company_member::CompanyMemberApi::wire(builder);
     }
 }
 
