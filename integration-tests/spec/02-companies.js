@@ -79,7 +79,7 @@ describe('companies', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.id).toBe(company_id);
 		expect(company.email).toBe(company_email);
 		expect(company.name).toBe('jerry\'s WIDGETS');
@@ -106,7 +106,7 @@ describe('companies', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.id).toBe(company_id);
 		expect(company.email).toBe(company_email);
 		expect(company.name).toBe('Widget emporium');
@@ -122,7 +122,7 @@ describe('companies', function() {
 	});
 
 	it('can have their type updated', async () => {
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.ty).toBe('PRIVATE');
 
 		// jerry cannot set his own type
@@ -151,7 +151,7 @@ describe('companies', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.ty).toBe('UNKNOWN');
 
 		var res = await trans.send_as('root', tx.company.TxSetType, {
@@ -160,7 +160,7 @@ describe('companies', function() {
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.ty).toBe('SYNDICATE');
 
 		var res = await trans.send_as('root', tx.company.TxSetType, {
@@ -169,7 +169,7 @@ describe('companies', function() {
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
-		var company = await Companies.get(company_id);
+		var company = await Companies.get({id: company_id});
 		expect(company.ty).toBe('PRIVATE');
 	});
 
