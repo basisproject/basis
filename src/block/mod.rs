@@ -75,7 +75,7 @@ impl blockchain::Service for Service {
     fn wire_api(&self, builder: &mut ServiceApiBuilder) {
         api::user::UserApi::wire(builder);
         api::company::CompanyApi::wire(builder);
-        //api::company_member::CompanyMemberApi::wire(builder);
+        api::company_member::CompanyMemberApi::wire(builder);
     }
 }
 

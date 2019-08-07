@@ -94,6 +94,10 @@ where
         ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &self.view)
     }
 
+    pub fn companies_members_history(&self, company_id: &str, user_id: &str) -> ProofListIndex<&T, Hash> {
+        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), &self.view)
+    }
+
     pub fn get_company_member(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
         self.companies_members(company_id).get(&crypto::hash(user_id.as_bytes()))
     }
