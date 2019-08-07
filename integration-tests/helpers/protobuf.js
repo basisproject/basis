@@ -50,7 +50,7 @@ const CompanyType = {
 	map: {
 		UNKNOWN: 0,
 		PUBLIC: 1,
-		MEMBER: 2,
+		SYNDICATE: 2,
 		PRIVATE: 3,
 	},
 	type: new protobuf.Enum('CompanyType', this.map),
@@ -70,7 +70,7 @@ const protos = new protobuf.Root();
 protos.resolvePath = (origin, target) => {
 	return target;
 };
-//protos.define('google.protobuf.Timestamp').add(Timestamp.type);
+
 protos.define('exonum').add(Pubkey.type);
 protos.define('exonum').add(Hash.type);
 exports.root = protos;

@@ -80,6 +80,7 @@ impl User {
     }
 }
 
+#[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::util;

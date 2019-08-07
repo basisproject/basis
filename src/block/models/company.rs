@@ -7,8 +7,9 @@ use crate::error::CError;
 
 proto_enum! {
     enum CompanyType {
+        Unknown = 0,
         Public = 1,
-        Member = 2,
+        Syndicate = 2,
         Private = 3,
     };
     proto::company::CompanyType

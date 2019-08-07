@@ -176,6 +176,7 @@ impl<'a> Schema<&'a mut Fork> {
         self.users_mut().remove(&crypto::hash(id.as_bytes()));
         self.users_idx_pubkey_mut().remove(&user.pubkey);
         self.users_idx_email_mut().remove(&user.email);
+        self.users_history_mut(id).clear();
     }
 
     // -------------------------------------------------------------------------

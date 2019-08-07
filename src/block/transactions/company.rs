@@ -190,12 +190,13 @@ impl Transaction for TxSetType {
 pub struct TxDelete {
     pub id: String,
     pub memo: String,
+    pub deleted: DateTime<Utc>,
 }
 
 impl TxDelete {
     #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, memo: &str) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), memo: memo.to_owned() }, SERVICE_ID, *pk, sk)
+    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, memo: &str, deleted: &DateTime<Utc>) -> Signed<RawTransaction> {
+        Message::sign_transaction(Self {id: id.to_owned(), memo: memo.to_owned(), deleted: deleted.clone() }, SERVICE_ID, *pk, sk)
     }
 }
 
@@ -205,6 +206,11 @@ impl Transaction for TxDelete {
 
         let mut schema = Schema::new(context.fork());
 
+        match schema.get_company(self.id.as_str()) {
+            Some(_) => (),
+            None => Err(TransactionError::CompanyNotFound)?,
+        }
+
         match access::check(&mut schema, pubkey, Permission::CompanyAdminDelete) {
             Ok(_) => {}
             Err(_) => {
@@ -212,9 +218,8 @@ impl Transaction for TxDelete {
             }
         }
 
-        match schema.get_company(self.id.as_str()) {
-            Some(_) => (),
-            None => Err(TransactionError::CompanyNotFound)?,
+        if !util::time::is_current(&self.deleted) {
+            Err(CommonError::InvalidTime)?
         }
 
         schema.companies_delete(&self.id);

@@ -1,8 +1,10 @@
+"use strict";
+
 const Promise = require('bluebird');
 const config = require('../helpers/config');
 const trans = require('../helpers/transactions');
 const tx = trans.types;
-const Users = require('../helpers/users');
+const Users = require('../models/users');
 
 exports.load = async function() {
 	const data = {

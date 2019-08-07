@@ -3,7 +3,6 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
-    storage::Fork,
 };
 use crate::block::{
     SERVICE_ID,

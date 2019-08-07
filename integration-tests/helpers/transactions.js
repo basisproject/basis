@@ -1,3 +1,5 @@
+"use strict";
+
 const Exonum = require('exonum-client');
 const rp = require('request-promise');
 const protobuf = require('./protobuf');
@@ -64,23 +66,30 @@ exports.send = async (type, data, params) => {
 	return trans.send(`${config.endpoint}/explorer/v1/transactions`, data, params.privkey);
 };
 
-let whoswho = {};
+const whoswho = {};
 exports.add_user = (who, pubkey, seckey) => {
 	whoswho[who] = {pub: pubkey, sec: seckey};
 };
 
 exports.clear_users = () => {
-	whoswho = {};
+	Object.keys(whoswho).forEach((key) => delete whoswho[key]);
 };
 
-exports.send_as = async (who, type, data, params) => {
+exports.send_as = async (who, type, data, params, options) => {
+	options || (options = {});
 	const user = whoswho[who];
 	if(!user) throw new Error(`helpers/transactions::send_as() -- missing user ${who}`);
 	const newparams = Object.assign({}, {
 		pubkey: user.pub,
 		privkey: user.sec,
 	}, params || {});
-	return exports.send(type, data, newparams);
+	let txid = await exports.send(type, data, newparams);
+	if(options.no_wait) {
+		return txid;
+	}
+	let status = exports.wait(txid, options);
+	status.txid = txid;
+	return status;
 };
 
 exports.get = async (txid) => {

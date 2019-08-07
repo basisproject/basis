@@ -34,6 +34,7 @@ pub mod time;
 pub mod protobuf;
 
 /// Go to sleeeeep
+#[allow(dead_code)]
 pub fn sleep(millis: u64) {
     thread::sleep(Duration::from_millis(millis));
 }
