@@ -82,7 +82,7 @@ function load() {
 		const fullpath = fs.realpathSync(config.protobuf_dir+'/'+protofile);
 		const name = path.basename(fullpath, '.proto');
 		if(protos[name]) return protos[name];
-		protos.loadSync(fullpath);
+		protos.loadSync(fullpath, {keepCase: true});
 	});
 };
 load();
