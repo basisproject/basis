@@ -170,12 +170,13 @@ impl Transaction for TxSetType {
 
         let mut schema = Schema::new(context.fork());
 
-        access::check(&mut schema, pubkey, Permission::CompanySetType)?;
-
         let company = match schema.get_company(self.id.as_str()) {
             Some(x) => x,
             None => Err(TransactionError::CompanyNotFound)?,
         };
+
+        access::check(&mut schema, pubkey, Permission::CompanySetType)?;
+
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?
         }

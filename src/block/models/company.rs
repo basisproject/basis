@@ -24,7 +24,7 @@ pub enum Permission {
     CompanyDelete,
 
     MemberCreate,
-    MemberUpdate,
+    MemberSetRoles,
     MemberDelete,
 
     ProductCreate,
@@ -65,7 +65,7 @@ impl Role {
             Role::MemberAdmin => {
                 vec![
                     Permission::MemberCreate,
-                    Permission::MemberUpdate,
+                    Permission::MemberSetRoles,
                     Permission::MemberDelete,
                 ]
             }
@@ -189,7 +189,7 @@ pub mod tests {
         assert!(owner.can(&Permission::CompanyUpdate));
         assert!(owner.can(&Permission::CompanyDelete));
         assert!(owner.can(&Permission::MemberCreate));
-        assert!(owner.can(&Permission::MemberUpdate));
+        assert!(owner.can(&Permission::MemberSetRoles));
         assert!(owner.can(&Permission::MemberDelete));
         assert!(owner.can(&Permission::ProductCreate));
         assert!(owner.can(&Permission::ProductUpdate));
@@ -207,7 +207,7 @@ pub mod tests {
         assert!(admin.can(&Permission::CompanyUpdate));
         assert!(!admin.can(&Permission::CompanyDelete));
         assert!(admin.can(&Permission::MemberCreate));
-        assert!(admin.can(&Permission::MemberUpdate));
+        assert!(admin.can(&Permission::MemberSetRoles));
         assert!(admin.can(&Permission::MemberDelete));
         assert!(admin.can(&Permission::ProductCreate));
         assert!(admin.can(&Permission::ProductUpdate));
@@ -225,7 +225,7 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::CompanyUpdate));
         assert!(!member_admin.can(&Permission::CompanyDelete));
         assert!(member_admin.can(&Permission::MemberCreate));
-        assert!(member_admin.can(&Permission::MemberUpdate));
+        assert!(member_admin.can(&Permission::MemberSetRoles));
         assert!(member_admin.can(&Permission::MemberDelete));
         assert!(!member_admin.can(&Permission::ProductCreate));
         assert!(!member_admin.can(&Permission::ProductUpdate));

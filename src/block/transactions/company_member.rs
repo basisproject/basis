@@ -3,6 +3,7 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
+    storage::Fork,
 };
 use crate::block::{
     SERVICE_ID,
@@ -14,6 +15,16 @@ use crate::block::{
 };
 use crate::util;
 use super::CommonError;
+
+/// Tells us if the given user is the only owner of a company object
+pub fn is_only_owner(schema: &mut Schema<&mut Fork>, company_id: &str, user_id: &str) -> bool {
+    let owners = schema.companies_members(company_id)
+        .values()
+        .filter(|m| m.roles.contains(&CompanyRole::Owner))
+        .map(|m| m.user_id.to_owned())
+        .collect::<Vec<_>>();
+    owners.len() == 1 && owners.contains(&user_id.to_owned())
+}
 
 #[derive(Debug, Fail)]
 #[repr(u8)]
@@ -29,6 +40,9 @@ pub enum TransactionError {
 
     #[fail(display = "User not found")]
     MemberNotFound = 3,
+
+    #[fail(display = "Company must have at least one owner")]
+    MustHaveOwner = 4,
 }
 define_exec_error!(TransactionError);
 
@@ -110,7 +124,13 @@ impl Transaction for TxSetRoles {
         }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
-        company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberUpdate)?;
+        company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberSetRoles)?;
+
+        if is_only_owner(&mut schema, &self.company_id, &self.user_id) {
+            if !&self.roles.contains(&CompanyRole::Owner) {
+                Err(TransactionError::MustHaveOwner)?;
+            }
+        }
 
         if schema.get_user_by_pubkey(pubkey).is_none() {
             Err(CommonError::UserNotFound)?;
@@ -160,6 +180,10 @@ impl Transaction for TxDelete {
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberDelete)?;
+
+        if is_only_owner(&mut schema, &self.company_id, &self.user_id) {
+            Err(TransactionError::MustHaveOwner)?;
+        }
 
         if schema.get_user_by_pubkey(pubkey).is_none() {
             Err(CommonError::UserNotFound)?;
