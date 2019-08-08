@@ -77,9 +77,127 @@ describe('company members', function() {
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+
+		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		expect(sandra.user_id).toBe(sandra_user_id);
+		expect(sandra.roles).toEqual(['ProductAdmin']);
+	});
+
+	it('enforces permissions and ownership', async () => {
+		var res = await trans.send_as('sandra', tx.company.TxDelete, {
+			id: company_id,
+			memo: 'WhOoOoPs!! ;)',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/insufficient priv/i);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxDelete, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			memo: 'wen i think about u i delete myself',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/insufficient priv/i);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['Owner'],
+			memo: 'WhOoOoPs!! ;)',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/insufficient priv/i);
+
+		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['MemberAdmin'],
+			memo: 'be careful, sandra',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['ProductAdmin'],
+			memo: 'wait does this work?',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['MemberAdmin'],
+			memo: 'hahaha bye jerry',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/insufficient priv/i);
+	});
+
+	it('enforces at least one owner', async () => {
+		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: jerry_user_id,
+			roles: ['MemberAdmin'],
+			memo: 'too much responsibility',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/company must have at least one owner/i);
+
+		var res = await trans.send_as('jerry', tx.company_member.TxDelete, {
+			company_id: company_id,
+			user_id: jerry_user_id,
+			memo: 'i quit',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/company must have at least one owner/i);
+
+		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['Owner'],
+			memo: 'giving sandra full control',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			roles: ['Admin'],
+			memo: 'wait how do i use this??',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+			company_id: company_id,
+			user_id: jerry_user_id,
+			roles: ['Admin'],
+			memo: 'can i be owner?',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/company must have at least one owner/i);
 	});
 
 	it('can be destroyed', async () => {
+		var res = await trans.send_as('jerry', tx.company_member.TxDelete, {
+			company_id: company_id,
+			user_id: sandra_user_id,
+			memo: 'going to have to let you go, sandra',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
 		var res = await trans.send_as('jerry', tx.company.TxDelete, {
 			id: company_id,
 			memo: 'Nobody buys my widgets...',
