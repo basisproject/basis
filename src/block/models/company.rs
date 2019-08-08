@@ -39,7 +39,6 @@ pub enum Permission {
     OrderUpdateProcessStatus,
     OrderUpdatePaymentStatus,
     OrderCancel,
-    Order,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -49,6 +48,7 @@ pub enum Role {
     MemberAdmin,
     ProductAdmin,
     Purchaser,
+    Supplier,
 }
 
 impl Role {
@@ -71,10 +71,25 @@ impl Role {
             }
             Role::ProductAdmin => {
                 vec![
+                    Permission::ProductCreate,
+                    Permission::ProductUpdate,
+                    Permission::ProductDelete,
+                    Permission::ProductOfferingCreate,
+                    Permission::ProductOfferingUpdate,
+                    Permission::ProductOfferingDelete,
                 ]
             }
             Role::Purchaser => {
                 vec![
+                    Permission::OrderCreate,
+                    Permission::OrderCancel,
+                ]
+            }
+            Role::Supplier => {
+                vec![
+                    Permission::OrderUpdateProcessStatus,
+                    Permission::OrderUpdatePaymentStatus,
+                    Permission::OrderCancel,
                 ]
             }
         }
@@ -201,7 +216,6 @@ pub mod tests {
         assert!(owner.can(&Permission::OrderUpdateProcessStatus));
         assert!(owner.can(&Permission::OrderUpdatePaymentStatus));
         assert!(owner.can(&Permission::OrderCancel));
-        assert!(owner.can(&Permission::Order));
 
         let admin = Role::Admin;
         assert!(admin.can(&Permission::CompanyUpdate));
@@ -219,7 +233,6 @@ pub mod tests {
         assert!(admin.can(&Permission::OrderUpdateProcessStatus));
         assert!(admin.can(&Permission::OrderUpdatePaymentStatus));
         assert!(admin.can(&Permission::OrderCancel));
-        assert!(admin.can(&Permission::Order));
 
         let member_admin = Role::MemberAdmin;
         assert!(!member_admin.can(&Permission::CompanyUpdate));
@@ -237,7 +250,6 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::OrderUpdateProcessStatus));
         assert!(!member_admin.can(&Permission::OrderUpdatePaymentStatus));
         assert!(!member_admin.can(&Permission::OrderCancel));
-        assert!(!member_admin.can(&Permission::Order));
     }
 
     fn make_date() -> DateTime<Utc> {
