@@ -1,7 +1,7 @@
 {
-  "name": "factor-integration-tests",
+  "name": "basis-integration-tests",
   "version": "0.1.0",
-  "description": "Integration tests for factor",
+  "description": "Integration tests for Basis",
   "author": "Andrew Lyon",
   "license": "GPLv3",
   "dependencies": {

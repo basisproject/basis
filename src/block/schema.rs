@@ -37,19 +37,19 @@ where
     // Users
     // -------------------------------------------------------------------------
     pub fn users(&self) -> ProofMapIndex<&T, Hash, User> {
-        ProofMapIndex::new("factor.users.table", &self.view)
+        ProofMapIndex::new("basis.users.table", &self.view)
     }
 
     pub fn users_idx_pubkey(&self) -> MapIndex<&T, PublicKey, String> {
-        MapIndex::new("factor.users.idx_pubkey", &self.view)
+        MapIndex::new("basis.users.idx_pubkey", &self.view)
     }
 
     pub fn users_idx_email(&self) -> MapIndex<&T, String, String> {
-        MapIndex::new("factor.users.idx_email", &self.view)
+        MapIndex::new("basis.users.idx_email", &self.view)
     }
 
     pub fn users_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("factor.users.history", &crypto::hash(id.as_bytes()), &self.view)
+        ProofListIndex::new_in_family("basis.users.history", &crypto::hash(id.as_bytes()), &self.view)
     }
 
     pub fn get_user(&self, id: &str) -> Option<User> {
@@ -76,11 +76,11 @@ where
     // Companies
     // -------------------------------------------------------------------------
     pub fn companies(&self) -> ProofMapIndex<&T, Hash, Company> {
-        ProofMapIndex::new("factor.companies.table", &self.view)
+        ProofMapIndex::new("basis.companies.table", &self.view)
     }
 
     pub fn companies_history(&self, id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &self.view)
+        ProofListIndex::new_in_family("basis.companies.history", &crypto::hash(id.as_bytes()), &self.view)
     }
 
     pub fn get_company(&self, id: &str) -> Option<Company> {
@@ -91,11 +91,11 @@ where
     // Company members
     // -------------------------------------------------------------------------
     pub fn companies_members(&self, company_id: &str) -> ProofMapIndex<&T, Hash, CompanyMember> {
-        ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &self.view)
+        ProofMapIndex::new_in_family("basis.companies_members.table", &crypto::hash(company_id.as_bytes()), &self.view)
     }
 
     pub fn companies_members_history(&self, company_id: &str, user_id: &str) -> ProofListIndex<&T, Hash> {
-        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), &self.view)
+        ProofListIndex::new_in_family("basis.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), &self.view)
     }
 
     pub fn get_company_member(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
@@ -108,19 +108,19 @@ impl<'a> Schema<&'a mut Fork> {
     // Users
     // -------------------------------------------------------------------------
     pub fn users_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, User> {
-        ProofMapIndex::new("factor.users.table", &mut self.view)
+        ProofMapIndex::new("basis.users.table", &mut self.view)
     }
 
     pub fn users_idx_pubkey_mut(&mut self) -> MapIndex<&mut Fork, PublicKey, String> {
-        MapIndex::new("factor.users.idx_pubkey", &mut self.view)
+        MapIndex::new("basis.users.idx_pubkey", &mut self.view)
     }
 
     pub fn users_idx_email_mut(&mut self) -> MapIndex<&mut Fork, String, String> {
-        MapIndex::new("factor.users.idx_email", &mut self.view)
+        MapIndex::new("basis.users.idx_email", &mut self.view)
     }
 
     pub fn users_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("factor.users.history", &crypto::hash(id.as_bytes()), &mut self.view)
+        ProofListIndex::new_in_family("basis.users.history", &crypto::hash(id.as_bytes()), &mut self.view)
     }
 
     pub fn users_create(&mut self, id: &str, pubkey: &PublicKey, roles: &Vec<Role>, email: &str, name: &str, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
@@ -185,11 +185,11 @@ impl<'a> Schema<&'a mut Fork> {
     // Companies
     // -------------------------------------------------------------------------
     pub fn companies_mut(&mut self) -> ProofMapIndex<&mut Fork, Hash, Company> {
-        ProofMapIndex::new("factor.companies.table", &mut self.view)
+        ProofMapIndex::new("basis.companies.table", &mut self.view)
     }
 
     pub fn companies_history_mut(&mut self, id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("factor.companies.history", &crypto::hash(id.as_bytes()), &mut self.view)
+        ProofListIndex::new_in_family("basis.companies.history", &crypto::hash(id.as_bytes()), &mut self.view)
     }
 
     pub fn companies_create(&mut self, id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
@@ -232,11 +232,11 @@ impl<'a> Schema<&'a mut Fork> {
     // Company members
     // -------------------------------------------------------------------------
     pub fn companies_members_mut(&mut self, company_id: &str) -> ProofMapIndex<&mut Fork, Hash, CompanyMember> {
-        ProofMapIndex::new_in_family("factor.companies_members.table", &crypto::hash(company_id.as_bytes()), &mut self.view)
+        ProofMapIndex::new_in_family("basis.companies_members.table", &crypto::hash(company_id.as_bytes()), &mut self.view)
     }
 
     pub fn companies_members_history_mut(&mut self, company_id: &str, user_id: &str) -> ProofListIndex<&mut Fork, Hash> {
-        ProofListIndex::new_in_family("factor.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), &mut self.view)
+        ProofListIndex::new_in_family("basis.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), &mut self.view)
     }
 
     pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, created: &DateTime<Utc>, transaction: &Hash) {

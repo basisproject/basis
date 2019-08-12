@@ -6,7 +6,7 @@ VARS ?= vars.mk
 
 CARGO ?= $(shell which cargo)
 FEATURES ?= with-serde
-TARGET := ./target/debug/factor
+TARGET := ./target/debug/basis
 override CARGO_BUILD_ARGS += --features "$(FEATURES)"
 
 all: build

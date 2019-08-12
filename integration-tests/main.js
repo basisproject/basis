@@ -168,7 +168,7 @@ const actions = {
 
 	users_get: function(data) {
 		return rp({
-			url: `${api_url}/services/factor/v1/users`,
+			url: `${api_url}/services/basis/v1/users`,
 			json: true,
 			qs: data,
 		});
@@ -176,7 +176,7 @@ const actions = {
 
 	user_get: function(data) {
 		return rp({
-			url: `${api_url}/services/factor/v1/users/info`,
+			url: `${api_url}/services/basis/v1/users/info`,
 			json: true,
 			qs: data,
 		});

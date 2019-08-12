@@ -17,7 +17,7 @@ pub use crate::block::schema::Schema;
 use crate::block::transactions::TransactionGroup;
 
 pub const SERVICE_ID: u16 = 128;
-pub const SERVICE_NAME: &str = "factor";
+pub const SERVICE_NAME: &str = "basis";
 
 #[derive(Debug, Fail)]
 #[repr(u8)]

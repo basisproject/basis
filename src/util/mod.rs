@@ -4,7 +4,7 @@ use ::std::time::Duration;
 macro_rules! do_lock {
     ($lock:expr) => {{
         //println!(" >>> lock {} ({}::{})", stringify!($lock), file!(), line!());
-        $lock.expect(concat!("factor::util::do_lock!() -- failed to grab lock at ", file!(), "::", line!()))
+        $lock.expect(concat!("basis::util::do_lock!() -- failed to grab lock at ", file!(), "::", line!()))
     }}
 }
 

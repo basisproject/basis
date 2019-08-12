@@ -1,5 +1,5 @@
 syntax = "proto3";
-package factor.company_member;
+package basis.company_member;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 

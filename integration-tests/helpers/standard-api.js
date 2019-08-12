@@ -25,7 +25,7 @@ exports.generate = function(path, type) {
 	return {
 		list: async function(qs) {
 			let res = await rp({
-				url: `${config.endpoint}/services/factor/v1${path}`,
+				url: `${config.endpoint}/services/basis/v1${path}`,
 				json: true,
 				qs: qs,
 			});
@@ -36,7 +36,7 @@ exports.generate = function(path, type) {
 			options || (options = {});
 			const {extended} = options;
 			let res = await rp({
-				url: `${config.endpoint}/services/factor/v1${path}/info`,
+				url: `${config.endpoint}/services/basis/v1${path}/info`,
 				json: true,
 				qs: qs,
 			});

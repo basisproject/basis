@@ -26,7 +26,7 @@ Object.keys(message_id_map).forEach((key) => {
 	const [type, tx] = key.split('.');
 	if(!types[type]) types[type] = {};
 	types[type][tx] = {
-		type: `factor.${key}`,
+		type: `basis.${key}`,
 		msg_id: message_id_map[key],
 	}
 });

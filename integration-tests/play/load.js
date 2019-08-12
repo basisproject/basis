@@ -3,7 +3,7 @@ const protobuf = require('../helpers/protobuf');
 
 protobuf.load()
 	.then(() => {
-		const Company = protobuf.protos.company.lookupType('factor.company.Company');
+		const Company = protobuf.protos.company.lookupType('basis.company.Company');
 	})
 	.catch((err) => {
 		console.error('err: ', err.stack);

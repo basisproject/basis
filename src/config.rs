@@ -13,7 +13,7 @@ pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
     config_guard
         .merge(config::File::with_name(default_config))?
         .merge(config::File::with_name(local_config))?
-        .merge(config::Environment::with_prefix("factor").separator("__"))?;
+        .merge(config::Environment::with_prefix("basis").separator("__"))?;
     Ok(())
 }
 
