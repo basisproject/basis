@@ -1,0 +1,32 @@
+syntax = "proto3";
+package basis.order;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+import "product.proto";
+
+enum ProcessStatus {
+	UNKNOWN = 0;
+	NEW = 1;
+	ACCEPTED = 2;
+	PROCESSING = 3;
+	SHIPPED = 4;
+	DELIVERED = 5;
+	CANCELLED = 6;
+}
+
+message Order {
+	message OrderProduct {
+		string product_variant_id = 1;
+		uint64 quantity = 2;
+	}
+	string id = 1;
+	string company_from = 2;
+	string company_to = 3;
+	repeated OrderProduct products = 4;
+	ProcessStatus process_status = 5;
+	google.protobuf.Timestamp created = 8;
+	google.protobuf.Timestamp updated = 9;
+	uint64 history_len = 10;
+	exonum.Hash history_hash = 11;
+}
+
