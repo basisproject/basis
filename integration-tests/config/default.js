@@ -14,6 +14,7 @@ module.exports = {
 		// arbitrary, but should be a real email
 		email: false,
 		// set this to the same value as ../config/config.yaml::tests.bootstrap_user_key
+		// to generate a new keypair, use `node tools/keygen.js`
 		pub: false,
 		// set to the secret key paired to the bootstrap_user.pub key
 		sec: false,
