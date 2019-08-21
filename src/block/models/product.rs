@@ -198,7 +198,8 @@ impl Product {
         // ...but also remove the option from all variants >=]
         let mut variants = self.variants.clone();
         for var in variants.values_mut() {
-            var.deleted = updated.clone();
+            var.options.remove(name);
+            var.updated = updated.clone();
         }
 
         Self::new(
@@ -220,6 +221,7 @@ impl Product {
         let mut variants = self.variants.clone();
         let mut variant_cloned = variant.clone();
         variant_cloned.product_id = self.id.clone();
+        variant_cloned.deleted = util::time::default_time();
         variants.insert(variant.id.clone(), variant_cloned);
         Self::new(
             &self.id,
@@ -487,6 +489,37 @@ pub mod tests {
         assert_eq!(pvariant.meta, "");
         assert_eq!(pvariant.active, false);
         assert_eq!(pvariant.product_id, product.id);
+        util::sleep(100);
+        let date5 = make_date();
+        let hash5 = Hash::new([1, 57, 6, 55, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5]);
+        let product5 = product4.clone().remove_variant("4266954b-c5c0-43e4-a740-9e36c726451d", &date5, &hash5);
+        let pvariant = product5.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap().clone();
+        assert_eq!(product5.updated, date5);
+        assert_eq!(product4.history_len, product5.history_len - 1);
+        assert!(product4.history_hash != product5.history_hash);
+        assert_eq!(product5.history_hash, hash5);
+        assert_eq!(product5.options.len(), 2);
+        assert_eq!(product5.variants.len(), 1);
+        assert_eq!(pvariant.updated, date4);
+        assert_eq!(pvariant.deleted, date5);
+        assert_eq!(pvariant.name, "XXXLARGE RED BROHEIM");
+        assert_eq!(pvariant.meta, "");
+        assert_eq!(pvariant.active, false);
+        assert_eq!(pvariant.product_id, product.id);
+        util::sleep(100);
+        let date6 = make_date();
+        let hash6 = Hash::new([1, 57, 6, 55, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 5, 1, 57, 6, 6, 1, 67, 6, 6, 1, 67, 6, 6, 1, 67, 6, 6]);
+        let product6 = product5.clone().remove_option("color", &date6, &hash6);
+        let pvariant2 = product6.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap().clone();
+        assert!(pvariant.options.contains_key("color"));
+        assert!(!pvariant2.options.contains_key("color"));
+        assert_eq!(product6.updated, date6);
+        assert_eq!(product5.history_len, product6.history_len - 1);
+        assert!(product5.history_hash != product6.history_hash);
+        assert_eq!(product6.history_hash, hash6);
+        assert_eq!(product6.options.len(), 1);
+        assert_eq!(product6.variants.len(), 1);
+        assert_eq!(pvariant2.updated, date6);
     }
 }
 
