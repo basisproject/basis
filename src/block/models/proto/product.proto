@@ -4,35 +4,37 @@ import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 
 message ProductVariant {
-	enum Units {
-		UNKNOWN = 0;
-		MM = 1;
-		ML = 2;
-	}
-	enum Time {
-		UNKNOWN = 0;
-		NANOSECONDS = 1;
-		MILLISECONDS = 2;
-		SECONDS = 3;
-		MINUTES = 4;
-		HOURS = 5;
-		DAYS = 6;
-	}
-	message ProductOption {
-		string name = 1;
-	}
 	message PhysicalProperties {
+		enum Units {
+			UNKNOWN = 0;
+			MM = 1;
+			ML = 2;
+		}
+		message Dimensions {
+			double width = 1;
+			double height = 2;
+			double length = 3;
+		}
 		Units unit = 1;
 		double weight_mg = 2;
-		double width = 3;
-		double height = 4;
-		double length = 5;
+		Dimensions dimensions = 3;
 	}
 	message Input {
 		string product_variant_id = 1;
 		uint64 quantity = 2;
 	}
 	message Effort {
+		enum Time {
+			UNKNOWN = 0;
+			NANOSECONDS = 1;
+			MILLISECONDS = 2;
+			SECONDS = 3;
+			MINUTES = 4;
+			HOURS = 5;
+			DAYS = 6;
+			WEEKS = 7;
+			YEARS = 8;
+		}
 		Time time = 1;
 		uint64 quantity = 2;
 	}
@@ -42,7 +44,7 @@ message ProductVariant {
 	string name = 3;
 	PhysicalProperties properties = 4;
 	repeated Input inputs = 5;
-	repeated ProductOption options = 6;
+	map<string, string> options = 6;
 	Effort effort = 7;
 	bool active = 8;
 	string meta = 9;
@@ -55,7 +57,8 @@ message Product {
 	string id = 1;
 	string company_id = 2;
 	string name = 3;
-	map<string, ProductVariant> variants = 4;
+	map<string, string> options = 4;
+	map<string, ProductVariant> variants = 5;
 	string meta = 6;
 	bool active = 7;
 	google.protobuf.Timestamp created = 8;
