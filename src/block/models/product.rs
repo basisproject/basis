@@ -156,7 +156,7 @@ impl Product {
         }
     }
 
-    pub fn update(&self, name: Option<&str>, meta: Option<&str>, active: bool, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+    pub fn update(&self, name: Option<&str>, meta: Option<&str>, active: Option<bool>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         Self::new(
             &self.id,
             &self.company_id,
@@ -164,7 +164,7 @@ impl Product {
             &self.options,
             &self.variants,
             meta.unwrap_or(&self.meta),
-            active,
+            active.unwrap_or(self.active),
             &self.created,
             updated,
             self.history_len + 1,
@@ -218,7 +218,9 @@ impl Product {
 
     pub fn set_variant(&self, variant: &ProductVariant, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         let mut variants = self.variants.clone();
-        variants.insert(variant.id.clone(), variant.clone());
+        let mut variant_cloned = variant.clone();
+        variant_cloned.product_id = self.id.clone();
+        variants.insert(variant.id.clone(), variant_cloned);
         Self::new(
             &self.id,
             &self.company_id,
@@ -234,12 +236,13 @@ impl Product {
         )
     }
 
-    pub fn update_variant(&self, variant_id: &str, name: Option<&str>, active: bool, meta: Option<&str>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+    pub fn update_variant(&self, variant_id: &str, name: Option<&str>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         let mut variants = self.variants.clone();
         if let Some(mut var) = variants.get_mut(variant_id) {
-            var.name = name.unwrap_or(var.as_str()).to_owned();
-            var.active = active;
-            var.meta = meta.unwrap_or(var.as_str()).to_owned();
+            var.name = name.unwrap_or(var.name.as_str()).to_owned();
+            var.active = active.unwrap_or(var.active);
+            var.meta = meta.unwrap_or(var.meta.as_str()).to_owned();
+            var.updated = updated.clone();
         }
         Self::new(
             &self.id,
@@ -316,7 +319,7 @@ pub mod tests {
         util::sleep(100);
         let date2 = make_date();
         let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
-        let product2 = product.clone().update(None, None, true, &date2, &hash2);
+        let product2 = product.clone().update(None, None, None, &date2, &hash2);
         assert_eq!(product.id, product2.id);
         assert_eq!(product.company_id, product2.company_id);
         assert_eq!(product.name, product2.name);
@@ -331,7 +334,7 @@ pub mod tests {
         util::sleep(100);
         let date3 = make_date();
         let hash3 = Hash::new([1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4]);
-        let product3 = product2.clone().update(Some("Widget2"), Some(r#"{"description":"better widget"}"#), false, &date3, &hash3);
+        let product3 = product2.clone().update(Some("Widget2"), Some(r#"{"description":"better widget"}"#), Some(false), &date3, &hash3);
         assert_eq!(product2.id, product3.id);
         assert_eq!(product2.company_id, product3.company_id);
         assert!(product2.name != product3.name);
@@ -446,12 +449,44 @@ pub mod tests {
         assert_eq!(product2.history_hash, hash2_3);
         assert_eq!(product2.options.len(), 2);
         assert_eq!(product2.variants.len(), 1);
-        assert_eq!(product2.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap().deleted, util::time::default_time());
+        let pvariant = product2.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap();
+        assert_eq!(pvariant.deleted, util::time::default_time());
+        assert_eq!(pvariant.name, "SECKKK XXXLarge RED shirt braaaahh");
+        assert_eq!(pvariant.meta, "");
+        assert_eq!(pvariant.product_id, product.id);
         util::sleep(100);
         let date3 = make_date();
         let hash3 = Hash::new([1, 37, 6, 33, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4, 1, 37, 6, 4]);
-        let product3 = product2.clone().set_option("size", "Sizes", &date3, &hash3);
-
+        let product3 = product2.clone().update_variant("4266954b-c5c0-43e4-a740-9e36c726451d", None, None, Some(r#"{"get":"a job"}"#), &date3, &hash3);
+        let pvariant = product3.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap();
+        assert_eq!(product3.updated, date3);
+        assert_eq!(product2.history_len, product3.history_len - 1);
+        assert!(product2.history_hash != product3.history_hash);
+        assert_eq!(product3.history_hash, hash3);
+        assert_eq!(product3.options.len(), 2);
+        assert_eq!(product3.variants.len(), 1);
+        assert_eq!(pvariant.updated, date3);
+        assert_eq!(pvariant.deleted, util::time::default_time());
+        assert_eq!(pvariant.name, "SECKKK XXXLarge RED shirt braaaahh");
+        assert_eq!(pvariant.meta, r#"{"get":"a job"}"#);
+        assert_eq!(pvariant.product_id, product.id);
+        util::sleep(100);
+        let date4 = make_date();
+        let hash4 = Hash::new([1, 47, 6, 44, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4, 1, 47, 6, 4]);
+        let product4 = product3.clone().update_variant("4266954b-c5c0-43e4-a740-9e36c726451d", Some("XXXLARGE RED BROHEIM"), Some(false), Some(""), &date4, &hash4);
+        let pvariant = product4.variants.get("4266954b-c5c0-43e4-a740-9e36c726451d").unwrap();
+        assert_eq!(product4.updated, date4);
+        assert_eq!(product3.history_len, product4.history_len - 1);
+        assert!(product3.history_hash != product4.history_hash);
+        assert_eq!(product4.history_hash, hash4);
+        assert_eq!(product4.options.len(), 2);
+        assert_eq!(product4.variants.len(), 1);
+        assert_eq!(pvariant.updated, date4);
+        assert_eq!(pvariant.deleted, util::time::default_time());
+        assert_eq!(pvariant.name, "XXXLARGE RED BROHEIM");
+        assert_eq!(pvariant.meta, "");
+        assert_eq!(pvariant.active, false);
+        assert_eq!(pvariant.product_id, product.id);
     }
 }
 
