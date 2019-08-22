@@ -56,6 +56,15 @@ pub struct Input {
     pub quantity: u64,
 }
 
+impl Input {
+    pub fn new(product_variant_id: &str, quantity: u64) -> Self {
+        Self {
+            product_variant_id: product_variant_id.to_owned(),
+            quantity,
+        }
+    }
+}
+
 proto_enum! {
     enum EffortTime {
         Unknown = 0,
@@ -221,6 +230,10 @@ impl Product {
         let mut variants = self.variants.clone();
         let mut variant_cloned = variant.clone();
         variant_cloned.product_id = self.id.clone();
+        if !variants.contains_key(&variant.id) {
+            variant_cloned.created = updated.clone();
+        }
+        variant_cloned.updated = updated.clone();
         variant_cloned.deleted = util::time::default_time();
         variants.insert(variant.id.clone(), variant_cloned);
         Self::new(
@@ -415,7 +428,9 @@ pub mod tests {
         let hash2_2 = Hash::new([4, 87, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
         let hash2_3 = Hash::new([5, 87, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
         let props = PhysicalProperties::new(PhysicalPropertyUnit::Mm, 600.0, Some(&PhysicalPropertyDimensions::new(100.0, 100.0, 100.0)));
-        let inputs = vec![];
+        let inputs = vec![
+            Input::new("4722d6bc-953d-4e3a-b1df-c133fc088710", 10),
+        ];
         let mut voptions = HashMap::new();
         voptions.insert("size".to_owned(), "XXXLarge".to_owned());
         voptions.insert("color".to_owned(), "Red".to_owned());
