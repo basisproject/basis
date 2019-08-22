@@ -33,6 +33,8 @@ pub mod access;
 pub mod user;
 pub mod company;
 pub mod company_member;
+pub mod product;
+pub mod order;
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
 pub enum TransactionGroup {
@@ -50,6 +52,9 @@ pub enum TransactionGroup {
     CompanyMemberCreate(company_member::TxCreate),
     CompanyMemberSetRoles(company_member::TxSetRoles),
     CompanyMemberDelete(company_member::TxDelete),
+
+    ProductCreate(product::TxCreate),
+    ProductDelete(product::TxDelete),
 }
 
 
