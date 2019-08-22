@@ -3,8 +3,8 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
-    storage::Fork,
 };
+use exonum_merkledb::IndexAccess;
 use crate::block::{
     SERVICE_ID,
     schema::Schema,
@@ -16,7 +16,9 @@ use crate::block::{
 use crate::util::{self, protobuf::empty_opt};
 use super::CommonError;
 
-pub fn check(schema: &mut Schema<&mut Fork>, company_id: &str, pubkey: &PublicKey, permission: CompanyPermission) -> Result<(), CommonError> {
+pub fn check<T>(schema: &mut Schema<T>, company_id: &str, pubkey: &PublicKey, permission: CompanyPermission) -> Result<(), CommonError>
+    where T: IndexAccess
+{
     let user = match schema.get_user_by_pubkey(pubkey) {
         Some(x) => x,
         None => Err(CommonError::UserNotFound)?,
@@ -70,7 +72,7 @@ impl TxCreatePrivate {
 }
 
 impl Transaction for TxCreatePrivate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -113,7 +115,7 @@ impl TxUpdate {
 }
 
 impl Transaction for TxUpdate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -164,7 +166,7 @@ impl TxSetType {
 }
 
 impl Transaction for TxSetType {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -202,7 +204,7 @@ impl TxDelete {
 }
 
 impl Transaction for TxDelete {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

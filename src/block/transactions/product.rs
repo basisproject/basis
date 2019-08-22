@@ -3,8 +3,8 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
-    storage::Fork,
 };
+use exonum_merkledb::Fork;
 use crate::block::{
     SERVICE_ID,
     schema::Schema,
@@ -49,7 +49,7 @@ impl TxCreate {
 }
 
 impl Transaction for TxCreate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         Ok(())
     }
 }
@@ -69,7 +69,7 @@ impl TxDelete {
 }
 
 impl Transaction for TxDelete {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         Ok(())
     }
 }

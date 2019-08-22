@@ -3,9 +3,9 @@ use exonum::{
     blockchain,
     crypto::{self, Hash},
     helpers::Height,
-    storage::proof_map_index::MapProof,
     explorer::BlockchainExplorer,
 };
+use exonum_merkledb::MapProof;
 use crate::block::{
     models,
     ApiError,
@@ -82,7 +82,7 @@ impl CompanyMemberApi {
         let explorer = BlockchainExplorer::new(state.blockchain());
         let member_history = member.as_ref().map(|_| {
             let history = schema.companies_members_history(&company_id, &user_id);
-            let proof = history.get_range_proof(0, history.len());
+            let proof = history.get_range_proof(0..history.len());
 
             let transactions = history
                 .iter()

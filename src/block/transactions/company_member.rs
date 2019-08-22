@@ -3,8 +3,8 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey, SecretKey},
     messages::{Message, RawTransaction, Signed},
-    storage::Fork,
 };
+use exonum_merkledb::IndexAccess;
 use crate::block::{
     SERVICE_ID,
     schema::Schema,
@@ -17,7 +17,9 @@ use crate::util;
 use super::CommonError;
 
 /// Tells us if the given user is the only owner of a company object
-pub fn is_only_owner(schema: &mut Schema<&mut Fork>, company_id: &str, user_id: &str) -> bool {
+pub fn is_only_owner<T>(schema: &mut Schema<T>, company_id: &str, user_id: &str) -> bool
+    where T: IndexAccess
+{
     let owners = schema.companies_members(company_id)
         .values()
         .filter(|m| m.roles.contains(&CompanyRole::Owner))
@@ -64,7 +66,7 @@ impl TxCreate {
 }
 
 impl Transaction for TxCreate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -113,7 +115,7 @@ impl TxSetRoles {
 }
 
 impl Transaction for TxSetRoles {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -169,7 +171,7 @@ impl TxDelete {
 }
 
 impl Transaction for TxDelete {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

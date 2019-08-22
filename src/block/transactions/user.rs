@@ -62,7 +62,7 @@ impl TxCreate {
 }
 
 impl Transaction for TxCreate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -108,7 +108,7 @@ impl TxUpdate {
 }
 
 impl Transaction for TxUpdate {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -180,7 +180,7 @@ impl TxSetPubkey {
 }
 
 impl Transaction for TxSetPubkey {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -226,7 +226,7 @@ impl TxSetRoles {
 }
 
 impl Transaction for TxSetRoles {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -263,7 +263,7 @@ impl TxDelete {
 }
 
 impl Transaction for TxDelete {
-    fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

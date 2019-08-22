@@ -4,13 +4,15 @@
 
 use exonum::{
     crypto::PublicKey,
-    storage::Fork,
 };
+use exonum_merkledb::IndexAccess;
 use crate::block::schema::Schema;
 use crate::block::models::access::Permission;
 use super::CommonError;
 
-pub fn check(schema: &mut Schema<&mut Fork>, pubkey: &PublicKey, permission: Permission) -> Result<(), CommonError> {
+pub fn check<T>(schema: &mut Schema<T>, pubkey: &PublicKey, permission: Permission) -> Result<(), CommonError>
+    where T: IndexAccess
+{
     if let Some(user) = schema.get_user_by_pubkey(pubkey) {
         for role in &user.roles {
             if role.can(&permission) {

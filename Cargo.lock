@@ -213,6 +213,7 @@ dependencies = [
  "exonum-build 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum-configuration 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum-derive 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "exonum-merkledb 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fern 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",

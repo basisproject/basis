@@ -9,9 +9,11 @@ use exonum::{
     crypto::{Hash},
     helpers::fabric::{self, Context},
     messages::RawTransaction,
-    storage::Snapshot,
-    storage::proof_map_index::MapProof,
-    storage::proof_list_index::ListProof,
+};
+use exonum_merkledb::{
+    MapProof,
+    ListProof,
+    Snapshot,
 };
 pub use crate::block::schema::Schema;
 use crate::block::transactions::TransactionGroup;
