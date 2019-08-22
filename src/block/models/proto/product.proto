@@ -67,3 +67,59 @@ message Product {
 	exonum.Hash history_hash = 11;
 }
 
+message TxCreate {
+	string id = 1;
+	string company_id = 2;
+	string name = 3;
+	string meta = 4;
+	bool active = 5;
+	google.protobuf.Timestamp created = 6;
+}
+
+message TxUpdate {
+	string id = 1;
+	string name = 2;
+	string meta = 3;
+	bool active = 4;
+	google.protobuf.Timestamp updated = 5;
+}
+
+message TxSetOption {
+	string id = 1;
+	string name = 2;
+	string title = 3;
+	google.protobuf.Timestamp updated = 4;
+}
+
+message TxRemoveOption {
+	string id = 1;
+	string name = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxSetVariant {
+	string id = 1;
+	ProductVariant variant = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxUpdateVariant {
+	string id = 1;
+	string variant_id = 2;
+	string name = 3;
+	bool active = 4;
+	string meta = 5;
+	google.protobuf.Timestamp updated = 6;
+}
+
+message TxRemoveVariant {
+	string id = 1;
+	string variant_id = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxDelete {
+	string id = 1;
+	google.protobuf.Timestamp deleted = 3;
+}
+
