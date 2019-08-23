@@ -15,7 +15,7 @@ exports.generate = function(path, type) {
 			if(res.item) {
 				const root_hash = Exonum.uint8ArrayToHexadecimal(new Uint8Array(res.item.history_hash.data));
 				const len = res.item.history_len;
-				//const tree_proof = Exonum.merkleProof(root_hash, len, res.item_history.proof, [0, len], Type);
+				const tree_proof = Exonum.merkleProof(root_hash, len, res.item_history.proof, [0, len], Type);
 			}
 		} catch(e) {
 			console.log('err proof: ', e);
