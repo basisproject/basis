@@ -18,7 +18,7 @@ release: override CARGO_BUILD_ARGS += --release
 release: build
 
 run:
-	$(CARGO) run $(CARGO_BUILD_ARGS) -- run --node-config config/block/config.toml --db-path play/db/ --public-api-address 0.0.0.0:13007 --consensus-key-pass pass --service-key-pass pass
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- run --node-config config/block/config.toml --db-path $(BASIS_DB) --public-api-address 0.0.0.0:13007 --consensus-key-pass pass --service-key-pass pass
 
 reconfig: all
 	mkdir -p config/block/
