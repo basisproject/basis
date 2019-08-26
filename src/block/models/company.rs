@@ -31,10 +31,6 @@ pub enum Permission {
     ProductUpdate,
     ProductDelete,
 
-    ProductOfferingCreate,
-    ProductOfferingUpdate,
-    ProductOfferingDelete,
-
     OrderCreate,
     OrderUpdateProcessStatus,
     OrderUpdatePaymentStatus,
@@ -74,9 +70,6 @@ impl Role {
                     Permission::ProductCreate,
                     Permission::ProductUpdate,
                     Permission::ProductDelete,
-                    Permission::ProductOfferingCreate,
-                    Permission::ProductOfferingUpdate,
-                    Permission::ProductOfferingDelete,
                 ]
             }
             Role::Purchaser => {
@@ -209,9 +202,6 @@ pub mod tests {
         assert!(owner.can(&Permission::ProductCreate));
         assert!(owner.can(&Permission::ProductUpdate));
         assert!(owner.can(&Permission::ProductDelete));
-        assert!(owner.can(&Permission::ProductOfferingCreate));
-        assert!(owner.can(&Permission::ProductOfferingUpdate));
-        assert!(owner.can(&Permission::ProductOfferingDelete));
         assert!(owner.can(&Permission::OrderCreate));
         assert!(owner.can(&Permission::OrderUpdateProcessStatus));
         assert!(owner.can(&Permission::OrderUpdatePaymentStatus));
@@ -226,9 +216,6 @@ pub mod tests {
         assert!(admin.can(&Permission::ProductCreate));
         assert!(admin.can(&Permission::ProductUpdate));
         assert!(admin.can(&Permission::ProductDelete));
-        assert!(admin.can(&Permission::ProductOfferingCreate));
-        assert!(admin.can(&Permission::ProductOfferingUpdate));
-        assert!(admin.can(&Permission::ProductOfferingDelete));
         assert!(admin.can(&Permission::OrderCreate));
         assert!(admin.can(&Permission::OrderUpdateProcessStatus));
         assert!(admin.can(&Permission::OrderUpdatePaymentStatus));
@@ -243,9 +230,6 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::ProductCreate));
         assert!(!member_admin.can(&Permission::ProductUpdate));
         assert!(!member_admin.can(&Permission::ProductDelete));
-        assert!(!member_admin.can(&Permission::ProductOfferingCreate));
-        assert!(!member_admin.can(&Permission::ProductOfferingUpdate));
-        assert!(!member_admin.can(&Permission::ProductOfferingDelete));
         assert!(!member_admin.can(&Permission::OrderCreate));
         assert!(!member_admin.can(&Permission::OrderUpdateProcessStatus));
         assert!(!member_admin.can(&Permission::OrderUpdatePaymentStatus));

@@ -54,6 +54,12 @@ pub enum TransactionGroup {
     CompanyMemberDelete(company_member::TxDelete),
 
     ProductCreate(product::TxCreate),
+    ProductUpdate(product::TxUpdate),
+    ProductSetOption(product::TxSetOption),
+    ProductRemoveOption(product::TxRemoveOption),
+    ProductSetVariant(product::TxSetVariant),
+    ProductUpdateVariant(product::TxUpdateVariant),
+    ProductRemoveVariant(product::TxRemoveVariant),
     ProductDelete(product::TxDelete),
 }
 

@@ -20,6 +20,12 @@ pub enum Permission {
     CompanyAdminDelete,
     CompanySetType,
     CompanyUpdateMembers,
+
+    ProductCreate,
+    ProductUpdate,
+    ProductDelete,
+    ProductAdminUpdate,
+    ProductAdminDelete,
 }
 
 /// Define the system-wide roles users can have.
@@ -28,6 +34,7 @@ pub enum Role {
     SuperAdmin,
     IdentityAdmin,
     CompanyAdmin,
+    ProductAdmin,
     Bank,
     User,
 }
@@ -53,6 +60,12 @@ impl Role {
                     Permission::CompanyAdminDelete,
                 ]
             }
+            Role::ProductAdmin => {
+                vec![
+                    Permission::ProductAdminUpdate,
+                    Permission::ProductAdminDelete,
+                ]
+            }
             Role::Bank => {
                 vec![
                     Permission::CompanySetType,
@@ -64,6 +77,7 @@ impl Role {
                     Permission::UserDelete,
                     Permission::CompanyCreatePrivate,
                     Permission::CompanyUpdateMembers,
+                    Permission::ProductUpdate,
                 ]
             }
         }

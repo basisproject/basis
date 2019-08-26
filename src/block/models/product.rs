@@ -144,12 +144,13 @@ pub struct Product {
     pub active: bool,
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
+    pub deleted: DateTime<Utc>,
     pub history_len: u64,
     pub history_hash: Hash,
 }
 
 impl Product {
-    pub fn new(id: &str, company_id: &str, name: &str, options: &HashMap<String, String>, variants: &HashMap<String, ProductVariant>, meta: &str, active: bool, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
+    pub fn new(id: &str, company_id: &str, name: &str, options: &HashMap<String, String>, variants: &HashMap<String, ProductVariant>, meta: &str, active: bool, created: &DateTime<Utc>, updated: &DateTime<Utc>, deleted: Option<&DateTime<Utc>>, history_len: u64, &history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             company_id: company_id.to_owned(),
@@ -160,6 +161,7 @@ impl Product {
             active,
             created: created.clone(),
             updated: updated.clone(),
+            deleted: deleted.unwrap_or(&util::time::default_time()).clone(),
             history_len,
             history_hash,
         }
@@ -176,6 +178,7 @@ impl Product {
             active.unwrap_or(self.active),
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
@@ -194,6 +197,7 @@ impl Product {
             self.active,
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
@@ -221,6 +225,7 @@ impl Product {
             self.active,
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
@@ -246,6 +251,7 @@ impl Product {
             self.active,
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
@@ -269,6 +275,7 @@ impl Product {
             self.active,
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
@@ -289,9 +296,31 @@ impl Product {
             self.active,
             &self.created,
             updated,
+            Some(&self.deleted),
             self.history_len + 1,
             history_hash
         )
+    }
+
+    pub fn delete(&self, deleted: &DateTime<Utc>, history_hash: &Hash) -> Self {
+        Self::new(
+            &self.id,
+            &self.company_id,
+            &self.name,
+            &self.options,
+            &self.variants,
+            &self.meta,
+            self.active,
+            &self.created,
+            &self.updated,
+            Some(deleted),
+            self.history_len + 1,
+            history_hash
+        )
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.deleted != util::time::default_time()
     }
 }
 
@@ -323,6 +352,7 @@ pub mod tests {
             true,
             &date,
             &date,
+            None,
             0,
             &make_hash()
         )
@@ -535,6 +565,19 @@ pub mod tests {
         assert_eq!(product6.options.len(), 1);
         assert_eq!(product6.variants.len(), 1);
         assert_eq!(pvariant2.updated, date6);
+    }
+
+    #[test]
+    fn deletes() {
+        let product = make_product();
+        assert_eq!(product.deleted, util::time::default_time());
+        assert!(!product.is_deleted());
+        let date2 = make_date();
+        let hash2 = Hash::new([56, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let product2 = product.delete(&date2, &hash2);
+        assert_eq!(product2.deleted, date2);
+        assert!(product2.deleted != util::time::default_time());
+        assert!(product2.is_deleted());
     }
 }
 

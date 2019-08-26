@@ -121,12 +121,10 @@ impl Transaction for TxUpdate {
 
         let mut schema = Schema::new(context.fork());
 
-        match access::check(&mut schema, pubkey, Permission::CompanyAdminUpdate) {
-            Ok(_) => {}
-            Err(_) => {
-                check(&mut schema, &self.id, pubkey, CompanyPermission::CompanyUpdate)?;
-            }
-        }
+        access::check(&mut schema, pubkey, Permission::CompanyAdminUpdate)
+            .or_else(|_| {
+                check(&mut schema, &self.id, pubkey, CompanyPermission::CompanyUpdate)
+            })?;
 
         // because protobuffers are kind of stupid and don't have null
         let email = empty_opt(&self.email).map(|x| x.as_str());
@@ -214,12 +212,11 @@ impl Transaction for TxDelete {
             None => Err(TransactionError::CompanyNotFound)?,
         }
 
-        match access::check(&mut schema, pubkey, Permission::CompanyAdminDelete) {
-            Ok(_) => {}
-            Err(_) => {
-                check(&mut schema, &self.id, pubkey, CompanyPermission::CompanyDelete)?;
-            }
-        }
+
+        access::check(&mut schema, pubkey, Permission::CompanyAdminDelete)
+            .or_else(|_| {
+                check(&mut schema, &self.id, pubkey, CompanyPermission::CompanyDelete)
+            })?;
 
         if !util::time::is_current(&self.deleted) {
             Err(CommonError::InvalidTime)?

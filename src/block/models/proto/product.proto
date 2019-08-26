@@ -63,8 +63,10 @@ message Product {
 	bool active = 7;
 	google.protobuf.Timestamp created = 8;
 	google.protobuf.Timestamp updated = 9;
-	uint64 history_len = 10;
-	exonum.Hash history_hash = 11;
+	google.protobuf.Timestamp deleted = 10;
+	string test = 16;
+	uint64 history_len = 11;
+	exonum.Hash history_hash = 12;
 }
 
 message TxCreate {

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use exonum::{
     crypto::{self, Hash, PublicKey},
@@ -8,12 +9,14 @@ use exonum_merkledb::{
     MapIndex,
     ProofListIndex,
     ProofMapIndex,
+    KeySetIndex,
 };
 use crate::block::models::access::Role;
 use crate::block::models::{
     user::User,
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
+    product::{Product, ProductVariant},
 };
 
 #[derive(Debug)]
@@ -226,6 +229,124 @@ impl<T> Schema<T>
     pub fn companies_members_delete(&mut self, company_id: &str, user_id: &str) {
         self.companies_members(company_id).remove(&crypto::hash(user_id.as_bytes()));
         self.companies_members_history(company_id, user_id).clear();
+    }
+
+    // -------------------------------------------------------------------------
+    // Products
+    // -------------------------------------------------------------------------
+    pub fn products(&self) -> ProofMapIndex<T, Hash, Product> {
+        ProofMapIndex::new("basis.products.table", self.access.clone())
+    }
+
+    pub fn products_idx_company_id(&self, company_id: &str) -> KeySetIndex<T, String> {
+        KeySetIndex::new_in_family("basis.products.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
+    pub fn products_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.products.history", &crypto::hash(id.as_bytes()), self.access.clone())
+    }
+
+    pub fn get_product(&self, id: &str) -> Option<Product> {
+        self.products().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn get_products_for_company_id(&self, company_id: &str) -> Vec<Product> {
+        self.products_idx_company_id(company_id)
+            .iter()
+            .map(|x| self.get_product(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>()
+    }
+
+    pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, meta: &str, active: bool, created: &DateTime<Utc>, transaction: &Hash) {
+        let product = {
+            let mut history = self.products_history(id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            Product::new(id, company_id, name, &HashMap::new(), &HashMap::new(), meta, active, &created, &created, None, history.len(), &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+        self.products_idx_company_id(company_id).insert(id.to_owned());
+    }
+
+    pub fn products_update(&mut self, product: Product, name: Option<&str>, meta: Option<&str>, active: Option<bool>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.update(name, meta, active, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_set_option(&mut self, product: Product, name: &str, title: &str, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.set_option(name, title, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_remove_option(&mut self, product: Product, name: &str, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.remove_option(name, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_set_variant(&mut self, product: Product, variant: &ProductVariant, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.set_variant(variant, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_update_variant(&mut self, product: Product, variant_id: &str, name: Option<&str>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.update_variant(variant_id, name, active, meta, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_remove_variant(&mut self, product: Product, variant_id: &str, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.remove_variant(variant_id, updated, &history_hash)
+        };
+        self.products().put(&crypto::hash(id.as_bytes()), product);
+    }
+
+    pub fn products_delete(&mut self, product: Product, deleted: &DateTime<Utc>, transaction: &Hash) {
+        let id = product.id.clone();
+        let company_id = product.company_id.clone();
+        let product = {
+            let mut history = self.products_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            product.delete(deleted, &history_hash)
+        };
+        self.products().put(&crypto::hash(product.id.as_bytes()), product);
+        self.products_idx_company_id(&company_id).remove(&id);
     }
 }
 
