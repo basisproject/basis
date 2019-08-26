@@ -16,7 +16,7 @@ message ProductVariant {
 			double length = 3;
 		}
 		Units unit = 1;
-		double weight_mg = 2;
+		double mass_mg = 2;
 		Dimensions dimensions = 3;
 	}
 	message Input {

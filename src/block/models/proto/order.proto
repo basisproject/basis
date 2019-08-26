@@ -2,28 +2,39 @@ syntax = "proto3";
 package basis.order;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
-import "product.proto";
-
-enum ProcessStatus {
-	UNKNOWN = 0;
-	NEW = 1;
-	ACCEPTED = 2;
-	PROCESSING = 3;
-	SHIPPED = 4;
-	DELIVERED = 5;
-	CANCELLED = 6;
-}
 
 message Order {
-	message OrderProduct {
-		string product_variant_id = 1;
-		uint64 quantity = 2;
+	enum ProcessStatus {
+		UNKNOWN = 0;
+		NEW = 1;
+		ACCEPTED = 2;
+		PROCESSING = 3;
+		COMPLETED = 4;
+		SHIPPED = 5;
+		DELIVERED = 6;
+		CANCELLED = 7;
 	}
+	message ProductEntry {
+		message Cost {
+		}
+		string product_id = 1;
+		string product_variant_id = 2;
+		uint64 quantity = 3;
+	}
+	message ShippingEntry {
+		string company_id = 1;
+		string address_from = 2;
+		string address_to = 3;
+		google.protobuf.Timestamp pickup = 4;
+		google.protobuf.Timestamp delivered = 5;
+	}
+
 	string id = 1;
-	string company_from = 2;
-	string company_to = 3;
-	repeated OrderProduct products = 4;
-	ProcessStatus process_status = 5;
+	string company_id_from = 2;
+	string company_id_to = 3;
+	repeated ProductEntry products = 5;
+	ShippingEntry shipping = 6;
+	ProcessStatus process_status = 7;
 	google.protobuf.Timestamp created = 8;
 	google.protobuf.Timestamp updated = 9;
 	uint64 history_len = 10;

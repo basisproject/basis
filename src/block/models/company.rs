@@ -33,7 +33,7 @@ pub enum Permission {
 
     OrderCreate,
     OrderUpdateProcessStatus,
-    OrderUpdatePaymentStatus,
+    OrderUpdateShipping,
     OrderCancel,
 }
 
@@ -81,7 +81,6 @@ impl Role {
             Role::Supplier => {
                 vec![
                     Permission::OrderUpdateProcessStatus,
-                    Permission::OrderUpdatePaymentStatus,
                     Permission::OrderCancel,
                 ]
             }
@@ -204,7 +203,6 @@ pub mod tests {
         assert!(owner.can(&Permission::ProductDelete));
         assert!(owner.can(&Permission::OrderCreate));
         assert!(owner.can(&Permission::OrderUpdateProcessStatus));
-        assert!(owner.can(&Permission::OrderUpdatePaymentStatus));
         assert!(owner.can(&Permission::OrderCancel));
 
         let admin = Role::Admin;
@@ -218,7 +216,6 @@ pub mod tests {
         assert!(admin.can(&Permission::ProductDelete));
         assert!(admin.can(&Permission::OrderCreate));
         assert!(admin.can(&Permission::OrderUpdateProcessStatus));
-        assert!(admin.can(&Permission::OrderUpdatePaymentStatus));
         assert!(admin.can(&Permission::OrderCancel));
 
         let member_admin = Role::MemberAdmin;
@@ -232,7 +229,6 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::ProductDelete));
         assert!(!member_admin.can(&Permission::OrderCreate));
         assert!(!member_admin.can(&Permission::OrderUpdateProcessStatus));
-        assert!(!member_admin.can(&Permission::OrderUpdatePaymentStatus));
         assert!(!member_admin.can(&Permission::OrderCancel));
     }
 

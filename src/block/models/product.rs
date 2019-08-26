@@ -35,15 +35,15 @@ impl PhysicalPropertyDimensions {
 #[exonum(pb = "proto::product::ProductVariant_PhysicalProperties", serde_pb_convert)]
 pub struct PhysicalProperties {
     pub unit: PhysicalPropertyUnit,
-    pub weight_mg: f64,
+    pub mass_mg: f64,
     pub dimensions: PhysicalPropertyDimensions,
 }
 
 impl PhysicalProperties {
-    pub fn new(unit: PhysicalPropertyUnit, weight_mg: f64, dimensions: Option<&PhysicalPropertyDimensions>) -> Self {
+    pub fn new(unit: PhysicalPropertyUnit, mass_mg: f64, dimensions: Option<&PhysicalPropertyDimensions>) -> Self {
         Self {
             unit,
-            weight_mg,
+            mass_mg,
             dimensions: dimensions.unwrap_or(&Default::default()).clone(),
         }
     }
