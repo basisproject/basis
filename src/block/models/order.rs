@@ -33,7 +33,7 @@ struct OrderShippingEntry {
     pub address_from: String,
     pub address_to: String,
     pub pickup: DateTime<Utc>,
-    pub delivery: DateTime<Utc>,
+    pub delivered: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug, ProtobufConvert)]
