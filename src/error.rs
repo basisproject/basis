@@ -5,7 +5,7 @@
 use ::config::ConfigError;
 
 #[derive(Debug, Fail)]
-pub enum CError {
+pub enum BError {
     #[fail(display = "Configuration error")]
     ConfigError(#[fail(cause)] ConfigError),
 
@@ -13,13 +13,13 @@ pub enum CError {
     InvalidRole,
 }
 
-pub type CResult<T> = Result<T, CError>;
+pub type CResult<T> = Result<T, BError>;
 
 
 macro_rules! make_err_converter {
     ($field:path, $errtype:ty) => {
-        impl From<$errtype> for CError {
-            fn from(err: $errtype) -> CError {
+        impl From<$errtype> for BError {
+            fn from(err: $errtype) -> BError {
                 if cfg!(feature = "panic-on-error") {
                     panic!("{:?}", err);
                 } else {
@@ -30,5 +30,5 @@ macro_rules! make_err_converter {
     }
 }
 
-make_err_converter!(CError::ConfigError, ConfigError);
+make_err_converter!(BError::ConfigError, ConfigError);
 

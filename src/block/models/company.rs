@@ -3,7 +3,7 @@ use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
 use serde_json::{self, Value};
 use crate::block::models::proto;
-use crate::error::CError;
+use crate::error::BError;
 
 proto_enum! {
     enum CompanyType {
@@ -122,7 +122,7 @@ impl ProtobufConvert for Role {
 
     fn from_pb(pb: Self::ProtoStruct) -> Result<Self, failure::Error> {
         serde_json::from_value::<Role>(Value::String(pb))
-            .map_err(|_| From::from(CError::InvalidRole))
+            .map_err(|_| From::from(BError::InvalidRole))
     }
 }
 

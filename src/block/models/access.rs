@@ -1,6 +1,6 @@
 use exonum::proto::ProtobufConvert;
 use serde_json::{self, Value};
-use crate::error::CError;
+use crate::error::BError;
 
 /// Define the system-wide permissions.
 ///
@@ -112,7 +112,7 @@ impl ProtobufConvert for Role {
 
     fn from_pb(pb: Self::ProtoStruct) -> Result<Self, failure::Error> {
         serde_json::from_value::<Role>(Value::String(pb))
-            .map_err(|_| From::from(CError::InvalidRole))
+            .map_err(|_| From::from(BError::InvalidRole))
     }
 }
 
