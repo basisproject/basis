@@ -30,7 +30,9 @@ fn main() {
     init("./config/config.default.yaml", "./config/config.yaml").unwrap();
     exonum::crypto::init();
     if let Err(err) = exonum::helpers::init_logger() {
-       warn!("basis::main() -- error initializing exonum logger: {}", err);
+        drop(err);
+        // honestly don't give a shit
+        //warn!("basis::main() -- error initializing exonum logger: {}", err);
     }
 
     let node = NodeBuilder::new()

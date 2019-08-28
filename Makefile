@@ -18,13 +18,13 @@ release: override CARGO_BUILD_ARGS += --release
 release: build
 
 run:
-	$(CARGO) run $(CARGO_BUILD_ARGS) -- run --node-config config/block/config.toml --db-path $(BASIS_DB) --public-api-address 0.0.0.0:13007 --consensus-key-pass pass --service-key-pass pass
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- run -d $(BASIS_DB) -c config/block/0/node.toml --consensus-key-pass pass --service-key-pass pass
 
 reconfig: all
 	mkdir -p config/block/
-	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-template config/block/common.toml --validators-count=1
-	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-config config/block/common.toml config/block/node.pub.toml config/block/node.sec.toml --peer-address 127.0.0.1:6969 -c config/block/consensus.toml -s config/block/service.toml -n
-	$(CARGO) run $(CARGO_BUILD_ARGS) -- finalize --public-api-address 0.0.0.0:13007 --private-api-address 0.0.0.0:13008 config/block/node.sec.toml config/block/config.toml --public-configs config/block/node.pub.toml
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-template config/block/template.toml --validators-count=1
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- generate-config config/block/template.toml config/block/0/ --peer-address 127.0.0.1:6969 --consensus-key-pass pass --service-key-pass pass
+	$(CARGO) run $(CARGO_BUILD_ARGS) -- finalize config/block/0/sec.toml config/block/0/node.toml --public-api-address 0.0.0.0:13007 --private-api-address 0.0.0.0:13008 --public-configs config/block/0/pub.toml
 
 test:
 	$(CARGO) test $(TEST) $(CARGO_BUILD_ARGS) -- --nocapture
