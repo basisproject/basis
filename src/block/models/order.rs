@@ -21,7 +21,7 @@ proto_enum! {
 
 #[derive(Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::order::Order_ProductEntry", serde_pb_convert)]
-struct ProductEntry {
+pub struct ProductEntry {
     pub product_id: String,
     pub product_variant_id: String,
     pub quantity: u64,
@@ -39,7 +39,7 @@ impl ProductEntry {
 
 #[derive(Clone, Debug, PartialEq, ProtobufConvert)]
 #[exonum(pb = "proto::order::Order_ShippingEntry", serde_pb_convert)]
-struct ShippingEntry {
+pub struct ShippingEntry {
     pub company_id: String,
     pub address_from: String,
     pub address_to: String,
@@ -67,7 +67,7 @@ impl Default for ShippingEntry {
 
 #[derive(Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::order::Order", serde_pb_convert)]
-struct Order {
+pub struct Order {
     pub id: String,
     pub company_id_from: String,
     pub company_id_to: String,
