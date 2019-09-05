@@ -17,6 +17,7 @@ use crate::block::models::{
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
     product::{Product, ProductVariant},
+    order::{Order, ProcessStatus, ProductEntry},
 };
 
 #[derive(Debug)]
@@ -347,6 +348,31 @@ impl<T> Schema<T>
         };
         self.products().put(&crypto::hash(product.id.as_bytes()), product);
         self.products_idx_company_id(&company_id).remove(&id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Orders
+    // -------------------------------------------------------------------------
+    pub fn orders(&self) -> ProofMapIndex<T, Hash, Order> {
+        ProofMapIndex::new("basis.orders.table", self.access.clone())
+    }
+
+    pub fn orders_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.orders.history", &crypto::hash(id.as_bytes()), self.access.clone())
+    }
+
+    pub fn get_order(&self, id: &str) -> Option<Order> {
+        self.orders().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
+        let order = {
+            let mut history = self.orders_history(id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            Order::new(id, company_id_from, company_id_to, products, &Default::default(), &ProcessStatus::New, &created, &created, history.len(), &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
     }
 }
 

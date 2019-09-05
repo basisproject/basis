@@ -49,6 +49,14 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::OrderCreate)?;
         company::check(&mut schema, &self.company_id_from, pubkey, CompanyPermission::OrderCreate)?;
+
+        if schema.get_order(&self.id).is_some() {
+            Err(TransactionError::IDExists)?;
+        }
+        if !util::time::is_current(&self.created) {
+            Err(CommonError::InvalidTime)?;
+        }
+        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.products, &self.created, &hash);
         Ok(())
     }
 }
