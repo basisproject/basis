@@ -28,7 +28,7 @@ struct ProductEntry {
 
 #[derive(Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::order::Order_ShippingEntry", serde_pb_convert)]
-struct OrderShippingEntry {
+struct ShippingEntry {
     pub company_id: String,
     pub address_from: String,
     pub address_to: String,
@@ -43,7 +43,7 @@ struct Order {
     pub company_id_from: String,
     pub company_id_to: String,
     pub products: Vec<ProductEntry>,
-    pub shipping: OrderShippingEntry,
+    pub shipping: ShippingEntry,
     pub process_status: OrderProcessStatus,
     pub created: DateTime<Utc>,
     pub updated: DateTime<Utc>,
@@ -52,7 +52,7 @@ struct Order {
 }
 
 impl Order {
-    pub fn new(id: &str, company_id_from: &str, company_id_to: &str, products: &Vec<ProductEntry>, shipping: &OrderShippingEntry, process_status: OrderProcessStatus, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
+    pub fn new(id: &str, company_id_from: &str, company_id_to: &str, products: &Vec<ProductEntry>, shipping: &ShippingEntry, process_status: OrderProcessStatus, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             company_id_from: company_id_from.to_owned(),
@@ -82,7 +82,7 @@ impl Order {
         )
     }
 
-    pub fn set_shipping(&self, shipping: &OrderShippingEntry, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+    pub fn set_shipping(&self, shipping: &ShippingEntry, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         Self::new(
             &self.id,
             &self.company_id_from,

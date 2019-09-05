@@ -15,8 +15,6 @@ message Order {
 		CANCELLED = 7;
 	}
 	message ProductEntry {
-		message Cost {
-		}
 		string product_id = 1;
 		string product_variant_id = 2;
 		uint64 quantity = 3;
