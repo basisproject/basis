@@ -39,3 +39,23 @@ message Order {
 	exonum.Hash history_hash = 11;
 }
 
+message TxCreate {
+	string id = 1;
+	string company_id_from = 2;
+	string company_id_to = 3;
+	repeated Order.ProductEntry products = 4;
+	google.protobuf.Timestamp created = 5;
+}
+
+message TxUpdateStatus {
+	string id = 1;
+	Order.ProcessStatus process_status = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxSetShipping {
+	string id = 1;
+	Order.ShippingEntry shipping = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
