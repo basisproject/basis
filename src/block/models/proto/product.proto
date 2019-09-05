@@ -4,20 +4,16 @@ import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 
 message ProductVariant {
-	message PhysicalProperties {
-		enum Units {
-			UNKNOWN = 0;
-			MM = 1;
-			ML = 2;
-		}
-		message Dimensions {
-			double width = 1;
-			double height = 2;
-			double length = 3;
-		}
-		Units unit = 1;
-		double mass_mg = 2;
-		Dimensions dimensions = 3;
+	enum Unit {
+		UNKNOWN = 0;
+		MILLIMETER = 1;
+		MILLILITER = 2;
+		WATTHOUR = 3;
+	}
+	message Dimensions {
+		double width = 1;
+		double height = 2;
+		double length = 3;
 	}
 	message Input {
 		string product_variant_id = 1;
@@ -42,15 +38,17 @@ message ProductVariant {
 	string id = 1;
 	string product_id = 2;
 	string name = 3;
-	PhysicalProperties properties = 4;
-	repeated Input inputs = 5;
-	map<string, string> options = 6;
-	Effort effort = 7;
-	bool active = 8;
-	string meta = 9;
-	google.protobuf.Timestamp created = 10;
-	google.protobuf.Timestamp updated = 11;
-	google.protobuf.Timestamp deleted = 12;
+	Unit unit = 4;
+	double mass_mg = 5;
+	Dimensions dimensions = 6;
+	repeated Input inputs = 7;
+	map<string, string> options = 8;
+	Effort effort = 9;
+	bool active = 10;
+	string meta = 11;
+	google.protobuf.Timestamp created = 12;
+	google.protobuf.Timestamp updated = 13;
+	google.protobuf.Timestamp deleted = 14;
 }
 
 message Product {

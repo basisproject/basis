@@ -5,46 +5,29 @@ use crate::block::models::proto;
 use crate::util;
 
 proto_enum! {
-    enum PhysicalPropertyUnit {
+    enum Unit {
         Unknown = 0,
-        Mm = 1,
-        Ml = 2,
+        Millimeter = 1,
+        Milliliter = 2,
+        WattHour = 3,
     };
-    proto::product::ProductVariant_PhysicalProperties_Units
+    proto::product::ProductVariant_Unit
 }
 
 #[derive(Clone, Debug, Default, PartialEq, ProtobufConvert)]
-#[exonum(pb = "proto::product::ProductVariant_PhysicalProperties_Dimensions", serde_pb_convert)]
-pub struct PhysicalPropertyDimensions {
+#[exonum(pb = "proto::product::ProductVariant_Dimensions", serde_pb_convert)]
+pub struct Dimensions {
     pub width: f64,
     pub height: f64,
     pub length: f64,
 }
 
-impl PhysicalPropertyDimensions {
+impl Dimensions {
     pub fn new(width: f64, height: f64, length: f64) -> Self {
         Self {
             width,
             height,
             length,
-        }
-    }
-}
-
-#[derive(Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::ProductVariant_PhysicalProperties", serde_pb_convert)]
-pub struct PhysicalProperties {
-    pub unit: PhysicalPropertyUnit,
-    pub mass_mg: f64,
-    pub dimensions: PhysicalPropertyDimensions,
-}
-
-impl PhysicalProperties {
-    pub fn new(unit: PhysicalPropertyUnit, mass_mg: f64, dimensions: Option<&PhysicalPropertyDimensions>) -> Self {
-        Self {
-            unit,
-            mass_mg,
-            dimensions: dimensions.unwrap_or(&Default::default()).clone(),
         }
     }
 }
@@ -102,7 +85,9 @@ pub struct ProductVariant {
     pub id: String,
     pub product_id: String,
     pub name: String,
-    pub properties: PhysicalProperties,
+    pub unit: Unit,
+    pub mass_mg: f64,
+    pub dimensions: Dimensions,
     pub inputs: Vec<Input>,
     pub options: HashMap<String, String>,
     pub effort: Effort,
@@ -114,12 +99,14 @@ pub struct ProductVariant {
 }
 
 impl ProductVariant {
-    pub fn new(id: &str, product_id: &str, name: &str, properties: &PhysicalProperties, inputs: &Vec<Input>, options: &HashMap<String, String>, effort: &Effort, active: bool, meta: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, deleted: Option<&DateTime<Utc>>) -> Self {
+    pub fn new(id: &str, product_id: &str, name: &str, unit: &Unit, mass_mg: f64, dimensions: &Dimensions, inputs: &Vec<Input>, options: &HashMap<String, String>, effort: &Effort, active: bool, meta: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, deleted: Option<&DateTime<Utc>>) -> Self {
         Self {
             id: id.to_owned(),
             product_id: product_id.to_owned(),
             name: name.to_owned(),
-            properties: properties.clone(),
+            unit: unit.clone(),
+            mass_mg,
+            dimensions: dimensions.clone(),
             inputs: inputs.clone(),
             options: options.clone(),
             effort: effort.clone(),
@@ -457,7 +444,6 @@ pub mod tests {
         let hash2_1 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
         let hash2_2 = Hash::new([4, 87, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
         let hash2_3 = Hash::new([5, 87, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
-        let props = PhysicalProperties::new(PhysicalPropertyUnit::Mm, 600.0, Some(&PhysicalPropertyDimensions::new(100.0, 100.0, 100.0)));
         let inputs = vec![
             Input::new("4722d6bc-953d-4e3a-b1df-c133fc088710", 10),
         ];
@@ -469,7 +455,9 @@ pub mod tests {
             "4266954b-c5c0-43e4-a740-9e36c726451d",
             &product.id,
             "SECKKK XXXLarge RED shirt braaaahh",
-            &props,
+            &Unit::Millimeter,
+            600.00,
+            &Dimensions::new(100.0, 100.0, 100.0),
             &inputs,
             &voptions,
             &effort,
