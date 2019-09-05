@@ -26,6 +26,10 @@ pub enum Permission {
     ProductDelete,
     ProductAdminUpdate,
     ProductAdminDelete,
+
+    OrderCreate,
+    OrderUpdate,
+    OrderAdminUpdate,
 }
 
 /// Define the system-wide roles users can have.
@@ -35,6 +39,7 @@ pub enum Role {
     IdentityAdmin,
     CompanyAdmin,
     ProductAdmin,
+    OrderAdmin,
     Bank,
     User,
 }
@@ -66,6 +71,11 @@ impl Role {
                     Permission::ProductAdminDelete,
                 ]
             }
+            Role::OrderAdmin => {
+                vec![
+                    Permission::OrderAdminUpdate,
+                ]
+            }
             Role::Bank => {
                 vec![
                     Permission::CompanySetType,
@@ -77,7 +87,11 @@ impl Role {
                     Permission::UserDelete,
                     Permission::CompanyCreatePrivate,
                     Permission::CompanyUpdateMembers,
+                    Permission::ProductCreate,
                     Permission::ProductUpdate,
+                    Permission::ProductDelete,
+                    Permission::OrderCreate,
+                    Permission::OrderUpdate,
                 ]
             }
         }
@@ -155,6 +169,9 @@ pub mod tests {
         assert!(comp_admin.can(&Permission::CompanyAdminUpdate));
         assert!(comp_admin.can(&Permission::CompanyAdminDelete));
         assert!(!comp_admin.can(&Permission::CompanySetType));
+
+        // TODO: ProductAdmin
+        // TODO: OrderAdmin
     }
 }
 
