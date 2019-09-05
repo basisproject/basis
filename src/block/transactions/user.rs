@@ -12,7 +12,10 @@ use crate::block::{
     models::access::{Permission, Role},
     transactions::access,
 };
-use crate::util::{self, protobuf::empty_opt};
+use crate::util::{
+    self,
+    protobuf::{POption, empty_opt},
+};
 use crate::config;
 use super::CommonError;
 
@@ -54,13 +57,6 @@ pub struct TxCreate {
     pub created: DateTime<Utc>,
 }
 
-impl TxCreate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, &pubkey: &PublicKey, roles: &Vec<Role>, email: &str, name: &str, meta: &str, created: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), pubkey, roles: roles.clone(), email: email.to_owned(), name: name.to_owned(), meta: meta.to_owned(), created: created.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -94,17 +90,10 @@ impl Transaction for TxCreate {
 #[exonum(pb = "proto::user::TxUpdate")]
 pub struct TxUpdate {
     pub id: String,
-    pub email: String,
-    pub name: String,
-    pub meta: String,
+    pub email: POption<String>,
+    pub name: POption<String>,
+    pub meta: POption<String>,
     pub updated: DateTime<Utc>,
-}
-
-impl TxUpdate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, email: &str, name: &str, meta: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), email: email.to_owned(), name: name.to_owned(), meta: meta.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxUpdate {
@@ -135,10 +124,9 @@ impl Transaction for TxUpdate {
             }
         }
 
-        // because protobuffers are kind of stupid and don't have null
-        let email = empty_opt(&self.email).map(|x| x.as_str());
-        let name = empty_opt(&self.name).map(|x| x.as_str());
-        let meta = empty_opt(&self.meta).map(|x| x.as_str());
+        let email = self.email.as_ref().map(|x| x.as_str());
+        let name = self.name.as_ref().map(|x| x.as_str());
+        let meta = self.meta.as_ref().map(|x| x.as_str());
 
         let user = match schema.get_user(self.id.as_str()) {
             Some(x) => x,
@@ -170,13 +158,6 @@ pub struct TxSetPubkey {
     pub pubkey: PublicKey,
     pub memo: String,
     pub updated: DateTime<Utc>,
-}
-
-impl TxSetPubkey {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, &pubkey: &PublicKey, memo: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), pubkey, memo: memo.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxSetPubkey {
@@ -218,13 +199,6 @@ pub struct TxSetRoles {
     pub updated: DateTime<Utc>,
 }
 
-impl TxSetRoles {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, roles: &Vec<Role>, memo: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), roles: roles.clone(), memo: memo.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxSetRoles {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -253,13 +227,6 @@ pub struct TxDelete {
     pub id: String,
     pub memo: String,
     pub deleted: DateTime<Utc>,
-}
-
-impl TxDelete {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, memo: &str, deleted: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), memo: memo.to_owned(), deleted: deleted.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxDelete {
