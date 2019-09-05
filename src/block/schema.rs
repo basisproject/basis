@@ -17,7 +17,7 @@ use crate::block::models::{
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
     product::{Product, ProductVariant},
-    order::{Order, ProcessStatus, ProductEntry},
+    order::{Order, ProcessStatus, ProductEntry, ShippingEntry},
 };
 
 #[derive(Debug)]
@@ -371,6 +371,28 @@ impl<T> Schema<T>
             history.push(*transaction);
             let history_hash = history.object_hash();
             Order::new(id, company_id_from, company_id_to, products, &Default::default(), &ProcessStatus::New, &created, &created, history.len(), &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
+    }
+
+    pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = order.id.clone();
+        let order = {
+            let mut history = self.orders_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            order.update_status(process_status, updated, &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
+    }
+
+    pub fn orders_set_shipping(&self, order: Order, shipping: &ShippingEntry, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = order.id.clone();
+        let order = {
+            let mut history = self.orders_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            order.set_shipping(shipping, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order);
     }

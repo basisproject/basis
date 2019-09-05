@@ -61,6 +61,10 @@ pub enum TransactionGroup {
     ProductUpdateVariant(product::TxUpdateVariant),
     ProductRemoveVariant(product::TxRemoveVariant),
     ProductDelete(product::TxDelete),
+
+    OrderCreate(order::TxCreate),
+    OrderUpdateStatus(order::TxUpdateStatus),
+    OrderSetShipping(order::TxSetShipping),
 }
 
 
