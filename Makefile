@@ -7,6 +7,7 @@ VARS ?= vars.mk
 CARGO ?= $(shell which cargo)
 FEATURES ?= with-serde
 TARGET := ./target/debug/basis
+BASIS_DB ?= /tmp/basis-db
 override CARGO_BUILD_ARGS += --features "$(FEATURES)"
 
 all: build
@@ -19,6 +20,11 @@ release: build
 
 run:
 	$(CARGO) run $(CARGO_BUILD_ARGS) -- run -d $(BASIS_DB) -c config/block/0/node.toml --consensus-key-pass pass --service-key-pass pass
+
+clean-db:
+	rm -rf $(BASIS_DB)
+
+run-clean: clean-db run
 
 reconfig: all
 	mkdir -p config/block/

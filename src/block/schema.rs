@@ -396,5 +396,27 @@ impl<T> Schema<T>
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order);
     }
+
+    pub fn orders_set_shipping_pickup(&self, order: Order, pickup: &DateTime<Utc>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = order.id.clone();
+        let order = {
+            let mut history = self.orders_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            order.set_shipping_pickup(pickup, updated, &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
+    }
+
+    pub fn orders_set_shipping_delivered(&self, order: Order, delivered: &DateTime<Utc>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = order.id.clone();
+        let order = {
+            let mut history = self.orders_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            order.set_shipping_delivered(delivered, updated, &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
+    }
 }
 

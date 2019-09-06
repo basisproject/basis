@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::default::Default;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
@@ -125,6 +124,42 @@ impl Order {
             history_hash
         )
     }
+
+    pub fn set_shipping_pickup(&self, pickup: &DateTime<Utc>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+        let mut shipping = self.shipping.clone();
+        shipping.pickup = pickup.clone();
+
+        Self::new(
+            &self.id,
+            &self.company_id_from,
+            &self.company_id_to,
+            &self.products,
+            &shipping,
+            &self.process_status,
+            &self.created,
+            updated,
+            self.history_len + 1,
+            history_hash
+        )
+    }
+
+    pub fn set_shipping_delivered(&self, delivered: &DateTime<Utc>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+        let mut shipping = self.shipping.clone();
+        shipping.delivered = delivered.clone();
+
+        Self::new(
+            &self.id,
+            &self.company_id_from,
+            &self.company_id_to,
+            &self.products,
+            &shipping,
+            &self.process_status,
+            &self.created,
+            updated,
+            self.history_len + 1,
+            history_hash
+        )
+    }
 }
 
 #[cfg(test)]
@@ -193,19 +228,62 @@ pub mod tests {
             &util::time::default_time(),
             &util::time::default_time()
         );
-        let order2 = order.clone().set_shipping(&shipping, &date2, &hash2);
+        let order2 = order.set_shipping(&shipping, &date2, &hash2);
         assert_eq!(order.id, order2.id);
         assert_eq!(order.company_id_from, order2.company_id_from);
         assert_eq!(order.company_id_to, order2.company_id_to);
         assert_eq!(order.products.len(), order2.products.len());
         assert_eq!(order.shipping, Default::default());
         assert_eq!(order2.shipping, shipping);
+        assert_eq!(order2.shipping.pickup, util::time::default_time());
+        assert_eq!(order2.shipping.delivered, util::time::default_time());
         assert!(shipping != Default::default());
         assert_eq!(order.created, order2.created);
         assert!(order.updated != order2.updated);
         assert_eq!(order2.updated, date2);
         assert_eq!(order2.shipping.address_from, String::from("Günther's Fine Gifts, 11169 Hammerschmidt lane, DankeschönFräulein, DE, 12269"));
         assert_eq!(order.shipping.address_from, String::from(""));
+        assert_eq!(order2.history_len, 1);
+        assert_eq!(order2.history_len - 1, order.history_len);
+
+        util::sleep(100);
+        let date3 = make_date();
+        util::sleep(100);
+        let pickup = make_date();
+        let hash3 = Hash::new([1, 27, 6, 4, 99, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let order3 = order2.set_shipping_pickup(&pickup, &date3, &hash3);
+        assert_eq!(order2.id, order3.id);
+        assert_eq!(order2.company_id_from, order3.company_id_from);
+        assert_eq!(order2.company_id_to, order3.company_id_to);
+        assert_eq!(order2.products.len(), order3.products.len());
+        assert_eq!(order3.shipping.pickup, pickup);
+        assert_eq!(order3.shipping.delivered, util::time::default_time());
+        assert_eq!(order2.created, order3.created);
+        assert!(order2.updated != order3.updated);
+        assert_eq!(order3.updated, date3);
+        assert_eq!(order3.shipping.address_from, String::from("Günther's Fine Gifts, 11169 Hammerschmidt lane, DankeschönFräulein, DE, 12269"));
+        assert_eq!(order3.history_len, 2);
+        assert_eq!(order3.history_len - 1, order2.history_len);
+
+        util::sleep(100);
+        let date4 = make_date();
+        util::sleep(100);
+        let delivered = make_date();
+        let hash4 = Hash::new([1, 27, 6, 4, 99, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let order4 = order3.set_shipping_delivered(&delivered, &date4, &hash4);
+        assert_eq!(order3.id, order4.id);
+        assert_eq!(order3.company_id_from, order4.company_id_from);
+        assert_eq!(order3.company_id_to, order4.company_id_to);
+        assert_eq!(order3.products.len(), order4.products.len());
+        assert_eq!(order4.shipping.pickup, order3.shipping.pickup);
+        assert_eq!(order4.shipping.delivered, delivered);
+        assert!(order3.shipping.delivered != order4.shipping.delivered);
+        assert_eq!(order3.created, order4.created);
+        assert!(order3.updated != order4.updated);
+        assert_eq!(order4.updated, date4);
+        assert_eq!(order4.shipping.address_to, String::from("2-for-1 Deals Retirement Community, 1457 Fading Willow Lane, Gray Mare, AL, 99999"));
+        assert_eq!(order4.history_len, 3);
+        assert_eq!(order4.history_len - 1, order3.history_len);
     }
 }
 

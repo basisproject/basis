@@ -59,3 +59,15 @@ message TxSetShipping {
 	google.protobuf.Timestamp updated = 3;
 }
 
+message TxSetShippingPickup {
+	string id = 1;
+	google.protobuf.Timestamp pickup = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+
+message TxSetShippingDelivered {
+	string id = 1;
+	google.protobuf.Timestamp delivered = 2;
+	google.protobuf.Timestamp updated = 3;
+}
+

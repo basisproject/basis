@@ -2,11 +2,9 @@ use chrono::{DateTime, Utc};
 use hex::FromHex;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
-    crypto::{PublicKey, SecretKey},
-    messages::{Message, RawTransaction, Signed},
+    crypto::{PublicKey},
 };
 use crate::block::{
-    SERVICE_ID,
     schema::Schema,
     models::proto,
     models::access::{Permission, Role},
@@ -14,7 +12,7 @@ use crate::block::{
 };
 use crate::util::{
     self,
-    protobuf::{POption, empty_opt},
+    protobuf::{POption},
 };
 use crate::config;
 use super::CommonError;

@@ -34,6 +34,7 @@ pub enum Permission {
     OrderCreate,
     OrderUpdateProcessStatus,
     OrderUpdateShipping,
+    OrderUpdateShippingDates,
     OrderCancel,
 }
 

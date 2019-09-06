@@ -78,6 +78,8 @@ impl blockchain::Service for Service {
         api::user::UserApi::wire(builder);
         api::company::CompanyApi::wire(builder);
         api::company_member::CompanyMemberApi::wire(builder);
+        api::product::ProductApi::wire(builder);
+        api::order::OrderApi::wire(builder);
     }
 }
 
