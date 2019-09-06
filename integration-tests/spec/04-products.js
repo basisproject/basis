@@ -42,7 +42,7 @@ describe('products', function() {
 		bootstrap.unload().then(done).catch(done.fail);
 	});
 
-	it('can be added to companies by owners', async () => {
+	it('setup', async () => {
 		// no, jerry! stop, jerry!
 		var res = await trans.send_as('root', tx.user.TxCreate, {
 			id: jerry_user_id,
@@ -287,6 +287,11 @@ describe('products', function() {
 			deleted: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+
+		var product = await Products.get({id: product_id});
+		expect(product.id).toBe(product_id);
+		expect(product.variants[variant_id].id).toBe(variant_id);
+		expect(product.deleted.seconds).not.toBe(0);
 	});
 });
 
