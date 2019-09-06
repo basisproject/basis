@@ -1,11 +1,8 @@
 use chrono::{DateTime, Utc};
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
-    crypto::{PublicKey, SecretKey},
-    messages::{Message, RawTransaction, Signed},
 };
 use crate::block::{
-    SERVICE_ID,
     schema::Schema,
     models::proto,
     models::company::{Permission as CompanyPermission},
@@ -47,13 +44,6 @@ pub struct TxCreate {
     pub created: DateTime<Utc>,
 }
 
-impl TxCreate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, company_id: &str, name: &str, meta: &str, active: bool, created: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), company_id: company_id.to_owned(), name: name.to_owned(), meta: meta.to_owned(), active, created: created.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -83,13 +73,6 @@ pub struct TxUpdate {
     pub meta: String,
     pub active: bool,
     pub updated: DateTime<Utc>,
-}
-
-impl TxUpdate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, name: &str, meta: &str, active: bool, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), name: name.to_owned(), meta: meta.to_owned(), active, updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxUpdate {
@@ -129,13 +112,6 @@ pub struct TxSetOption {
     pub updated: DateTime<Utc>,
 }
 
-impl TxSetOption {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, name: &str, title: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), name: name.to_owned(), title: title.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxSetOption {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -168,13 +144,6 @@ pub struct TxRemoveOption {
     pub updated: DateTime<Utc>,
 }
 
-impl TxRemoveOption {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, name: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), name: name.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxRemoveOption {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -205,13 +174,6 @@ pub struct TxSetVariant {
     pub id: String,
     pub variant: ProductVariant,
     pub updated: DateTime<Utc>,
-}
-
-impl TxSetVariant {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, variant: &ProductVariant, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), variant: variant.clone(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxSetVariant {
@@ -247,13 +209,6 @@ pub struct TxUpdateVariant {
     pub active: bool,
     pub meta: String,
     pub updated: DateTime<Utc>,
-}
-
-impl TxUpdateVariant {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, variant_id: &str, name: &str, active: bool, meta: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), variant_id: variant_id.to_owned(), name: name.to_owned(), active, meta: meta.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxUpdateVariant {
@@ -292,13 +247,6 @@ pub struct TxRemoveVariant {
     pub updated: DateTime<Utc>,
 }
 
-impl TxRemoveVariant {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, variant_id: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), variant_id: variant_id.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxRemoveVariant {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -329,13 +277,6 @@ impl Transaction for TxRemoveVariant {
 pub struct TxDelete {
     pub id: String,
     pub deleted: DateTime<Utc>,
-}
-
-impl TxDelete {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, deleted: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), deleted: deleted.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxDelete {

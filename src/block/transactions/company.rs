@@ -1,12 +1,10 @@
 use chrono::{DateTime, Utc};
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
-    crypto::{PublicKey, SecretKey},
-    messages::{Message, RawTransaction, Signed},
+    crypto::{PublicKey},
 };
 use exonum_merkledb::IndexAccess;
 use crate::block::{
-    SERVICE_ID,
     schema::Schema,
     models::proto,
     models::company::{CompanyType, Permission as CompanyPermission, Role as CompanyRole},
@@ -64,13 +62,6 @@ pub struct TxCreatePrivate {
     pub created: DateTime<Utc>,
 }
 
-impl TxCreatePrivate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, email: &str, name: &str, created: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), email: email.to_owned(), name: name.to_owned(), created: created.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxCreatePrivate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -105,13 +96,6 @@ pub struct TxUpdate {
     pub email: String,
     pub name: String,
     pub updated: DateTime<Utc>,
-}
-
-impl TxUpdate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, email: &str, name: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), email: email.to_owned(), name: name.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxUpdate {
@@ -156,13 +140,6 @@ pub struct TxSetType {
     pub updated: DateTime<Utc>,
 }
 
-impl TxSetType {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, ty: CompanyType, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), ty: ty, updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxSetType {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -192,13 +169,6 @@ pub struct TxDelete {
     pub id: String,
     pub memo: String,
     pub deleted: DateTime<Utc>,
-}
-
-impl TxDelete {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, id: &str, memo: &str, deleted: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {id: id.to_owned(), memo: memo.to_owned(), deleted: deleted.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxDelete {

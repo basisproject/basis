@@ -1,12 +1,9 @@
 use chrono::{DateTime, Utc};
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
-    crypto::{PublicKey, SecretKey},
-    messages::{Message, RawTransaction, Signed},
 };
 use exonum_merkledb::IndexAccess;
 use crate::block::{
-    SERVICE_ID,
     schema::Schema,
     models::proto,
     models::company::{Permission as CompanyPermission, Role as CompanyRole},
@@ -58,13 +55,6 @@ pub struct TxCreate {
     pub created: DateTime<Utc>,
 }
 
-impl TxCreate {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, memo: &str, created: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {company_id: company_id.to_owned(), user_id: user_id.to_owned(), roles: roles.clone(), memo: memo.to_owned(), created: created.clone() }, SERVICE_ID, *pk, sk)
-    }
-}
-
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
@@ -105,13 +95,6 @@ pub struct TxSetRoles {
     pub roles: Vec<CompanyRole>,
     pub memo: String,
     pub updated: DateTime<Utc>,
-}
-
-impl TxSetRoles {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, memo: &str, updated: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {company_id: company_id.to_owned(), user_id: user_id.to_owned(), roles: roles.clone(), memo: memo.to_owned(), updated: updated.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxSetRoles {
@@ -161,13 +144,6 @@ pub struct TxDelete {
     pub user_id: String,
     pub memo: String,
     pub deleted: DateTime<Utc>,
-}
-
-impl TxDelete {
-    #[allow(dead_code)]
-    pub fn sign(pk: &PublicKey, sk: &SecretKey, company_id: &str, user_id: &str, memo: &str, deleted: &DateTime<Utc>) -> Signed<RawTransaction> {
-        Message::sign_transaction(Self {company_id: company_id.to_owned(), user_id: user_id.to_owned(), memo: memo.to_owned(), deleted: deleted.clone() }, SERVICE_ID, *pk, sk)
-    }
 }
 
 impl Transaction for TxDelete {
