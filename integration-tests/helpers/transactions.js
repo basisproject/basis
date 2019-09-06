@@ -21,6 +21,21 @@ const message_id_map = {
     'company_member.TxCreate': 9,
     'company_member.TxSetRoles': 10,
     'company_member.TxDelete': 11,
+
+	'product.TxCreate': 12,
+	'product.TxUpdate': 13,
+	'product.TxSetOption': 14,
+	'product.TxRemoveOption': 15,
+	'product.TxSetVariant': 16,
+	'product.TxUpdateVariant': 17,
+	'product.TxRemoveVariant': 18,
+	'product.TxDelete': 19,
+
+	'order.TxCreate': 20,
+	'order.TxUpdateStatus': 21,
+	'order.TxSetShipping': 22,
+	'order.TxSetShippingPickup': 23,
+	'order.TxSetShippingDelivered': 24,
 };
 Object.keys(message_id_map).forEach((key) => {
 	const [type, tx] = key.split('.');
@@ -40,6 +55,8 @@ exports.make = (type, data, params) => {
 		'exonum.Hash': 'Hash',
 		'exonum.PublicKey': 'Pubkey',
 		'CompanyType': 'CompanyType',
+		'ProductVariant.Unit': 'Unit',
+		'ProductVariant.Effort.Time': 'Time',
 	};
 	Object.keys(Transaction.fields).forEach((field) => {
 		if(typeof(data[field]) == 'undefined') return;

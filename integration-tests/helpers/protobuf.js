@@ -18,9 +18,13 @@ const Timestamp = {
 		const now = new Date(datestr).getTime();
 		const seconds = Math.floor(now / 1000);
 		return {
-			seconds: Math.floor(now / 1000),
+			seconds: seconds,
 			nanos: (now - (seconds * 1000)) * 1000000,
 		};
+	},
+	from: function(date) {
+		let ts = parseInt((date.seconds * 1000) + (date.nanos / 1000000));
+		return new Date(ts);
 	},
 };
 
@@ -59,11 +63,45 @@ const CompanyType = {
 	},
 };
 
+const Unit = {
+	map: {
+		UNKNOWN: 0,
+		MILLIMETER: 1,
+		MILLILITER: 2,
+		WATTHOUR: 3,
+	},
+	type: new protobuf.Enum('Unit', this.map),
+	gen: function(val) {
+		return Unit.map[val.toUpperCase()] || 0;
+	},
+};
+
+const Time = {
+	map: {
+		UNKNOWN: 0,
+		NANOSECONDS: 1,
+		MILLISECONDS: 2,
+		SECONDS: 3,
+		MINUTES: 4,
+		HOURS: 5,
+		DAYS: 6,
+		WEEKS: 7,
+		YEARS: 8,
+	},
+	type: new protobuf.Enum('Time', this.map),
+	gen: function(val) {
+		return Time.map[val.toUpperCase()] || 0;
+	},
+};
+
+// NOTE: this must usually also be mapped in helpers/transactions::make()
 exports.types = {
 	Timestamp: Timestamp,
 	Hash: Hash,
 	Pubkey: Pubkey,
 	CompanyType: CompanyType,
+	Unit: Unit,
+	Time: Time,
 };
 
 const protos = new protobuf.Root();
