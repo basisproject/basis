@@ -64,9 +64,6 @@ pub enum TransactionGroup {
 
     OrderCreate(order::TxCreate),
     OrderUpdateStatus(order::TxUpdateStatus),
-    OrderSetShipping(order::TxSetShipping),
-    OrderSetShippingPickup(order::TxSetShippingPickup),
-    OrderSetShippingDelivered(order::TxSetShippingDelivered),
 }
 
 

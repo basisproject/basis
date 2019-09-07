@@ -6,6 +6,7 @@ use exonum::{
 use exonum_merkledb::{
     IndexAccess,
     ObjectHash,
+    ListIndex,
     MapIndex,
     ProofListIndex,
     ProofMapIndex,
@@ -17,7 +18,7 @@ use crate::block::models::{
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
     product::{Product, ProductVariant},
-    order::{Order, ProcessStatus, ProductEntry, ShippingEntry},
+    order::{Order, ProcessStatus, ProductEntry},
 };
 
 #[derive(Debug)]
@@ -156,7 +157,7 @@ impl<T> Schema<T>
         self.companies().get(&crypto::hash(id.as_bytes()))
     }
 
-    pub fn companies_create(&mut self, id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_create(&mut self, id: &str, ty: &CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let company = {
             let mut history = self.companies_history(id);
             history.push(*transaction);
@@ -176,7 +177,7 @@ impl<T> Schema<T>
         self.companies().put(&crypto::hash(id.as_bytes()), company);
     }
 
-    pub fn companies_set_type(&mut self, company: Company, id: &str, ty: CompanyType, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_set_type(&mut self, company: Company, id: &str, ty: &CompanyType, updated: &DateTime<Utc>, transaction: &Hash) {
         let company = {
             let mut history = self.companies_history(id);
             history.push(*transaction);
@@ -361,8 +362,34 @@ impl<T> Schema<T>
         ProofListIndex::new_in_family("basis.orders.history", &crypto::hash(id.as_bytes()), self.access.clone())
     }
 
+    pub fn orders_idx_company_id_from(&self, company_id: &str) -> ListIndex<T, String> {
+        ListIndex::new_in_family("basis.orders.idx_company_id_from", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
+    pub fn orders_idx_company_id_to(&self, company_id: &str) -> ListIndex<T, String> {
+        ListIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
     pub fn get_order(&self, id: &str) -> Option<Order> {
         self.orders().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn get_orders_incoming(&self, company_id: &str) -> Vec<Order> {
+        self.orders_idx_company_id_to(company_id)
+            .iter()
+            .map(|x| self.get_order(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>()
+    }
+
+    pub fn get_orders_outgoing(&self, company_id: &str) -> Vec<Order> {
+        self.orders_idx_company_id_from(company_id)
+            .iter()
+            .map(|x| self.get_order(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>()
     }
 
     pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
@@ -370,9 +397,12 @@ impl<T> Schema<T>
             let mut history = self.orders_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Order::new(id, company_id_from, company_id_to, products, &Default::default(), &ProcessStatus::New, &created, &created, history.len(), &history_hash)
+            Order::new(id, company_id_from, company_id_to, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
         };
+        let id = order.id.clone();
         self.orders().put(&crypto::hash(id.as_bytes()), order);
+        self.orders_idx_company_id_from(company_id_from).push(id.clone());
+        self.orders_idx_company_id_to(company_id_to).push(id.clone());
     }
 
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -382,39 +412,6 @@ impl<T> Schema<T>
             history.push(*transaction);
             let history_hash = history.object_hash();
             order.update_status(process_status, updated, &history_hash)
-        };
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
-    }
-
-    pub fn orders_set_shipping(&self, order: Order, shipping: &ShippingEntry, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = order.id.clone();
-        let order = {
-            let mut history = self.orders_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            order.set_shipping(shipping, updated, &history_hash)
-        };
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
-    }
-
-    pub fn orders_set_shipping_pickup(&self, order: Order, pickup: &DateTime<Utc>, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = order.id.clone();
-        let order = {
-            let mut history = self.orders_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            order.set_shipping_pickup(pickup, updated, &history_hash)
-        };
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
-    }
-
-    pub fn orders_set_shipping_delivered(&self, order: Order, delivered: &DateTime<Utc>, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = order.id.clone();
-        let order = {
-            let mut history = self.orders_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            order.set_shipping_delivered(delivered, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order);
     }

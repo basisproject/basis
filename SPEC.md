@@ -1,3 +1,9 @@
+# Spec
+
+This is a quick spec for the data model for products/orders.
+
+This is for the market interface stuff, so it has some enterprisey and pricing garbage in it.
+
 - companies
   - settings
     - payment requirements
@@ -62,7 +68,7 @@
     - processing
     - shipped
     - delivered
-    - cancelled
+    - canceled
   - payment status
     - unpaid
     - sent

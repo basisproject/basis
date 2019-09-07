@@ -15,7 +15,9 @@ pub enum Permission {
     UserSetPubkey,
     UserDelete,
 
+    CompanyCreateSyndicate,
     CompanyCreatePrivate,
+    CompanySetApproved,
     CompanyAdminUpdate,
     CompanyAdminDelete,
     CompanySetType,
@@ -61,6 +63,7 @@ impl Role {
             },
             Role::CompanyAdmin => {
                 vec![
+                    Permission::CompanySetApproved,
                     Permission::CompanyAdminUpdate,
                     Permission::CompanyAdminDelete,
                 ]
@@ -79,12 +82,14 @@ impl Role {
             Role::Bank => {
                 vec![
                     Permission::CompanySetType,
+                    Permission::CompanySetApproved,
                 ]
             },
             Role::User => {
                 vec![
                     Permission::UserUpdate,
                     Permission::UserDelete,
+                    Permission::CompanyCreateSyndicate,
                     Permission::CompanyCreatePrivate,
                     Permission::CompanyUpdateMembers,
                     Permission::ProductCreate,

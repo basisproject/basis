@@ -142,10 +142,10 @@ pub struct Company {
 }
 
 impl Company {
-    pub fn new(id: &str, ty: CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
+    pub fn new(id: &str, ty: &CompanyType, region_id: Option<&str>, email: &str, name: &str, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
-            ty: ty,
+            ty: ty.clone(),
             region_id: region_id.map(|x| x.to_owned()).unwrap_or("".to_owned()),
             email: email.to_owned(),
             name: name.to_owned(),
@@ -159,7 +159,7 @@ impl Company {
     pub fn update(self, email: Option<&str>, name: Option<&str>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         Self::new(
             &self.id,
-            self.ty,
+            &self.ty,
             Some(&self.region_id),
             email.unwrap_or(&self.email),
             name.unwrap_or(&self.name),
@@ -170,7 +170,7 @@ impl Company {
         )
     }
 
-    pub fn set_type(self, ty: CompanyType, updated: &DateTime<Utc>, history_hash: &Hash) -> Self { 
+    pub fn set_type(self, ty: &CompanyType, updated: &DateTime<Utc>, history_hash: &Hash) -> Self { 
         Self::new(
             &self.id,
             ty,
@@ -245,7 +245,7 @@ pub mod tests {
         let date = make_date();
         Company::new(
             "1dd0ec02-1c6d-4791-8ba5-eb9e16964c26",
-            CompanyType::Private,
+            &CompanyType::Private,
             None,
             "homayun@friendless.com",
             "LEMONADE STANDS UNLIMITED",
@@ -298,7 +298,7 @@ pub mod tests {
         util::sleep(100);
         let date2 = make_date();
         let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
-        let company2 = company.clone().set_type(CompanyType::Syndicate, &date2, &hash2);
+        let company2 = company.clone().set_type(&CompanyType::Syndicate, &date2, &hash2);
         assert_eq!(company.id, company2.id);
         assert!(company.ty != company2.ty);
         assert_eq!(company2.ty, CompanyType::Syndicate);

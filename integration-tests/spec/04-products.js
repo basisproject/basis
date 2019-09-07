@@ -23,7 +23,7 @@ describe('products', function() {
 	const sandra_email = 'sandra@thatscool.net';
 
 	const company_id = uuid();
-	const company_email = 'info@jerryswidgets.com';
+	const company_email = 'info@SANDRASwidgets.com';
 
 	const product_id = uuid();
 	const product_name = 'Whiffle Widget';

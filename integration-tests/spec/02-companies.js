@@ -48,6 +48,7 @@ describe('companies', function() {
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 
 		// create sandra, who will be used to test permissions
 		var res = await trans.send_as('root', tx.user.TxCreate, {
@@ -60,6 +61,7 @@ describe('companies', function() {
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 
 		// bad email should FAIL
 		var res = await trans.send_as('jerry', tx.company.TxCreatePrivate, {

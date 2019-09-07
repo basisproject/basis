@@ -6,37 +6,45 @@ const protobuf = require('./protobuf');
 const config = require('./config');
 
 const types = {};
-const message_id_map = {
-	'user.TxCreate': 0,
-	'user.TxUpdate': 1,
-	'user.TxSetPubkey': 2,
-	'user.TxSetRoles': 3,
-	'user.TxDelete': 4,
+const message_id_map = (function() {
+	// these MUST be ordered in the same way as basis/src/block/transactions/mod.rs
+	const transactions = [
+		'user.TxCreate',
+		'user.TxUpdate',
+		'user.TxSetPubkey',
+		'user.TxSetRoles',
+		'user.TxDelete',
 
-    'company.TxCreatePrivate': 5,
-    'company.TxUpdate': 6,
-    'company.TxSetType': 7,
-    'company.TxDelete': 8,
+		'company.TxCreatePrivate',
+		'company.TxUpdate',
+		'company.TxSetType',
+		'company.TxDelete',
 
-    'company_member.TxCreate': 9,
-    'company_member.TxSetRoles': 10,
-    'company_member.TxDelete': 11,
+		'company_member.TxCreate',
+		'company_member.TxSetRoles',
+		'company_member.TxDelete',
 
-	'product.TxCreate': 12,
-	'product.TxUpdate': 13,
-	'product.TxSetOption': 14,
-	'product.TxRemoveOption': 15,
-	'product.TxSetVariant': 16,
-	'product.TxUpdateVariant': 17,
-	'product.TxRemoveVariant': 18,
-	'product.TxDelete': 19,
+		'product.TxCreate',
+		'product.TxUpdate',
+		'product.TxSetOption',
+		'product.TxRemoveOption',
+		'product.TxSetVariant',
+		'product.TxUpdateVariant',
+		'product.TxRemoveVariant',
+		'product.TxDelete',
 
-	'order.TxCreate': 20,
-	'order.TxUpdateStatus': 21,
-	'order.TxSetShipping': 22,
-	'order.TxSetShippingPickup': 23,
-	'order.TxSetShippingDelivered': 24,
-};
+		'order.TxCreate',
+		'order.TxUpdateStatus',
+		'order.TxSetShipping',
+		'order.TxSetShippingPickup',
+		'order.TxSetShippingDelivered',
+	];
+	const map = {};
+	let i = 0;
+	transactions.forEach((t) => { map[t] = i++; });
+	return map;
+})();
+
 Object.keys(message_id_map).forEach((key) => {
 	const [type, tx] = key.split('.');
 	if(!types[type]) types[type] = {};
@@ -57,6 +65,7 @@ exports.make = (type, data, params) => {
 		'CompanyType': 'CompanyType',
 		'ProductVariant.Unit': 'Unit',
 		'ProductVariant.Effort.Time': 'Time',
+		'Order.ProcessStatus': 'ProcessStatus',
 	};
 	Object.keys(Transaction.fields).forEach((field) => {
 		if(typeof(data[field]) == 'undefined') return;

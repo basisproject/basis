@@ -1,0 +1,19 @@
+syntax = "proto3";
+package basis.product_costs;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+message ProductCosts {
+	message Resource {
+		string product_id = 1;
+		string product_variant_id = 2;
+		double amount = 3;
+	}
+	string product_id = 1;
+	string product_variant_id = 2;
+	repeated Resource resources = 3;
+	double labor = 4;
+	google.protobuf.Timestamp created = 5;
+	google.protobuf.Timestamp updated = 6;
+}
+

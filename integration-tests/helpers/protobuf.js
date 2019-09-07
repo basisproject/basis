@@ -94,6 +94,22 @@ const Time = {
 	},
 };
 
+const ProcessStatus = {
+	map: {
+		UNKNOWN: 0,
+		NEW: 1,
+		ACCEPTED: 2,
+		PROCESSING: 3,
+		COMPLETED: 4,
+		PROXIED: 5,
+		CANCELED: 6,
+	},
+	type: new protobuf.Enum('ProcessStatus', this.map),
+	gen: function(val) {
+		return ProcessStatus.map[val.toUpperCase()] || 0;
+	},
+};
+
 // NOTE: this must usually also be mapped in helpers/transactions::make()
 exports.types = {
 	Timestamp: Timestamp,
@@ -102,6 +118,7 @@ exports.types = {
 	CompanyType: CompanyType,
 	Unit: Unit,
 	Time: Time,
+	ProcessStatus: ProcessStatus,
 };
 
 const protos = new protobuf.Root();
