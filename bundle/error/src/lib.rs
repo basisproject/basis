@@ -2,7 +2,9 @@
 // ECR-1771 for the details.
 #![allow(bare_trait_objects)]
 
-use ::config::ConfigError;
+#[macro_use] extern crate failure;
+
+use config::ConfigError;
 
 #[derive(Debug, Fail)]
 pub enum BError {

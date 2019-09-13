@@ -4,7 +4,7 @@ module.exports = {
 
 	// where our proto buffers are located (only change this if you have a good
 	// reason to)
-	protobuf_dir: `${__dirname}/../../src/block/models/proto`,
+	protobuf_dir: `${__dirname}/../../bundle/models/src/proto`,
 
 	// the intial user we create to facilitate the creation of all our test
 	// conditions and data

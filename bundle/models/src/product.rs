@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
-use crate::block::models::proto;
-use crate::util;
+use crate::proto;
+use util;
 
 proto_enum! {
     enum Unit {
@@ -314,7 +314,7 @@ impl Product {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::util;
+    use util;
     use std::collections::HashMap;
 
     fn make_date() -> DateTime<Utc> {

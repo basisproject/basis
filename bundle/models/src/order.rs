@@ -1,7 +1,7 @@
 use std::default::Default;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
-use crate::block::models::proto;
+use crate::proto;
 
 proto_enum! {
     enum ProcessStatus {
@@ -81,7 +81,7 @@ impl Order {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::util;
+    use util;
 
     fn make_date() -> DateTime<Utc> {
         chrono::offset::Utc::now()

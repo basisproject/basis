@@ -4,14 +4,16 @@ use exonum::{
     crypto::{PublicKey},
 };
 use exonum_merkledb::IndexAccess;
+use models::{
+    proto,
+    company::{CompanyType, Permission as CompanyPermission, Role as CompanyRole},
+    access::Permission,
+};
 use crate::block::{
     schema::Schema,
-    models::proto,
-    models::company::{CompanyType, Permission as CompanyPermission, Role as CompanyRole},
-    models::access::Permission,
     transactions::access,
 };
-use crate::util::{self, protobuf::empty_opt};
+use util::{self, protobuf::empty_opt};
 use super::CommonError;
 
 pub fn check<T>(schema: &mut Schema<T>, company_id: &str, pubkey: &PublicKey, permission: CompanyPermission) -> Result<(), CommonError>

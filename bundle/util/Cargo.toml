@@ -1,0 +1,13 @@
+[package]
+name = "util"
+version = "0.1.0"
+authors = ["Andrew Danger Lyon <orthecreedence@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+chrono = "0.4.6"
+exonum = "0.12.0"
+failure = "0.1.5"
+serde = "1.0.84"
+serde_derive = "1.0.84"
+

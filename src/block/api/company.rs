@@ -6,8 +6,8 @@ use exonum::{
     explorer::BlockchainExplorer,
 };
 use exonum_merkledb::MapProof;
+use models;
 use crate::block::{
-    models,
     ApiError,
     ObjectProof,
     ObjectHistory,

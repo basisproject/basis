@@ -1,6 +1,6 @@
 use exonum::proto::ProtobufConvert;
 use serde_json::{self, Value};
-use crate::error::BError;
+use error::BError;
 
 /// Define the system-wide permissions.
 ///

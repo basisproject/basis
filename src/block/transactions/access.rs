@@ -7,7 +7,7 @@ use exonum::{
 };
 use exonum_merkledb::IndexAccess;
 use crate::block::schema::Schema;
-use crate::block::models::access::Permission;
+use models::access::Permission;
 use super::CommonError;
 
 pub fn check<T>(schema: &mut Schema<T>, pubkey: &PublicKey, permission: Permission) -> Result<(), CommonError>

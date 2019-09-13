@@ -1,6 +1,9 @@
-use ::std::thread;
-use ::std::time::Duration;
+#[macro_use] extern crate serde_derive;
 
+use std::thread;
+use std::time::Duration;
+
+#[macro_export]
 macro_rules! do_lock {
     ($lock:expr) => {{
         //println!(" >>> lock {} ({}::{})", stringify!($lock), file!(), line!());
@@ -28,7 +31,6 @@ macro_rules! lockw {
     ($lockable:expr) => { do_lock!($lockable.write()) }
 }
 
-pub mod logger;
 pub mod time;
 #[macro_use]
 pub mod protobuf;

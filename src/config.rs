@@ -1,7 +1,7 @@
-use ::std::sync::RwLock;
-use ::lazy_static::lazy_static;
-use ::serde::de::DeserializeOwned;
-use crate::error::CResult;
+use std::sync::RwLock;
+use lazy_static::lazy_static;
+use serde::de::DeserializeOwned;
+use error::CResult;
 
 lazy_static! {
 	static ref CONFIG: RwLock<config::Config> = RwLock::new(config::Config::default());

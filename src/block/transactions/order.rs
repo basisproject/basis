@@ -2,15 +2,17 @@ use chrono::{DateTime, Utc};
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
+use models::{
+    proto,
+    company::{Permission as CompanyPermission},
+    access::Permission,
+    order::{ProductEntry, ProcessStatus},
+};
 use crate::block::{
     schema::Schema,
-    models::proto,
-    models::company::{Permission as CompanyPermission},
-    models::access::Permission,
-    models::order::{ProductEntry, ProcessStatus},
     transactions::{company, access},
 };
-use crate::util;
+use util;
 use super::CommonError;
 
 #[derive(Debug, Fail)]

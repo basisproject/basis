@@ -2,21 +2,20 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
+#[macro_use] extern crate util;
 
-mod error;
-#[macro_use]
-mod util;
+mod logger;
 mod config;
 mod block;
 
-use crate::error::CResult;
+use error::CResult;
 use exonum::helpers::fabric::NodeBuilder;
 use exonum_configuration as configuration;
 
 pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
     config::init(default_config, local_config)?;
     // set up the logger now that we have our config and data folder set up
-    match util::logger::setup_logger() {
+    match logger::setup_logger() {
         Ok(_) => {}
         Err(e) => {
             println!("basis::init() -- problem setting up logging: {}", e);

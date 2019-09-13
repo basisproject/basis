@@ -4,13 +4,15 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey},
 };
+use models::{
+    proto,
+    access::{Permission, Role},
+};
 use crate::block::{
     schema::Schema,
-    models::proto,
-    models::access::{Permission, Role},
     transactions::access,
 };
-use crate::util::{
+use util::{
     self,
     protobuf::{POption},
 };

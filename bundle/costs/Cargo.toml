@@ -1,0 +1,18 @@
+[package]
+name = "costs"
+version = "0.1.0"
+authors = ["Andrew Danger Lyon <orthecreedence@gmail.com>"]
+edition = "2018"
+
+[lib]
+doctest = false				# these annoy me
+
+[dependencies]
+serde = { version = "1.0.94", features = ["derive"] }
+
+[features]
+default = ["panic-div0"]
+# panic when dividing a Costs object by another and the rhs Costs is missing a
+# key that is present in the lhs
+panic-div0 = []
+

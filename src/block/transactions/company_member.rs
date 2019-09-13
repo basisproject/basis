@@ -3,14 +3,16 @@ use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
 use exonum_merkledb::IndexAccess;
+use models::{
+    proto,
+    company::{Permission as CompanyPermission, Role as CompanyRole},
+    access::Permission,
+};
+use util;
 use crate::block::{
     schema::Schema,
-    models::proto,
-    models::company::{Permission as CompanyPermission, Role as CompanyRole},
-    models::access::Permission,
     transactions::{company, access},
 };
-use crate::util;
 use super::CommonError;
 
 /// Tells us if the given user is the only owner of a company object

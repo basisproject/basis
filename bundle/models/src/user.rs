@@ -1,7 +1,7 @@
 use exonum::crypto::{Hash, PublicKey};
-use crate::block::models::proto;
+use crate::proto;
 use chrono::{DateTime, Utc};
-use crate::block::models::access::Role;
+use crate::access::Role;
 
 #[derive(Clone, Debug, ProtobufConvert)]
 #[exonum(pb = "proto::user::User", serde_pb_convert)]
@@ -83,7 +83,7 @@ impl User {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::util;
+    use util;
 
     fn make_date() -> DateTime<Utc> {
         chrono::offset::Utc::now()

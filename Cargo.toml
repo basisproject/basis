@@ -1,5 +1,5 @@
 [workspace]
-members = ["costs"]
+members = ["bundle/util", "bundle/error", "bundle/models", "bundle/costs"]
 exclude = []
 
 [package]
@@ -13,7 +13,8 @@ license = "AGPL-3.0"
 [dependencies]
 chrono = "0.4.6"
 config = "0.9.2"
-costs = { path = "costs/" }
+costs = { path = "bundle/costs/" }
+error = { path = "bundle/error/" }
 exonum = "0.12.0"
 exonum-configuration = "0.12.0"
 exonum-derive = "0.12.0"
@@ -23,11 +24,13 @@ fern = "0.5.7"
 hex = "0.3.2"
 lazy_static = "1.2.0"
 log = "0.4.6"
+models = { path = "bundle/models/" }
 protobuf = "2.2.0"
 serde = "1.0.84"
 serde_derive = "1.0.84"
 serde_json = "1.0.38"
 time = "0.1.42"
+util = { path = "bundle/util/" }
 uuid = { version = "0.7.2", features = ["v4"] }
 
 [patch.crates-io]
@@ -39,9 +42,7 @@ pretty_assertions = "0.5.1"
 assert_matches = "1.2.0"
 hex = "0.3.2"
 
-[build-dependencies]
-exonum-build = "0.11.0"
-
 [features]
+default = ["with-serde"]
 with-serde = []
 

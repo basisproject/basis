@@ -1,8 +1,8 @@
-use ::fern;
-use ::log;
-use ::time;
-use ::std;
-use crate::error::CResult;
+use fern;
+use log;
+use time;
+use std;
+use error::CResult;
 use crate::config;
 
 /// a simple wrapper (pretty much direct from documentation) that sets up

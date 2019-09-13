@@ -1,6 +1,6 @@
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
-use crate::block::models::{
+use crate::{
     proto,
     company::Role,
 };
@@ -43,7 +43,7 @@ impl CompanyMember {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::util;
+    use util;
 
     fn make_date() -> DateTime<Utc> {
         chrono::offset::Utc::now()

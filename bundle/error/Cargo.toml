@@ -1,7 +1,10 @@
 [package]
-name = "costs"
+name = "error"
 version = "0.1.0"
 authors = ["Andrew Danger Lyon <orthecreedence@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+config = "0.9.2"
+failure = "0.1.5"
+

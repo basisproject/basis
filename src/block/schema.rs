@@ -12,8 +12,8 @@ use exonum_merkledb::{
     ProofMapIndex,
     KeySetIndex,
 };
-use crate::block::models::access::Role;
-use crate::block::models::{
+use models::{
+    access::Role,
     user::User,
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,

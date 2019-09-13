@@ -2,8 +2,8 @@ use exonum::proto::ProtobufConvert;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
 use serde_json::{self, Value};
-use crate::block::models::proto;
-use crate::error::BError;
+use crate::proto;
+use error::BError;
 
 proto_enum! {
     enum CompanyType {
@@ -188,7 +188,7 @@ impl Company {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::util;
+    use util;
 
     #[test]
     fn permissions_work() {
