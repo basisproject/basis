@@ -6,14 +6,12 @@ import "google/protobuf/timestamp.proto";
 message ProductCosts {
 	message Resource {
 		string product_id = 1;
-		string product_variant_id = 2;
-		double amount = 3;
+		double amount = 2;
 	}
 	string product_id = 1;
-	string product_variant_id = 2;
-	repeated Resource resources = 3;
-	double labor = 4;
-	google.protobuf.Timestamp created = 5;
-	google.protobuf.Timestamp updated = 6;
+	repeated Resource resources = 2;
+	double labor = 3;
+	google.protobuf.Timestamp created = 4;
+	google.protobuf.Timestamp updated = 5;
 }
 

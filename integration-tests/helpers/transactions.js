@@ -26,18 +26,10 @@ const message_id_map = (function() {
 
 		'product.TxCreate',
 		'product.TxUpdate',
-		'product.TxSetOption',
-		'product.TxRemoveOption',
-		'product.TxSetVariant',
-		'product.TxUpdateVariant',
-		'product.TxRemoveVariant',
 		'product.TxDelete',
 
 		'order.TxCreate',
 		'order.TxUpdateStatus',
-		'order.TxSetShipping',
-		'order.TxSetShippingPickup',
-		'order.TxSetShippingDelivered',
 	];
 	const map = {};
 	let i = 0;
@@ -63,8 +55,8 @@ exports.make = (type, data, params) => {
 		'exonum.Hash': 'Hash',
 		'exonum.PublicKey': 'Pubkey',
 		'CompanyType': 'CompanyType',
-		'ProductVariant.Unit': 'Unit',
-		'ProductVariant.Effort.Time': 'Time',
+		'Product.Unit': 'Unit',
+		'Product.Effort.Time': 'Time',
 		'Order.ProcessStatus': 'ProcessStatus',
 	};
 	Object.keys(Transaction.fields).forEach((field) => {

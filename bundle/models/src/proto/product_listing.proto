@@ -1,0 +1,37 @@
+syntax = "proto3";
+package basis.product_listing;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+// this is the public face of a product. although products can be listed
+// individually, this allows grouping a related set of products together as one
+// united item, while describing what attributes/options each of those products
+// fulfills.
+message ProductListing {
+	message ProductEntry {
+		string product_id = 1;
+		// maps the name of the option (ie, "size" or "color") to the value that
+		// this product corresponds to. for instance, for a large red shirt,
+		// this might be:
+		//   {size: 'Large', color: 'Red'}
+		map<string, string> options = 2;
+	}
+	string id = 1;
+	string company_id = 2;
+	string name = 3;
+	// holds a name -> title mapping for product options, example:
+	//  {"size": "Tshirt Size"}
+	// the key field (name) is what ProductEntry options use to map values to
+	// options for a particular product
+	map<string, string> options = 4;
+	// products grouped by this entry
+	map<string, ProductEntry> products = 5;
+	string meta = 6;
+	bool active = 7;
+	google.protobuf.Timestamp created = 8;
+	google.protobuf.Timestamp updated = 9;
+	google.protobuf.Timestamp deleted = 10;
+	uint64 history_len = 11;
+	exonum.Hash history_hash = 12;
+}
+

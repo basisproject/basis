@@ -6,7 +6,7 @@ use models::{
     proto,
     company::{Permission as CompanyPermission},
     access::Permission,
-    product::ProductVariant,
+    product::{Unit, Dimensions, Input, Effort},
 };
 use crate::block::{
     schema::Schema,
@@ -41,8 +41,13 @@ pub struct TxCreate {
     pub id: String,
     pub company_id: String,
     pub name: String,
-    pub meta: String,
+    pub unit: Unit,
+    pub mass_mg: f64,
+    pub dimensions: Dimensions,
+    pub inputs: Vec<Input>,
+    pub effort: Effort,
     pub active: bool,
+    pub meta: String,
     pub created: DateTime<Utc>,
 }
 
@@ -62,7 +67,7 @@ impl Transaction for TxCreate {
         if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.products_create(&self.id, &self.company_id, &self.name, &self.meta, self.active, &self.created, &hash);
+        schema.products_create(&self.id, &self.company_id, &self.name, &self.unit, self.mass_mg, &self.dimensions, &self.inputs, &self.effort, self.active, &self.meta, &self.created, &hash);
         Ok(())
     }
 }
@@ -72,8 +77,13 @@ impl Transaction for TxCreate {
 pub struct TxUpdate {
     pub id: String,
     pub name: String,
-    pub meta: String,
+    pub unit: Unit,
+    pub mass_mg: f64,
+    pub dimensions: Dimensions,
+    pub inputs: Vec<Input>,
+    pub effort: Effort,
     pub active: bool,
+    pub meta: String,
     pub updated: DateTime<Utc>,
 }
 
@@ -94,182 +104,18 @@ impl Transaction for TxUpdate {
         company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
 
         let name = empty_opt(&self.name).map(|x| x.as_str());
-        let meta = empty_opt(&self.meta).map(|x| x.as_str());
+        let unit = empty_opt(&self.unit);
+        let mass_mg = empty_opt(&self.mass_mg).map(|x| x.clone());
+        let dimensions = empty_opt(&self.dimensions);
+        let inputs = empty_opt(&self.inputs);
+        let effort = empty_opt(&self.effort);
         let active = Some(self.active);
+        let meta = empty_opt(&self.name).map(|x| x.as_str());
 
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.products_update(product, name, meta, active, &self.updated, &hash);
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxSetOption")]
-pub struct TxSetOption {
-    pub id: String,
-    pub name: String,
-    pub title: String,
-    pub updated: DateTime<Utc>,
-}
-
-impl Transaction for TxSetOption {
-    fn execute(&self, context: TransactionContext) -> ExecutionResult {
-        let pubkey = &context.author();
-        let hash = context.tx_hash();
-
-        let mut schema = Schema::new(context.fork());
-
-        let prod = schema.get_product(&self.id);
-        if prod.is_none() {
-            Err(TransactionError::ProductNotFound)?;
-        }
-
-        let product = prod.unwrap();
-        access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
-        company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
-
-        if !util::time::is_current(&self.updated) {
-            Err(CommonError::InvalidTime)?;
-        }
-        schema.products_set_option(product, &self.name, &self.title, &self.updated, &hash);
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxRemoveOption")]
-pub struct TxRemoveOption {
-    pub id: String,
-    pub name: String,
-    pub updated: DateTime<Utc>,
-}
-
-impl Transaction for TxRemoveOption {
-    fn execute(&self, context: TransactionContext) -> ExecutionResult {
-        let pubkey = &context.author();
-        let hash = context.tx_hash();
-
-        let mut schema = Schema::new(context.fork());
-
-        let prod = schema.get_product(&self.id);
-        if prod.is_none() {
-            Err(TransactionError::ProductNotFound)?;
-        }
-
-        let product = prod.unwrap();
-        access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
-        company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
-
-        if !util::time::is_current(&self.updated) {
-            Err(CommonError::InvalidTime)?;
-        }
-        schema.products_remove_option(product, &self.name, &self.updated, &hash);
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxSetVariant")]
-pub struct TxSetVariant {
-    pub id: String,
-    pub variant: ProductVariant,
-    pub updated: DateTime<Utc>,
-}
-
-impl Transaction for TxSetVariant {
-    fn execute(&self, context: TransactionContext) -> ExecutionResult {
-        let pubkey = &context.author();
-        let hash = context.tx_hash();
-
-        let mut schema = Schema::new(context.fork());
-
-        let prod = schema.get_product(&self.id);
-        if prod.is_none() {
-            Err(TransactionError::ProductNotFound)?;
-        }
-
-        let product = prod.unwrap();
-        access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
-        company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
-
-        if !util::time::is_current(&self.updated) {
-            Err(CommonError::InvalidTime)?;
-        }
-        schema.products_set_variant(product, &self.variant, &self.updated, &hash);
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxUpdateVariant")]
-pub struct TxUpdateVariant {
-    pub id: String,
-    pub variant_id: String,
-    pub name: String,
-    pub active: bool,
-    pub meta: String,
-    pub updated: DateTime<Utc>,
-}
-
-impl Transaction for TxUpdateVariant {
-    fn execute(&self, context: TransactionContext) -> ExecutionResult {
-        let pubkey = &context.author();
-        let hash = context.tx_hash();
-
-        let mut schema = Schema::new(context.fork());
-
-        let prod = schema.get_product(&self.id);
-        if prod.is_none() {
-            Err(TransactionError::ProductNotFound)?;
-        }
-
-        let product = prod.unwrap();
-        access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
-        company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
-
-        if !util::time::is_current(&self.updated) {
-            Err(CommonError::InvalidTime)?;
-        }
-
-        let name = empty_opt(&self.name).map(|x| x.as_str());
-        let active = Some(self.active);
-        let meta = empty_opt(&self.meta).map(|x| x.as_str());
-        schema.products_update_variant(product, &self.variant_id, name, active, meta, &self.updated, &hash);
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxRemoveVariant")]
-pub struct TxRemoveVariant {
-    pub id: String,
-    pub variant_id: String,
-    pub updated: DateTime<Utc>,
-}
-
-impl Transaction for TxRemoveVariant {
-    fn execute(&self, context: TransactionContext) -> ExecutionResult {
-        let pubkey = &context.author();
-        let hash = context.tx_hash();
-
-        let mut schema = Schema::new(context.fork());
-
-        let prod = schema.get_product(&self.id);
-        if prod.is_none() {
-            Err(TransactionError::ProductNotFound)?;
-        }
-
-        let product = prod.unwrap();
-        access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
-        company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
-
-        if !util::time::is_current(&self.updated) {
-            Err(CommonError::InvalidTime)?;
-        }
-
-        schema.products_remove_variant(product, &self.variant_id, &self.updated, &hash);
+        schema.products_update(product, name, unit, mass_mg, dimensions, inputs, effort, active, meta, &self.updated, &hash);
         Ok(())
     }
 }

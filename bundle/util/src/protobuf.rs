@@ -1,38 +1,3 @@
-use std::ops::Deref;
-use exonum::proto::ProtobufConvert;
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct POption<T>(Option<T>);
-
-impl<T> Deref for POption<T> {
-    type Target = Option<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> ProtobufConvert for POption<T>
-    where T: Clone + Default + PartialEq + ProtobufConvert
-{
-    type ProtoStruct = T;
-
-    fn to_pb(&self) -> Self::ProtoStruct {
-        match self {
-            POption(Some(x)) => x.clone(),
-            POption(None) => Default::default(),
-        }
-    }
-
-    fn from_pb(pb: Self::ProtoStruct) -> Result<Self, failure::Error> {
-        if pb == Default::default() {
-            Ok(POption(None))
-        } else {
-            Ok(POption(Some(pb)))
-        }
-    }
-}
-
 pub fn empty_opt<T>(val: &T) -> Option<&T>
     where T: Default + PartialEq
 {

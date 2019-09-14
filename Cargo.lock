@@ -418,6 +418,7 @@ dependencies = [
 name = "costs"
 version = "0.1.0"
 dependencies = [
+ "models 0.1.0",
  "serde 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2427,8 +2428,6 @@ dependencies = [
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "exonum 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

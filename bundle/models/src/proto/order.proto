@@ -15,8 +15,7 @@ message Order {
 	}
 	message ProductEntry {
 		string product_id = 1;
-		string product_variant_id = 2;
-		uint64 quantity = 3;
+		uint64 quantity = 2;
 	}
 
 	string id = 1;

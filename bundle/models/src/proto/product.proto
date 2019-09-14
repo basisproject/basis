@@ -3,22 +3,32 @@ package basis.product;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 
-message ProductVariant {
+message Product {
+	// how this product is measured
 	enum Unit {
 		UNKNOWN = 0;
 		MILLIMETER = 1;
 		MILLILITER = 2;
 		WATTHOUR = 3;
 	}
+	// physical dimensions, if applicable
 	message Dimensions {
 		double width = 1;
 		double height = 2;
 		double length = 3;
 	}
+	// defines an input to this product. for instance, steel might have iron ore
+	// as an input. quantity is in units of the input product
 	message Input {
-		string product_variant_id = 1;
-		uint64 quantity = 2;
+		string product_id = 1;
+		double quantity = 2;
 	}
+	// how much time this product takes to build. note this doesn't strictly
+	// have to correspond to the time it takes to build, but can rather be a
+	// comparative measure that a company can use to create a ratio between all
+	// its products. in other words, how "hard" is it to make something when
+	// compared to another thing the company makes. generally, time is a good
+	// measure.
 	message Effort {
 		enum Time {
 			UNKNOWN = 0;
@@ -36,85 +46,50 @@ message ProductVariant {
 	}
 
 	string id = 1;
-	string product_id = 2;
+	string company_id = 2;
 	string name = 3;
 	Unit unit = 4;
+	// mass should be defined for liquids and solids, which will help determine
+	// shipping rates. obviously mass does not apply to watt hours or other non-
+	// physical units.
 	double mass_mg = 5;
 	Dimensions dimensions = 6;
 	repeated Input inputs = 7;
-	map<string, string> options = 8;
-	Effort effort = 9;
-	bool active = 10;
-	string meta = 11;
-	google.protobuf.Timestamp created = 12;
-	google.protobuf.Timestamp updated = 13;
-	google.protobuf.Timestamp deleted = 14;
-}
-
-message Product {
-	string id = 1;
-	string company_id = 2;
-	string name = 3;
-	map<string, string> options = 4;
-	map<string, ProductVariant> variants = 5;
-	string meta = 6;
-	bool active = 7;
-	google.protobuf.Timestamp created = 8;
-	google.protobuf.Timestamp updated = 9;
-	google.protobuf.Timestamp deleted = 10;
-	uint64 history_len = 11;
-	exonum.Hash history_hash = 12;
+	Effort effort = 8;
+	bool active = 9;
+	string meta = 10;
+	google.protobuf.Timestamp created = 11;
+	google.protobuf.Timestamp updated = 12;
+	google.protobuf.Timestamp deleted = 13;
+	uint64 history_len = 14;
+	exonum.Hash history_hash = 15;
 }
 
 message TxCreate {
 	string id = 1;
 	string company_id = 2;
 	string name = 3;
-	string meta = 4;
-	bool active = 5;
-	google.protobuf.Timestamp created = 6;
+	Product.Unit unit = 4;
+	double mass_mg = 5;
+	Product.Dimensions dimensions = 6;
+	repeated Product.Input inputs = 7;
+	Product.Effort effort = 8;
+	bool active = 9;
+	string meta = 10;
+	google.protobuf.Timestamp created = 11;
 }
 
 message TxUpdate {
 	string id = 1;
 	string name = 2;
-	string meta = 3;
-	bool active = 4;
-	google.protobuf.Timestamp updated = 5;
-}
-
-message TxSetOption {
-	string id = 1;
-	string name = 2;
-	string title = 3;
-	google.protobuf.Timestamp updated = 4;
-}
-
-message TxRemoveOption {
-	string id = 1;
-	string name = 2;
-	google.protobuf.Timestamp updated = 3;
-}
-
-message TxSetVariant {
-	string id = 1;
-	ProductVariant variant = 2;
-	google.protobuf.Timestamp updated = 3;
-}
-
-message TxUpdateVariant {
-	string id = 1;
-	string variant_id = 2;
-	string name = 3;
-	bool active = 4;
-	string meta = 5;
-	google.protobuf.Timestamp updated = 6;
-}
-
-message TxRemoveVariant {
-	string id = 1;
-	string variant_id = 2;
-	google.protobuf.Timestamp updated = 3;
+	Product.Unit unit = 3;
+	double mass_mg = 4;
+	Product.Dimensions dimensions = 5;
+	repeated Product.Input inputs = 6;
+	Product.Effort effort = 7;
+	bool active = 8;
+	string meta = 9;
+	google.protobuf.Timestamp updated = 10;
 }
 
 message TxDelete {

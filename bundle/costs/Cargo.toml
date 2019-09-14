@@ -8,6 +8,7 @@ edition = "2018"
 doctest = false				# these annoy me
 
 [dependencies]
+models = { path = "../models" }
 serde = { version = "1.0.94", features = ["derive"] }
 
 [features]

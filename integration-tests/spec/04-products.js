@@ -28,7 +28,6 @@ describe('products', function() {
 	const product_id = uuid();
 	const product_name = 'Whiffle Widget';
 	const product_name2 = 'Serious Widget';
-	const variant_id = uuid();
 
 	beforeAll((done) => {
 		trans.clear_users();
@@ -81,8 +80,20 @@ describe('products', function() {
 			id: product_id,
 			company_id: company_id,
 			name: 'jerry iz kewl',
-			meta: '{}',
+			unit: 'MILLIMETER',
+			mass_mg: 42,
+			dimensions: {
+				width: 100,
+				height: 100,
+				length: 100,
+			},
+			inputs: [],
+			effort: {
+				time: proto.types.Time.gen('hours'),
+				quantity: 37,
+			},
 			active: true,
+			meta: '',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(false);
@@ -101,8 +112,20 @@ describe('products', function() {
 			id: product_id,
 			company_id: company_id,
 			name: product_name,
-			meta: '',
+			unit: 'MILLIMETER',
+			mass_mg: 42,
+			dimensions: {
+				width: 100,
+				height: 100,
+				length: 100,
+			},
+			inputs: [],
+			effort: {
+				time: proto.types.Time.map.HOURS,
+				quantity: 37,
+			},
 			active: false,
+			meta: '',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -118,7 +141,6 @@ describe('products', function() {
 		var res = await trans.send_as('sandra', tx.product.TxUpdate, {
 			id: product_id,
 			name: product_name2,
-			meta: '',
 			active: true,
 			updated: new Date().toISOString(),
 		});
@@ -129,136 +151,27 @@ describe('products', function() {
 		expect(product.company_id).toBe(company_id);
 		expect(product.name).toBe(product_name2);
 		expect(product.active).toBe(true);
-	});
+		expect(product.mass_mg).toBe(42);
+		expect(product.inputs).toEqual([]);
 
-	it('can manage options', async () => {
-		var product = await Products.get({id: product_id});
-		expect(Object.keys(product.options).length).toBe(0);
-
-		var res = await trans.send_as('jerry', tx.product.TxSetOption, {
+		var input_id = uuid();
+		var res = await trans.send_as('sandra', tx.product.TxUpdate, {
 			id: product_id,
-			name: 'size',
-			title: 'WiDgEt SiZe',
+			inputs: [
+				{product_id: input_id, quantity: 69},
+			],
+			active: true,
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		expect(product.options['size']).toBe('WiDgEt SiZe');
 
-		// fixing jerry's stupidness
-		var res = await trans.send_as('sandra', tx.product.TxSetOption, {
-			id: product_id,
-			name: 'size',
-			title: 'Size',
-			updated: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
 		var product = await Products.get({id: product_id});
-		expect(product.options['size']).toBe('Size');
-
-		var res = await trans.send_as('jerry', tx.product.TxSetOption, {
-			id: product_id,
-			name: 'color',
-			title: 'Color',
-			updated: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		expect(product.options['size']).toBe('Size');
-		expect(product.options['color']).toBe('Color');
-		expect(Object.keys(product.options).length).toBe(2);
-
-		var res = await trans.send_as('jerry', tx.product.TxRemoveOption, {
-			id: product_id,
-			name: 'size',
-			updated: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		expect(product.options['size']).toBeUndefined();
-		expect(product.options['color']).toBe('Color');
-		expect(Object.keys(product.options).length).toBe(1);
-	});
-
-	it('can manage variants', async () => {
-		var input = {
-			product_variant_id: uuid(),
-			quantity: 6.0,
-		};
-		var res = await trans.send_as('jerry', tx.product.TxSetVariant, {
-			id: product_id,
-			variant: {
-				id: variant_id,
-				name: 'Red Widget',
-				unit: proto.types.Unit.gen('MILLIMETER'),
-				mass_mg: 2.4,
-				dimensions: {
-					width: 1000,
-					height: 1000,
-					length: 1000,
-				},
-				inputs: [
-					input,
-				],
-				options: {
-					'color': 'Red',
-					'size': 'Large',
-				},
-				effort: {
-					time: proto.types.Time.gen('MINUTES'),
-					quantity: 6,
-				},
-				active: true,
-				meta: '{}',
-			},
-			updated: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		var variant = product.variants[variant_id];
-		expect(variant.id).toBe(variant_id);
-		expect(variant.product_id).toBe(product_id);
-		expect(variant.name).toBe('Red Widget');
-		expect(variant.options.color).toBe('Red');
-		expect(variant.active).toBe(true);
-		expect(variant.meta).toBe('{}');
-
-		var res = await trans.send_as('jerry', tx.product.TxUpdateVariant, {
-			id: product_id,
-			variant_id: variant_id,
-			name: 'Reddy McWidget',
-			active: false,
-			meta: '',
-			updated: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		var variant = product.variants[variant_id];
-		expect(variant.id).toBe(variant_id);
-		expect(variant.product_id).toBe(product_id);
-		expect(variant.name).toBe('Reddy McWidget');
-		expect(variant.options.color).toBe('Red');
-		expect(variant.active).toBe(false);
-		expect(variant.meta).toBe('{}');
-		// TODO: fix date process (or at least compensate here)
-		expect(proto.types.Timestamp.from(variant.deleted).getTime()).toBe(0);
-
-		var delete_date = new Date().toISOString();
-		var res = await trans.send_as('jerry', tx.product.TxRemoveVariant, {
-			id: product_id,
-			variant_id: variant_id,
-			updated: delete_date,
-		});
-		expect(res.success).toBe(true);
-		var product = await Products.get({id: product_id});
-		var variant = product.variants[variant_id];
-		expect(variant.id).toBe(variant_id);
-		expect(variant.product_id).toBe(product_id);
-		expect(variant.name).toBe('Reddy McWidget');
-		expect(variant.options.color).toBe('Red');
-		expect(variant.active).toBe(false);
-		expect(variant.meta).toBe('{}');
-		expect(proto.types.Timestamp.from(variant.deleted)).toEqual(new Date(delete_date));
+		expect(product.id).toBe(product_id);
+		expect(product.company_id).toBe(company_id);
+		expect(product.name).toBe(product_name2);
+		expect(product.active).toBe(true);
+		expect(product.mass_mg).toBe(42);
+		expect(product.inputs).toEqual([{product_id: input_id, quantity: 69}]);
 	});
 
 	it('can be destroyed', async () => {
@@ -290,7 +203,6 @@ describe('products', function() {
 
 		var product = await Products.get({id: product_id});
 		expect(product.id).toBe(product_id);
-		expect(product.variants[variant_id].id).toBe(variant_id);
 		expect(product.deleted.seconds).not.toBe(0);
 	});
 });

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use exonum::{
     crypto::{self, Hash, PublicKey},
@@ -17,7 +16,7 @@ use models::{
     user::User,
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
-    product::{Product, ProductVariant},
+    product::{Product, Unit, Dimensions, Input, Effort},
     order::{Order, ProcessStatus, ProductEntry},
 };
 
@@ -261,79 +260,24 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, meta: &str, active: bool, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, unit: &Unit, mass_mg: f64, dimensions: &Dimensions, inputs: &Vec<Input>, effort: &Effort, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let product = {
             let mut history = self.products_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Product::new(id, company_id, name, &HashMap::new(), &HashMap::new(), meta, active, &created, &created, None, history.len(), &history_hash)
+            Product::new(id, company_id, name, unit, mass_mg, dimensions, inputs, effort, active, meta, created, created, None, history.len(), &history_hash)
         };
         self.products().put(&crypto::hash(id.as_bytes()), product);
         self.products_idx_company_id(company_id).insert(id.to_owned());
     }
 
-    pub fn products_update(&mut self, product: Product, name: Option<&str>, meta: Option<&str>, active: Option<bool>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn products_update(&mut self, product: Product, name: Option<&str>, unit: Option<&Unit>, mass_mg: Option<f64>, dimensions: Option<&Dimensions>, inputs: Option<&Vec<Input>>, effort: Option<&Effort>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = product.id.clone();
         let product = {
             let mut history = self.products_history(&id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            product.update(name, meta, active, updated, &history_hash)
-        };
-        self.products().put(&crypto::hash(id.as_bytes()), product);
-    }
-
-    pub fn products_set_option(&mut self, product: Product, name: &str, title: &str, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = product.id.clone();
-        let product = {
-            let mut history = self.products_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            product.set_option(name, title, updated, &history_hash)
-        };
-        self.products().put(&crypto::hash(id.as_bytes()), product);
-    }
-
-    pub fn products_remove_option(&mut self, product: Product, name: &str, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = product.id.clone();
-        let product = {
-            let mut history = self.products_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            product.remove_option(name, updated, &history_hash)
-        };
-        self.products().put(&crypto::hash(id.as_bytes()), product);
-    }
-
-    pub fn products_set_variant(&mut self, product: Product, variant: &ProductVariant, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = product.id.clone();
-        let product = {
-            let mut history = self.products_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            product.set_variant(variant, updated, &history_hash)
-        };
-        self.products().put(&crypto::hash(id.as_bytes()), product);
-    }
-
-    pub fn products_update_variant(&mut self, product: Product, variant_id: &str, name: Option<&str>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = product.id.clone();
-        let product = {
-            let mut history = self.products_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            product.update_variant(variant_id, name, active, meta, updated, &history_hash)
-        };
-        self.products().put(&crypto::hash(id.as_bytes()), product);
-    }
-
-    pub fn products_remove_variant(&mut self, product: Product, variant_id: &str, updated: &DateTime<Utc>, transaction: &Hash) {
-        let id = product.id.clone();
-        let product = {
-            let mut history = self.products_history(&id);
-            history.push(*transaction);
-            let history_hash = history.object_hash();
-            product.remove_variant(variant_id, updated, &history_hash)
+            product.update(name, unit, mass_mg, dimensions, inputs, effort, active, meta, updated, &history_hash)
         };
         self.products().put(&crypto::hash(id.as_bytes()), product);
     }

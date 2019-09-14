@@ -14,7 +14,7 @@ use crate::block::{
 };
 use util::{
     self,
-    protobuf::{POption},
+    protobuf::empty_opt,
 };
 use crate::config;
 use super::CommonError;
@@ -90,9 +90,9 @@ impl Transaction for TxCreate {
 #[exonum(pb = "proto::user::TxUpdate")]
 pub struct TxUpdate {
     pub id: String,
-    pub email: POption<String>,
-    pub name: POption<String>,
-    pub meta: POption<String>,
+    pub email: String,
+    pub name: String,
+    pub meta: String,
     pub updated: DateTime<Utc>,
 }
 
@@ -124,9 +124,9 @@ impl Transaction for TxUpdate {
             }
         }
 
-        let email = self.email.as_ref().map(|x| x.as_str());
-        let name = self.name.as_ref().map(|x| x.as_str());
-        let meta = self.meta.as_ref().map(|x| x.as_str());
+        let email = empty_opt(&self.email).map(|x| x.as_str());
+        let name = empty_opt(&self.name).map(|x| x.as_str());
+        let meta = empty_opt(&self.meta).map(|x| x.as_str());
 
         let user = match schema.get_user(self.id.as_str()) {
             Some(x) => x,

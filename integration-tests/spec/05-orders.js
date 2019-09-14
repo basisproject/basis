@@ -32,10 +32,8 @@ describe('orders', function() {
 
 	const product1_id = uuid();
 	const product1_name = 'Basic Widget';
-	const variant1_id = uuid();
 	const product2_id = uuid();
 	const product2_name = 'Advanced Widget';
-	const variant2_id = uuid();
 
 	beforeAll((done) => {
 		trans.clear_users();
@@ -98,35 +96,21 @@ describe('orders', function() {
 			id: product1_id,
 			company_id: company1_id,
 			name: product1_name,
-			meta: '',
-			active: true,
-			created: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var res = await trans.send_as('sandra', tx.product.TxSetVariant, {
-			id: product1_id,
-			variant: {
-				id: variant1_id,
-				name: 'Big widget',
-				unit: proto.types.Unit.gen('MILLIMETER'),
-				mass_mg: 2.4,
-				dimensions: {
-					width: 1000,
-					height: 1000,
-					length: 1000,
-				},
-				inputs: [],
-				options: {
-					'size': 'Big',
-				},
-				effort: {
-					time: proto.types.Time.gen('MINUTES'),
-					quantity: 6,
-				},
-				active: true,
-				meta: '{}',
+			unit: 'MILLIMETER',
+			mass_mg: 2.4,
+			dimensions: {
+				width: 1000,
+				height: 1000,
+				length: 1000,
 			},
-			updated: new Date().toISOString(),
+			inputs: [],
+			effort: {
+				time: proto.types.Time.gen('MINUTES'),
+				quantity: 6,
+			},
+			active: true,
+			meta: '',
+			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
 
@@ -134,35 +118,21 @@ describe('orders', function() {
 			id: product2_id,
 			company_id: company1_id,
 			name: product2_name,
-			meta: '',
-			active: true,
-			created: new Date().toISOString(),
-		});
-		expect(res.success).toBe(true);
-		var res = await trans.send_as('sandra', tx.product.TxSetVariant, {
-			id: product2_id,
-			variant: {
-				id: variant2_id,
-				name: 'Small widget',
-				unit: proto.types.Unit.gen('MILLIMETER'),
-				mass_mg: 1.4,
-				dimensions: {
-					width: 100,
-					height: 100,
-					length: 100,
-				},
-				inputs: [],
-				options: {
-					'size': 'Big',
-				},
-				effort: {
-					time: proto.types.Time.gen('MINUTES'),
-					quantity: 2,
-				},
-				active: true,
-				meta: '{}',
+			unit: 'MILLIMETER',
+			mass_mg: 1.4,
+			dimensions: {
+				width: 100,
+				height: 100,
+				length: 100,
 			},
-			updated: new Date().toISOString(),
+			inputs: [],
+			effort: {
+				time: proto.types.Time.gen('MINUTES'),
+				quantity: 2,
+			},
+			active: true,
+			meta: '{}',
+			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
 	});
@@ -174,11 +144,9 @@ describe('orders', function() {
 			company_id_to: company1_id,
 			products: [{
 				product_id: product1_id,
-				product_variant_id: variant1_id,
 				quantity: 3,
 			}, {
 				product_id: product2_id,
-				product_variant_id: variant2_id,
 				quantity: 6,
 			}],
 			created: new Date().toISOString(),
@@ -194,10 +162,8 @@ describe('orders', function() {
 
 		var ord = await Orders.get({id: order_id});
 		expect(ord.products[0].product_id).toBe(product1_id);
-		expect(ord.products[0].product_variant_id).toBe(variant1_id);
 		expect(ord.products[0].quantity).toBe(3);
 		expect(ord.products[1].product_id).toBe(product2_id);
-		expect(ord.products[1].product_variant_id).toBe(variant2_id);
 		expect(ord.products[1].quantity).toBe(6);
 		expect(ord.process_status).toBe('NEW');
 	});
