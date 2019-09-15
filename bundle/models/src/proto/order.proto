@@ -15,7 +15,7 @@ message Order {
 	}
 	message ProductEntry {
 		string product_id = 1;
-		uint64 quantity = 2;
+		double quantity = 2;
 	}
 
 	string id = 1;

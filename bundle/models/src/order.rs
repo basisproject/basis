@@ -20,11 +20,11 @@ proto_enum! {
 #[exonum(pb = "proto::order::Order_ProductEntry", serde_pb_convert)]
 pub struct ProductEntry {
     pub product_id: String,
-    pub quantity: u64,
+    pub quantity: f64,
 }
 
 impl ProductEntry {
-    pub fn new(product_id: &str, quantity: u64) -> Self {
+    pub fn new(product_id: &str, quantity: f64) -> Self {
         ProductEntry {
             product_id: product_id.to_owned(),
             quantity,
@@ -92,8 +92,8 @@ pub mod tests {
     fn make_order() -> Order {
         let now = make_date();
         let products = vec![
-            ProductEntry::new("ea682431-d0d0-48c5-9166-be5b76a35d62", 183),
-            ProductEntry::new("0aabf72f-0cbf-4363-a39d-502be618060d", 1),
+            ProductEntry::new("ea682431-d0d0-48c5-9166-be5b76a35d62", 183.0),
+            ProductEntry::new("0aabf72f-0cbf-4363-a39d-502be618060d", 1.0),
         ];
         Order::new(
             "a3c7a63d-e4de-49e3-889d-78853a2169e6",
