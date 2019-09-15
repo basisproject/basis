@@ -4,7 +4,8 @@ pub mod costs;
 
 use std::collections::HashMap;
 use models::product::Product;
-use crate::costs::Costs;
+use models::costs::Costs;
+use models::amortization::Amortization;
 
 pub struct Order {
 }
@@ -14,7 +15,7 @@ pub struct Order {
 ///
 /// The orders *must* be filtered such that both sets are a particular window
 /// in time (ex, the last 365 days) and must be ordered from oldest to newest.
-pub fn calculate_costs(orders_incoming: Vec<Order>, orders_outgoing: Vec<Order>) -> HashMap<String, Costs> {
+pub fn calculate_costs(orders_incoming: Vec<Order>, orders_outgoing: Vec<Order>, amortization: HashMap<String, Amortization>) -> HashMap<String, Costs> {
     HashMap::new()
 }
 

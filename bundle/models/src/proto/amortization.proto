@@ -1,0 +1,20 @@
+syntax = "proto3";
+package basis.amortization;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+import "costs.proto";
+
+message Amortization {
+	string id = 1;
+	string company_id = 2;
+	string name = 3;
+	basis.costs.Costs costs = 4;
+	google.protobuf.Timestamp start = 5;
+	google.protobuf.Timestamp end = 6;
+	string meta = 7;
+	google.protobuf.Timestamp created = 8;
+	google.protobuf.Timestamp updated = 9;
+	uint64 history_len = 10;
+	exonum.Hash history_hash = 11;
+}
+
