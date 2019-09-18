@@ -2,12 +2,12 @@ use fern;
 use log;
 use time;
 use std;
-use error::CResult;
+use error::BResult;
 use crate::config;
 
 /// a simple wrapper (pretty much direct from documentation) that sets up
 /// logging to STDOUT (and file if config allows) via fern/log
-pub fn setup_logger() -> CResult<()> {
+pub fn setup_logger() -> BResult<()> {
     let levelstr: String = config::get("logging.level")?;
     let level = match levelstr.to_lowercase().as_ref() {
         "error" => log::LevelFilter::Error,

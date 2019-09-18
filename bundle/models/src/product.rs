@@ -162,6 +162,21 @@ impl Product {
     pub fn is_deleted(&self) -> bool {
         self.deleted != util::time::default_time()
     }
+
+    pub fn effort_hours(&self) -> f64 {
+        let div = match self.effort.time {
+            EffortTime::Nanoseconds => 3600000000000.0,
+            EffortTime::Milliseconds => 3600000.0,
+            EffortTime::Seconds => 3600.0,
+            EffortTime::Minutes => 60.0,
+            EffortTime::Hours => 1.0,
+            EffortTime::Days => 1.0 / 24.0,
+            EffortTime::Weeks => 1.0 / (24.0 * 7.0),
+            EffortTime::Years => 1.0 / (24.0 * 365.0),
+            _ => 1.0,
+        };
+        (self.effort.quantity as f64) / div
+    }
 }
 
 #[cfg(test)]

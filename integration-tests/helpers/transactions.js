@@ -30,6 +30,7 @@ const message_id_map = (function() {
 
 		'order.TxCreate',
 		'order.TxUpdateStatus',
+		'order.TxUpdateCostCategory',
 	];
 	const map = {};
 	let i = 0;
@@ -58,6 +59,7 @@ exports.make = (type, data, params) => {
 		'Product.Unit': 'Unit',
 		'Product.Effort.Time': 'Time',
 		'Order.ProcessStatus': 'ProcessStatus',
+		'Order.CostCategory': 'CostCategory',
 	};
 	Object.keys(Transaction.fields).forEach((field) => {
 		if(typeof(data[field]) == 'undefined') return;
@@ -80,6 +82,7 @@ exports.make = (type, data, params) => {
 };
 
 exports.send = async (type, data, params) => {
+	data = JSON.parse(JSON.stringify(data));
 	const trans = exports.make(type, data, params);
 	return trans.send(`${config.endpoint}/explorer/v1/transactions`, data, params.privkey);
 };

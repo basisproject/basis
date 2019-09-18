@@ -29,6 +29,10 @@ message Product {
 	// its products. in other words, how "hard" is it to make something when
 	// compared to another thing the company makes. generally, time is a good
 	// measure.
+	//
+	// generally, this should account for scale/concurrency: if my company can
+	// produce 500 widgets an hour when all capacity is devoted to that widget,
+	// then effort for that widget should be 7200ms.
 	message Effort {
 		enum Time {
 			UNKNOWN = 0;

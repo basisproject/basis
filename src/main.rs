@@ -8,11 +8,11 @@ mod logger;
 mod config;
 mod block;
 
-use error::CResult;
+use error::BResult;
 use exonum::helpers::fabric::NodeBuilder;
 use exonum_configuration as configuration;
 
-pub fn init(default_config: &str, local_config: &str) -> CResult<()> {
+pub fn init(default_config: &str, local_config: &str) -> BResult<()> {
     config::init(default_config, local_config)?;
     // set up the logger now that we have our config and data folder set up
     match logger::setup_logger() {

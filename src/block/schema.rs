@@ -17,7 +17,7 @@ use models::{
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
     product::{Product, Unit, Dimensions, Input, Effort},
-    order::{Order, ProcessStatus, ProductEntry},
+    order::{Order, CostCategory, ProcessStatus, ProductEntry},
 };
 
 #[derive(Debug)]
@@ -336,12 +336,12 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, category: &CostCategory, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let order = {
             let mut history = self.orders_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Order::new(id, company_id_from, company_id_to, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
+            Order::new(id, company_id_from, company_id_to, category, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
         };
         let id = order.id.clone();
         self.orders().put(&crypto::hash(id.as_bytes()), order);
@@ -356,6 +356,17 @@ impl<T> Schema<T>
             history.push(*transaction);
             let history_hash = history.object_hash();
             order.update_status(process_status, updated, &history_hash)
+        };
+        self.orders().put(&crypto::hash(id.as_bytes()), order);
+    }
+
+    pub fn orders_update_cost_category(&self, order: Order, category: &CostCategory, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = order.id.clone();
+        let order = {
+            let mut history = self.orders_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            order.update_cost_category(category, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order);
     }

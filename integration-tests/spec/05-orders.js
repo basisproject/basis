@@ -142,6 +142,7 @@ describe('orders', function() {
 			id: order_id,
 			company_id_from: company2_id,
 			company_id_to: company1_id,
+			cost_category: 'OPERATING',
 			products: [{
 				product_id: product1_id,
 				quantity: 3,
@@ -161,6 +162,9 @@ describe('orders', function() {
 		expect(res.success).toBe(true);
 
 		var ord = await Orders.get({id: order_id});
+		expect(ord.company_id_from).toBe(company2_id);
+		expect(ord.company_id_to).toBe(company1_id);
+		expect(ord.cost_category).toBe('OPERATING');
 		expect(ord.products[0].product_id).toBe(product1_id);
 		expect(ord.products[0].quantity).toBe(3);
 		expect(ord.products[1].product_id).toBe(product2_id);
@@ -168,7 +172,7 @@ describe('orders', function() {
 		expect(ord.process_status).toBe('NEW');
 	});
 
-	it('can be updated', async () => {
+	it('can update status', async () => {
 		var res = await trans.send_as('sandra', tx.order.TxUpdateStatus, {
 			id: order_id,
 			process_status: 'ACCEPTED',
@@ -177,6 +181,17 @@ describe('orders', function() {
 		expect(res.success).toBe(true);
 		var ord = await Orders.get({id: order_id});
 		expect(ord.process_status).toBe('ACCEPTED');
+	});
+
+	it('can update category', async () => {
+		var res = await trans.send_as('sandra', tx.order.TxUpdateCostCategory, {
+			id: order_id,
+			cost_category: 'INVENTORY',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+		var ord = await Orders.get({id: order_id});
+		expect(ord.cost_category).toBe('INVENTORY');
 	});
 
 	it('destroys', async () => {
@@ -201,6 +216,13 @@ describe('orders', function() {
 		var res = await trans.send_as('jerry', tx.company.TxDelete, {
 			id: company2_id,
 			memo: 'Leaving because not enough gulags',
+			deleted: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var res = await trans.send_as('jerry', tx.company.TxDelete, {
+			id: company_shipping_id,
+			memo: 'No, Jerry. Stop, Jerry.',
 			deleted: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);

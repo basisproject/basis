@@ -6,7 +6,7 @@ use models::{
     proto,
     company::{Permission as CompanyPermission},
     access::Permission,
-    order::{ProductEntry, ProcessStatus},
+    order::{ProductEntry, ProcessStatus, CostCategory},
 };
 use crate::block::{
     schema::Schema,
@@ -38,6 +38,7 @@ pub struct TxCreate {
     pub id: String,
     pub company_id_from: String,
     pub company_id_to: String,
+    pub cost_category: CostCategory,
     pub products: Vec<ProductEntry>,
     pub created: DateTime<Utc>,
 }
@@ -58,7 +59,7 @@ impl Transaction for TxCreate {
         if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.products, &self.created, &hash);
+        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &self.products, &self.created, &hash);
         Ok(())
     }
 }
@@ -94,6 +95,41 @@ impl Transaction for TxUpdateStatus {
             Err(CommonError::InvalidTime)?;
         }
         schema.orders_update_status(order, &self.process_status, &self.updated, &hash);
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
+#[exonum(pb = "proto::order::TxUpdateCostCategory")]
+pub struct TxUpdateCostCategory {
+    pub id: String,
+    pub cost_category: CostCategory,
+    pub updated: DateTime<Utc>,
+}
+
+impl Transaction for TxUpdateCostCategory {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        let pubkey = &context.author();
+        let hash = context.tx_hash();
+
+        let mut schema = Schema::new(context.fork());
+
+        let ord = schema.get_order(&self.id);
+        if ord.is_none() {
+            Err(TransactionError::OrderNotFound)?;
+        }
+        let order = ord.unwrap();
+        if order.process_status == ProcessStatus::Canceled {
+            Err(TransactionError::OrderCanceled)?;
+        }
+
+        access::check(&mut schema, pubkey, Permission::OrderUpdate)?;
+        company::check(&mut schema, &order.company_id_to, pubkey, CompanyPermission::OrderUpdateProcessStatus)?;
+
+        if !util::time::is_current(&self.updated) {
+            Err(CommonError::InvalidTime)?;
+        }
+        schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
         Ok(())
     }
 }

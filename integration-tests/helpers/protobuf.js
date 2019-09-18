@@ -101,12 +101,25 @@ const ProcessStatus = {
 		ACCEPTED: 2,
 		PROCESSING: 3,
 		COMPLETED: 4,
-		PROXIED: 5,
-		CANCELED: 6,
+		PROXYING: 5,
+		PROXIED: 6,
+		CANCELED: 7,
 	},
 	type: new protobuf.Enum('ProcessStatus', this.map),
 	gen: function(val) {
 		return ProcessStatus.map[val.toUpperCase()] || 0;
+	},
+};
+
+const CostCategory = {
+	map: {
+		UNKNOWN: 0,
+		INVENTORY: 1,
+		OPERATING: 2,
+	},
+	type: new protobuf.Enum('Category', this.map),
+	gen: function(val) {
+		return CostCategory.map[val.toUpperCase()] || 0;
 	},
 };
 
@@ -119,6 +132,7 @@ exports.types = {
 	Unit: Unit,
 	Time: Time,
 	ProcessStatus: ProcessStatus,
+	CostCategory: CostCategory,
 };
 
 const protos = new protobuf.Root();

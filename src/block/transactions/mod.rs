@@ -59,6 +59,7 @@ pub enum TransactionGroup {
 
     OrderCreate(order::TxCreate),
     OrderUpdateStatus(order::TxUpdateStatus),
+    OrderUpdateCostCategory(order::TxUpdateCostCategory),
 }
 
 

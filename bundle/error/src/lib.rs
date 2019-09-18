@@ -13,10 +13,12 @@ pub enum BError {
 
     #[fail(display = "Invalid role")]
     InvalidRole,
+
+    #[fail(display = "Missing product in costing data")]
+    CostMissingProduct,
 }
 
-pub type CResult<T> = Result<T, BError>;
-
+pub type BResult<T> = Result<T, BError>;
 
 macro_rules! make_err_converter {
     ($field:path, $errtype:ty) => {

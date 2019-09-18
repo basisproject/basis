@@ -8,6 +8,8 @@ edition = "2018"
 doctest = false				# these annoy me
 
 [dependencies]
+chrono = "0.4.6"
+error = { path = "../error" }
 models = { path = "../models" }
 serde = { version = "1.0.94", features = ["derive"] }
 

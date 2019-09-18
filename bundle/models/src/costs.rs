@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::proto;
 use std::ops::{Add, Mul, Div};
 
-#[derive(Clone, Debug, ProtobufConvert)]
+#[derive(Clone, Debug, Default, ProtobufConvert)]
 #[exonum(pb = "proto::costs::Costs", serde_pb_convert)]
 pub struct Costs {
     pub products: HashMap<String, f64>,
