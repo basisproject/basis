@@ -11,6 +11,7 @@ use exonum_merkledb::{
     ProofMapIndex,
     KeySetIndex,
 };
+use util;
 use models::{
     access::Role,
     user::User,
@@ -314,6 +315,14 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
+    pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+        MapIndex::new_in_family("basis.orders.idx_company_id_from", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
+    pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+        MapIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
     pub fn get_order(&self, id: &str) -> Option<Order> {
         self.orders().get(&crypto::hash(id.as_bytes()))
     }
@@ -349,6 +358,40 @@ impl<T> Schema<T>
         self.orders_idx_company_id_to(company_id_to).push(id.clone());
     }
 
+    fn orders_update_rolling_index(&self, order: &Order, cutoff: &DateTime<Utc>) {
+        let key = format!("{}:{}", order.updated.timestamp(), order.id);
+        fn key_to_datetime(key: &str) -> DateTime<Utc> {
+            match key.find(":") {
+                Some(x) => {
+                    match &key[0..x].parse::<i64>() {
+                        Ok(ts) => util::time::from_timestamp(*ts),
+                        Err(_) => util::time::default_time(),
+                    }
+                }
+                None => util::time::default_time(),
+            }
+        }
+        fn index_and_rotate<T>(idx: &mut MapIndex<T, String, String>, key: &str, order_id: &str, cutoff: &DateTime<Utc>)
+            where T: IndexAccess
+        {
+            idx.put(&key.to_owned(), order_id.to_owned());
+            let mut remove_keys = Vec::new();
+            for k in idx.keys() {
+                let date = key_to_datetime(&k);
+                if date < *cutoff {
+                    remove_keys.push(k);
+                }
+            }
+            for k in &remove_keys {
+                idx.remove(k);
+            }
+        }
+        let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
+        let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
+        index_and_rotate(&mut idx_from, &key, &order.id, cutoff);
+        index_and_rotate(&mut idx_to, &key, &order.id, cutoff);
+    }
+
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = order.id.clone();
         let order = {
@@ -357,7 +400,11 @@ impl<T> Schema<T>
             let history_hash = history.object_hash();
             order.update_status(process_status, updated, &history_hash)
         };
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
+        self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
+        if order.process_status == ProcessStatus::Finalized {
+            let cutoff = util::time::from_timestamp(updated.timestamp() - (3600 * 24 * 365));
+            self.orders_update_rolling_index(&order, &cutoff);
+        }
     }
 
     pub fn orders_update_cost_category(&self, order: Order, category: &CostCategory, updated: &DateTime<Utc>, transaction: &Hash) {
