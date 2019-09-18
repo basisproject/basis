@@ -14,7 +14,7 @@ proto_enum! {
 		Processing = 3,
         Completed = 4,
         Proxying = 5,
-        Proxied = 6,
+        Finalized = 6,
 		Canceled = 7,
     };
     proto::order::Order_ProcessStatus
