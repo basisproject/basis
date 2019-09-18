@@ -131,15 +131,20 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
     let inp_ratio_sum = inp_ratios.iter().fold(Costs::new(), |acc, (_, x)| acc + x.clone());
 
     let mut final_costs: HashMap<String, Costs> = HashMap::new();
-    for (prod_id, num_produced) in sum_produced.iter() {
-        let num_produced = num_produced.clone();
-        let prod_ratio = if prod_ratio_sum == 0.0 { 0.0 } else { prod_ratios.get(prod_id).unwrap_or(&0.0) / prod_ratio_sum.clone() };
-        let inp_ratio = if inp_ratio_sum.is_zero() { Costs::new() } else { inp_ratios.get(prod_id).unwrap_or(&Costs::new()).clone() / inp_ratio_sum.clone() };
+    for prod_id in products.keys() {
+        let num_produced = sum_produced.get(prod_id).unwrap_or(&0.0).clone();
+        if num_produced == 0.0 {
+            // NOTE: can we possibly estimate this?
+            final_costs.insert(prod_id.clone(), Costs::new());
+        } else {
+            let prod_ratio = if prod_ratio_sum == 0.0 { 0.0 } else { prod_ratios.get(prod_id).unwrap_or(&0.0) / prod_ratio_sum.clone() };
+            let inp_ratio = if inp_ratio_sum.is_zero() { Costs::new() } else { inp_ratios.get(prod_id).unwrap_or(&Costs::new()).clone() / inp_ratio_sum.clone() };
 
-        let operating_cost = costs_operating.clone() * prod_ratio;
-        let inp_cost = costs_inputs.clone() * inp_ratio;
-        let product_costs = (operating_cost + inp_cost) / num_produced;
-        final_costs.insert(prod_id.clone(), product_costs);
+            let operating_cost = costs_operating.clone() * prod_ratio;
+            let inp_cost = costs_inputs.clone() * inp_ratio;
+            let product_costs = (operating_cost + inp_cost) / num_produced;
+            final_costs.insert(prod_id.clone(), product_costs);
+        }
     }
     Ok(final_costs)
 }
