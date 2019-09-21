@@ -35,20 +35,21 @@ pub enum TransactionError {
 }
 define_exec_error!(TransactionError);
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxCreate")]
-pub struct TxCreate {
-    pub id: String,
-    pub company_id: String,
-    pub name: String,
-    pub unit: Unit,
-    pub mass_mg: f64,
-    pub dimensions: Dimensions,
-    pub inputs: Vec<Input>,
-    pub effort: Effort,
-    pub active: bool,
-    pub meta: String,
-    pub created: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::product::TxCreate")]
+    pub struct TxCreate {
+        pub id: String,
+        pub company_id: String,
+        pub name: String,
+        pub unit: Unit,
+        pub mass_mg: f64,
+        pub dimensions: Dimensions,
+        pub inputs: Vec<Input>,
+        pub effort: Effort,
+        pub active: bool,
+        pub meta: String,
+        pub created: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxCreate {
@@ -72,19 +73,20 @@ impl Transaction for TxCreate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxUpdate")]
-pub struct TxUpdate {
-    pub id: String,
-    pub name: String,
-    pub unit: Unit,
-    pub mass_mg: f64,
-    pub dimensions: Dimensions,
-    pub inputs: Vec<Input>,
-    pub effort: Effort,
-    pub active: bool,
-    pub meta: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::product::TxUpdate")]
+    pub struct TxUpdate {
+        pub id: String,
+        pub name: String,
+        pub unit: Unit,
+        pub mass_mg: f64,
+        pub dimensions: Dimensions,
+        pub inputs: Vec<Input>,
+        pub effort: Effort,
+        pub active: bool,
+        pub meta: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxUpdate {
@@ -120,11 +122,12 @@ impl Transaction for TxUpdate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::product::TxDelete")]
-pub struct TxDelete {
-    pub id: String,
-    pub deleted: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::product::TxDelete")]
+    pub struct TxDelete {
+        pub id: String,
+        pub deleted: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxDelete {

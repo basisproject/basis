@@ -32,15 +32,16 @@ pub enum TransactionError {
 }
 define_exec_error!(TransactionError);
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::order::TxCreate")]
-pub struct TxCreate {
-    pub id: String,
-    pub company_id_from: String,
-    pub company_id_to: String,
-    pub cost_category: CostCategory,
-    pub products: Vec<ProductEntry>,
-    pub created: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::order::TxCreate")]
+    pub struct TxCreate {
+        pub id: String,
+        pub company_id_from: String,
+        pub company_id_to: String,
+        pub cost_category: CostCategory,
+        pub products: Vec<ProductEntry>,
+        pub created: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxCreate {
@@ -64,12 +65,13 @@ impl Transaction for TxCreate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::order::TxUpdateStatus")]
-pub struct TxUpdateStatus {
-    pub id: String,
-    pub process_status: ProcessStatus,
-    pub updated: DateTime<Utc>,
+deftransaction!{
+    #[exonum(pb = "proto::order::TxUpdateStatus")]
+    pub struct TxUpdateStatus {
+        pub id: String,
+        pub process_status: ProcessStatus,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxUpdateStatus {
@@ -99,12 +101,13 @@ impl Transaction for TxUpdateStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::order::TxUpdateCostCategory")]
-pub struct TxUpdateCostCategory {
-    pub id: String,
-    pub cost_category: CostCategory,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::order::TxUpdateCostCategory")]
+    pub struct TxUpdateCostCategory {
+        pub id: String,
+        pub cost_category: CostCategory,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxUpdateCostCategory {
@@ -131,6 +134,24 @@ impl Transaction for TxUpdateCostCategory {
         }
         schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use exonum_testkit::{TestKit, TestKitApi, TestKitBuilder};
+    use crate::block::Service;
+
+    fn init_testkit() -> TestKit {
+        TestKitBuilder::validator()
+            .with_service(Service)
+            .create()
+    }
+
+    #[test]
+    fn indexes_properly() {
+        let mut testkit = init_testkit();
     }
 }
 

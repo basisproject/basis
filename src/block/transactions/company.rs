@@ -55,13 +55,14 @@ pub enum TransactionError {
 }
 define_exec_error!(TransactionError);
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company::TxCreatePrivate")]
-pub struct TxCreatePrivate {
-    pub id: String,
-    pub email: String,
-    pub name: String,
-    pub created: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company::TxCreatePrivate")]
+    pub struct TxCreatePrivate {
+        pub id: String,
+        pub email: String,
+        pub name: String,
+        pub created: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxCreatePrivate {
@@ -91,13 +92,14 @@ impl Transaction for TxCreatePrivate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company::TxUpdate")]
-pub struct TxUpdate {
-    pub id: String,
-    pub email: String,
-    pub name: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company::TxUpdate")]
+    pub struct TxUpdate {
+        pub id: String,
+        pub email: String,
+        pub name: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxUpdate {
@@ -134,12 +136,13 @@ impl Transaction for TxUpdate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company::TxSetType")]
-pub struct TxSetType {
-    pub id: String,
-    pub ty: CompanyType,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company::TxSetType")]
+    pub struct TxSetType {
+        pub id: String,
+        pub ty: CompanyType,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxSetType {
@@ -165,12 +168,13 @@ impl Transaction for TxSetType {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company::TxDelete")]
-pub struct TxDelete {
-    pub id: String,
-    pub memo: String,
-    pub deleted: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company::TxDelete")]
+    pub struct TxDelete {
+        pub id: String,
+        pub memo: String,
+        pub deleted: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxDelete {

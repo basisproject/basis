@@ -29,6 +29,41 @@ pub enum CommonError {
 }
 define_exec_error!(CommonError);
 
+macro_rules! deftransaction_argref {
+    (&String) => (&str);
+    ($ty:ty) => (&$ty);
+}
+
+#[macro_export]
+macro_rules! deftransaction {
+    (
+        $( #[$met:meta] )*
+        pub struct $name:ident {
+            $( pub $field:ident: $ty:ty, )*
+        }
+    ) => {
+        #[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
+        $( #[$met] )*
+        pub struct $name {
+            $( pub $field: $ty, )*
+        }
+
+        impl $name {
+            #[allow(dead_code)]
+            pub fn sign( $( $field: deftransaction_argref!($ty), )* pk: &exonum::crypto::PublicKey, sk: &exonum::crypto::SecretKey) -> exonum::messages::Signed<exonum::messages::RawTransaction> {
+                exonum::messages::Message::sign_transaction(
+                    Self {
+                        $( $field: $field.clone(), )*
+                    },
+                    crate::block::SERVICE_ID,
+                    *pk,
+                    sk,
+                )
+            }
+        }
+    };
+}
+
 pub mod access;
 pub mod user;
 pub mod company;

@@ -47,14 +47,15 @@ pub enum TransactionError {
 }
 define_exec_error!(TransactionError);
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company_member::TxCreate")]
-pub struct TxCreate {
-    pub company_id: String,
-    pub user_id: String,
-    pub roles: Vec<CompanyRole>,
-    pub memo: String,
-    pub created: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company_member::TxCreate")]
+    pub struct TxCreate {
+        pub company_id: String,
+        pub user_id: String,
+        pub roles: Vec<CompanyRole>,
+        pub memo: String,
+        pub created: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxCreate {
@@ -89,14 +90,15 @@ impl Transaction for TxCreate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company_member::TxSetRoles")]
-pub struct TxSetRoles {
-    pub company_id: String,
-    pub user_id: String,
-    pub roles: Vec<CompanyRole>,
-    pub memo: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company_member::TxSetRoles")]
+    pub struct TxSetRoles {
+        pub company_id: String,
+        pub user_id: String,
+        pub roles: Vec<CompanyRole>,
+        pub memo: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxSetRoles {
@@ -139,13 +141,14 @@ impl Transaction for TxSetRoles {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::company_member::TxDelete")]
-pub struct TxDelete {
-    pub company_id: String,
-    pub user_id: String,
-    pub memo: String,
-    pub deleted: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::company_member::TxDelete")]
+    pub struct TxDelete {
+        pub company_id: String,
+        pub user_id: String,
+        pub memo: String,
+        pub deleted: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxDelete {

@@ -181,6 +181,15 @@ describe('orders', function() {
 		expect(res.success).toBe(true);
 		var ord = await Orders.get({id: order_id});
 		expect(ord.process_status).toBe('ACCEPTED');
+
+		var res = await trans.send_as('sandra', tx.order.TxUpdateStatus, {
+			id: order_id,
+			process_status: 'FINALIZED',
+			updated: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+		var ord = await Orders.get({id: order_id});
+		expect(ord.process_status).toBe('FINALIZED');
 	});
 
 	it('can update category', async () => {

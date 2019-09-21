@@ -102,7 +102,7 @@ const ProcessStatus = {
 		PROCESSING: 3,
 		COMPLETED: 4,
 		PROXYING: 5,
-		PROXIED: 6,
+		FINALIZED: 6,
 		CANCELED: 7,
 	},
 	type: new protobuf.Enum('ProcessStatus', this.map),

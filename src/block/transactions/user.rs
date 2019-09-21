@@ -45,16 +45,17 @@ pub enum TransactionError {
 }
 define_exec_error!(TransactionError);
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::user::TxCreate")]
-pub struct TxCreate {
-    pub id: String,
-    pub pubkey: PublicKey,
-    pub roles: Vec<Role>,
-    pub email: String,
-    pub name: String,
-    pub meta: String,
-    pub created: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::user::TxCreate")]
+    pub struct TxCreate {
+        pub id: String,
+        pub pubkey: PublicKey,
+        pub roles: Vec<Role>,
+        pub email: String,
+        pub name: String,
+        pub meta: String,
+        pub created: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxCreate {
@@ -64,7 +65,7 @@ impl Transaction for TxCreate {
 
         let mut schema = Schema::new(context.fork());
 
-        let bootstrap_key = PublicKey::from_hex(config::get::<String>("tests.bootstrap_user_key").unwrap_or(String::from("")));
+        let bootstrap_key = PublicKey::from_hex(config::get::<String>("tests.bootstrap_user.pub").unwrap_or(String::from("")));
         if bootstrap_key.is_err() || bootstrap_key.as_ref() != Ok(&pubkey) {
             access::check(&mut schema, pubkey, Permission::UserCreate)?;
         }
@@ -86,14 +87,15 @@ impl Transaction for TxCreate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::user::TxUpdate")]
-pub struct TxUpdate {
-    pub id: String,
-    pub email: String,
-    pub name: String,
-    pub meta: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::user::TxUpdate")]
+    pub struct TxUpdate {
+        pub id: String,
+        pub email: String,
+        pub name: String,
+        pub meta: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxUpdate {
@@ -151,13 +153,14 @@ impl Transaction for TxUpdate {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::user::TxSetPubkey")]
-pub struct TxSetPubkey {
-    pub id: String,
-    pub pubkey: PublicKey,
-    pub memo: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::user::TxSetPubkey")]
+    pub struct TxSetPubkey {
+        pub id: String,
+        pub pubkey: PublicKey,
+        pub memo: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxSetPubkey {
@@ -190,13 +193,14 @@ impl Transaction for TxSetPubkey {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::user::TxSetRoles")]
-pub struct TxSetRoles {
-    pub id: String,
-    pub roles: Vec<Role>,
-    pub memo: String,
-    pub updated: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::user::TxSetRoles")]
+    pub struct TxSetRoles {
+        pub id: String,
+        pub roles: Vec<Role>,
+        pub memo: String,
+        pub updated: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxSetRoles {
@@ -221,12 +225,13 @@ impl Transaction for TxSetRoles {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ProtobufConvert)]
-#[exonum(pb = "proto::user::TxDelete")]
-pub struct TxDelete {
-    pub id: String,
-    pub memo: String,
-    pub deleted: DateTime<Utc>,
+deftransaction! {
+    #[exonum(pb = "proto::user::TxDelete")]
+    pub struct TxDelete {
+        pub id: String,
+        pub memo: String,
+        pub deleted: DateTime<Utc>,
+    }
 }
 
 impl Transaction for TxDelete {

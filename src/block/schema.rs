@@ -316,11 +316,11 @@ impl<T> Schema<T>
     }
 
     pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
-        MapIndex::new_in_family("basis.orders.idx_company_id_from", &crypto::hash(company_id.as_bytes()), self.access.clone())
+        MapIndex::new_in_family("basis.orders.idx_company_id_from_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
     pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
-        MapIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
+        MapIndex::new_in_family("basis.orders.idx_company_id_to_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
     pub fn get_order(&self, id: &str) -> Option<Order> {
@@ -380,6 +380,8 @@ impl<T> Schema<T>
                 let date = key_to_datetime(&k);
                 if date < *cutoff {
                     remove_keys.push(k);
+                } else {
+                    break;
                 }
             }
             for k in &remove_keys {
@@ -401,7 +403,11 @@ impl<T> Schema<T>
             order.update_status(process_status, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
+        // NOTE: for now we assume that an order can only be marked as finalized
+        // !!once!! so there is no logic to prevent duplicate orders in ze
+        // rolling index or anything like that. mmkay?
         if order.process_status == ProcessStatus::Finalized {
+            // one year cutoff, hardcoded for now
             let cutoff = util::time::from_timestamp(updated.timestamp() - (3600 * 24 * 365));
             self.orders_update_rolling_index(&order, &cutoff);
         }

@@ -6,7 +6,11 @@ logging:
 
 # testing config
 tests:
-  # set this to a public key (hex string), which can then be used on the client
-  # side to create a SuperAdmin user for testing
-  bootstrap_user_key: false
+  # set these to a keypair (hex string), which can then be used to create a
+  # superuser either via a client or via native tests. used to create users,
+  # companies, and other objects with the flick of a wrist (great for setting
+  # up test scenarios).
+  bootstrap_user:
+    pub: false
+    sec: false
 
