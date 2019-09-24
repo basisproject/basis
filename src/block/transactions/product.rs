@@ -158,3 +158,169 @@ impl Transaction for TxDelete {
     }
 }
 
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use models;
+    use util;
+    use crate::block::{transactions, schema::Schema};
+    use crate::test::{self, gen_uuid};
+
+    #[test]
+    fn active_product_index_works() {
+        let mut testkit = test::init_testkit();
+        let uid = gen_uuid();
+        let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
+        testkit.create_block_with_transactions(txvec![tx_user]);
+
+        let co_id = gen_uuid();
+        let tx_co = transactions::company::TxCreatePrivate::sign(
+            &co_id,
+            &String::from("company1@basis.org"),
+            &String::from("Widget Builders Inc"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_co]);
+
+        let prod1_id = gen_uuid();
+        let tx_prod1 = transactions::product::TxCreate::sign(
+            &prod1_id,
+            &co_id,
+            &String::from("Red widget"),
+            &models::product::Unit::Millimeter,
+            &3.0,
+            &models::product::Dimensions::new(100.0, 100.0, 100.0),
+            &Vec::new(),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 6),
+            &true,
+            &String::from("{}"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        let prod2_id = gen_uuid();
+        let tx_prod2 = transactions::product::TxCreate::sign(
+            &prod2_id,
+            &co_id,
+            &String::from("Odd widget"),
+            &models::product::Unit::Millimeter,
+            &3.7,
+            &models::product::Dimensions::new(140.0, 200.0, 1000.0),
+            &Vec::new(),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 6),
+            &true,
+            &String::from("{}"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_prod1, tx_prod2]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 2);
+
+        let tx_update = transactions::product::TxUpdate::sign(
+            &prod1_id,
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &false,
+            &Default::default(),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_update]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 1);
+        assert_eq!(active_products[0].id, prod2_id);
+
+        let tx_update = transactions::product::TxUpdate::sign(
+            &prod2_id,
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &false,
+            &Default::default(),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_update]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 0);
+
+        let tx_update1 = transactions::product::TxUpdate::sign(
+            &prod1_id,
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &true,
+            &Default::default(),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        let tx_update2 = transactions::product::TxUpdate::sign(
+            &prod2_id,
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &Default::default(),
+            &true,
+            &Default::default(),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_update1, tx_update2]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 2);
+
+        let tx_delete = transactions::product::TxDelete::sign(
+            &prod2_id,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_delete]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 1);
+        assert_eq!(active_products[0].id, prod1_id);
+
+        let tx_delete = transactions::product::TxDelete::sign(
+            &prod1_id,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_delete]);
+
+        let snapshot = testkit.snapshot();
+        let active_products = Schema::new(&snapshot).get_active_products_for_company(&co_id);
+        assert_eq!(active_products.len(), 0);
+    }
+}
+

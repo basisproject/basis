@@ -11,6 +11,7 @@
 mod logger;
 mod config;
 mod block;
+#[cfg(test)] mod test;
 
 use error::BResult;
 use exonum::helpers::fabric::NodeBuilder;

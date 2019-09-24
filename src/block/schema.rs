@@ -244,6 +244,10 @@ impl<T> Schema<T>
         KeySetIndex::new_in_family("basis.products.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
+    pub fn products_idx_company_active(&self, company_id: &str) -> KeySetIndex<T, String> {
+        KeySetIndex::new_in_family("basis.products.idx_company_active", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
     pub fn products_history(&self, id: &str) -> ProofListIndex<T, Hash> {
         ProofListIndex::new_in_family("basis.products.history", &crypto::hash(id.as_bytes()), self.access.clone())
     }
@@ -261,6 +265,15 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
+    pub fn get_active_products_for_company(&self, company_id: &str) -> Vec<Product> {
+        self.products_idx_company_active(company_id)
+            .iter()
+            .map(|x| self.get_product(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>()
+    }
+
     pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, unit: &Unit, mass_mg: f64, dimensions: &Dimensions, inputs: &Vec<Input>, effort: &Effort, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let product = {
             let mut history = self.products_history(id);
@@ -268,8 +281,12 @@ impl<T> Schema<T>
             let history_hash = history.object_hash();
             Product::new(id, company_id, name, unit, mass_mg, dimensions, inputs, effort, active, meta, created, created, None, history.len(), &history_hash)
         };
+        let active = product.active;
         self.products().put(&crypto::hash(id.as_bytes()), product);
         self.products_idx_company_id(company_id).insert(id.to_owned());
+        if active {
+            self.products_idx_company_active(company_id).insert(id.to_owned());
+        }
     }
 
     pub fn products_update(&mut self, product: Product, name: Option<&str>, unit: Option<&Unit>, mass_mg: Option<f64>, dimensions: Option<&Dimensions>, inputs: Option<&Vec<Input>>, effort: Option<&Effort>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -280,7 +297,14 @@ impl<T> Schema<T>
             let history_hash = history.object_hash();
             product.update(name, unit, mass_mg, dimensions, inputs, effort, active, meta, updated, &history_hash)
         };
+        let active = product.active;
+        let company_id = product.company_id.clone();
         self.products().put(&crypto::hash(id.as_bytes()), product);
+        if active {
+            self.products_idx_company_active(&company_id).insert(id);
+        } else {
+            self.products_idx_company_active(&company_id).remove(&id);
+        }
     }
 
     pub fn products_delete(&mut self, product: Product, deleted: &DateTime<Utc>, transaction: &Hash) {
@@ -294,6 +318,7 @@ impl<T> Schema<T>
         };
         self.products().put(&crypto::hash(product.id.as_bytes()), product);
         self.products_idx_company_id(&company_id).remove(&id);
+        self.products_idx_company_active(&company_id).remove(&id);
     }
 
     // -------------------------------------------------------------------------

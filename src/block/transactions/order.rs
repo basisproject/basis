@@ -150,52 +150,19 @@ impl Transaction for TxUpdateCostCategory {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use uuid;
-    use hex::FromHex;
-    use exonum_testkit::{TestKit, TestKitBuilder};
-    use exonum::{
-        crypto::{PublicKey, SecretKey},
-    };
     use chrono::{DateTime, Utc};
     use models;
     use util;
-    use crate::config;
-    use crate::block::{transactions, Service, schema::Schema};
-
-    fn gen_uuid() -> String {
-        format!("{}", uuid::Uuid::new_v4())
-    }
-
-    fn init_testkit() -> TestKit {
-        config::init("./config/config.default.yaml", "./config/config.yaml").unwrap();
-        TestKitBuilder::validator()
-            .with_service(Service)
-            .create()
-    }
+    use crate::block::{transactions, schema::Schema};
+    use crate::test::{self, gen_uuid};
 
     #[test]
     fn rotating_indexes_work_properly() {
-        let mut testkit = init_testkit();
-        let root_pub = PublicKey::from_hex(config::get::<String>("tests.bootstrap_user.pub").unwrap_or(String::from(""))).unwrap();
-        let root_sec = SecretKey::from_hex(config::get::<String>("tests.bootstrap_user.sec").unwrap_or(String::from(""))).unwrap();
+        let mut testkit = test::init_testkit();
         let uid = gen_uuid();
-        let tx_user = transactions::user::TxCreate::sign(
-            &uid,
-            &root_pub,
-            &vec![models::access::Role::SuperAdmin, models::access::Role::TimeTraveller],
-            &String::from("frothy@gibbertarian.com"),
-            &String::from("FREEDOM OR FAIR TRADE SOY TENDIES #PICKASIDE"),
-            &String::from("{}"),
-            &util::time::now(),
-            &root_pub,
-            &root_sec,
-        );
+        let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
         testkit.create_block_with_transactions(txvec![tx_user]);
-        let snapshot = testkit.snapshot();
-        let user = Schema::new(&snapshot)
-            .get_user(uid.as_str())
-            .expect("User not found");
-        assert_eq!(user.email.as_str(), "frothy@gibbertarian.com");
+
 
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
