@@ -327,21 +327,23 @@ impl<T> Schema<T>
         self.orders().get(&crypto::hash(id.as_bytes()))
     }
 
-    pub fn get_orders_incoming(&self, company_id: &str) -> Vec<Order> {
-        self.orders_idx_company_id_to(company_id)
-            .iter()
+    pub fn get_orders_incoming_recent(&self, company_id: &str) -> Vec<Order> {
+        self.orders_idx_company_id_to_rolling(company_id)
+            .values()
             .map(|x| self.get_order(&x))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
+            .filter(|x| x.process_status == ProcessStatus::Finalized)
             .collect::<Vec<_>>()
     }
 
-    pub fn get_orders_outgoing(&self, company_id: &str) -> Vec<Order> {
-        self.orders_idx_company_id_from(company_id)
-            .iter()
+    pub fn get_orders_outgoing_recent(&self, company_id: &str) -> Vec<Order> {
+        self.orders_idx_company_id_from_rolling(company_id)
+            .values()
             .map(|x| self.get_order(&x))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
+            .filter(|x| x.process_status == ProcessStatus::Finalized)
             .collect::<Vec<_>>()
     }
 

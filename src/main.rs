@@ -1,8 +1,12 @@
+//#![feature(trace_macros)]
+//trace_macros!(true);
+
 #[macro_use] extern crate exonum_derive;
 #[macro_use] extern crate failure;
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate util;
+#[cfg(test)] #[macro_use] extern crate exonum_testkit;
 
 mod logger;
 mod config;

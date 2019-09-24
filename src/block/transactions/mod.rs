@@ -29,11 +29,6 @@ pub enum CommonError {
 }
 define_exec_error!(CommonError);
 
-macro_rules! deftransaction_argref {
-    (&String) => (&str);
-    ($ty:ty) => (&$ty);
-}
-
 #[macro_export]
 macro_rules! deftransaction {
     (
@@ -50,7 +45,7 @@ macro_rules! deftransaction {
 
         impl $name {
             #[allow(dead_code)]
-            pub fn sign( $( $field: deftransaction_argref!($ty), )* pk: &exonum::crypto::PublicKey, sk: &exonum::crypto::SecretKey) -> exonum::messages::Signed<exonum::messages::RawTransaction> {
+            pub fn sign( $( $field: &$ty, )* pk: &exonum::crypto::PublicKey, sk: &exonum::crypto::SecretKey) -> exonum::messages::Signed<exonum::messages::RawTransaction> {
                 exonum::messages::Message::sign_transaction(
                     Self {
                         $( $field: $field.clone(), )*
@@ -96,5 +91,4 @@ pub enum TransactionGroup {
     OrderUpdateStatus(order::TxUpdateStatus),
     OrderUpdateCostCategory(order::TxUpdateCostCategory),
 }
-
 

@@ -31,16 +31,16 @@ serde_derive = "1.0.84"
 serde_json = "1.0.38"
 time = "0.1.42"
 util = { path = "bundle/util/" }
-uuid = { version = "0.7.2", features = ["v4"] }
 
 [patch.crates-io]
 #exonum_sodiumoxide = { path = "../exonum-container/exonum_sodiumoxide" }
 
 [dev-dependencies]
-exonum-testkit = "0.12.0"
-pretty_assertions = "0.5.1"
 assert_matches = "1.2.0"
+exonum-testkit = "0.12.0"
 hex = "0.3.2"
+pretty_assertions = "0.5.1"
+uuid = { version = "0.7.2", features = ["v4"] }
 
 [features]
 default = ["with-serde"]
