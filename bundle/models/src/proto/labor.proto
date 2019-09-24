@@ -1,0 +1,29 @@
+syntax = "proto3";
+package basis.labor;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+message Labor {
+	string id = 1;
+	string company_id = 2;
+	string user_id = 3;
+	google.protobuf.Timestamp created = 4;
+	google.protobuf.Timestamp completed = 5;
+	uint64 history_len = 6;
+	exonum.Hash history_hash = 7;
+}
+
+message TxClockIn {
+	string id = 1;
+	string company_id = 2;
+	string user_id = 3;
+	google.protobuf.Timestamp created = 4;
+}
+
+message TxClockOut {
+	string id = 1;
+	string company_id = 2;
+	string user_id = 3;
+	google.protobuf.Timestamp completed = 4;
+}
+
