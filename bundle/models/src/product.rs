@@ -70,9 +70,9 @@ pub struct Effort {
 }
 
 impl Effort {
-    pub fn new(time: EffortTime, quantity: u64) -> Self {
+    pub fn new(time: &EffortTime, quantity: u64) -> Self {
         Self {
-            time,
+            time: time.clone(),
             quantity,
         }
     }
@@ -195,7 +195,7 @@ pub mod tests {
     fn make_product() -> Product {
         let date = make_date();
         let inputs = vec![];
-        let effort = Effort::new(EffortTime::Hours, 1);
+        let effort = Effort::new(&EffortTime::Hours, 1);
         Product::new(
             "4266954b-c5c0-43e4-a740-9e36c726451d",
             "b9eb0cc2-5b37-4fd1-83fd-8597625aee95",
@@ -224,7 +224,7 @@ pub mod tests {
         let inputs = vec![
             Input::new("4722d6bc-953d-4e3a-b1df-c133fc088710", 10.0),
         ];
-        let effort = Effort::new(EffortTime::Hours, 2);
+        let effort = Effort::new(&EffortTime::Hours, 2);
         let product2 = product.clone().update(
             Some("Liquid shirt, dogs love it"),
             Some(&Unit::Milliliter),
