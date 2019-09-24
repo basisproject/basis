@@ -8,6 +8,9 @@ use error::BError;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Permission {
     All,
+    AllBut(Vec<Permission>),
+
+    TimeTravel,
 
     UserCreate,
     UserUpdate,
@@ -38,6 +41,7 @@ pub enum Permission {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Role {
     SuperAdmin,
+    TimeTraveller,
     IdentityAdmin,
     CompanyAdmin,
     ProductAdmin,
@@ -50,7 +54,12 @@ impl Role {
     pub fn permissions(&self) -> Vec<Permission> {
         match *self {
             Role::SuperAdmin => {
-                vec![Permission::All]
+                vec![
+                    Permission::AllBut(vec![Permission::TimeTravel]),
+                ]
+            },
+            Role::TimeTraveller => {
+                vec![Permission::TimeTravel]
             },
             Role::IdentityAdmin => {
                 vec![
@@ -108,6 +117,12 @@ impl Role {
                 Permission::All => {
                     return true;
                 }
+                Permission::AllBut(x) => {
+                    if x.contains(perm) {
+                        return false;
+                    }
+                    return true;
+                }
                 _ => {
                     if p == perm {
                         return true
@@ -143,6 +158,7 @@ pub mod tests {
     fn permissions_work() {
         let super_admin = Role::SuperAdmin;
         assert!(super_admin.can(&Permission::All));
+        assert!(!super_admin.can(&Permission::TimeTravel));
         assert!(super_admin.can(&Permission::UserCreate));
         assert!(super_admin.can(&Permission::UserUpdate));
         assert!(super_admin.can(&Permission::UserAdminUpdate));
@@ -153,18 +169,20 @@ pub mod tests {
         assert!(super_admin.can(&Permission::CompanyAdminDelete));
         assert!(super_admin.can(&Permission::CompanySetType));
 
-        let id_admin = Role::IdentityAdmin;
-        assert!(id_admin.can(&Permission::UserCreate));
-        assert!(id_admin.can(&Permission::UserUpdate));
-        assert!(id_admin.can(&Permission::UserAdminUpdate));
-        assert!(id_admin.can(&Permission::UserSetPubkey));
-        assert!(id_admin.can(&Permission::UserDelete));
-        assert!(!id_admin.can(&Permission::CompanyCreatePrivate));
-        assert!(!id_admin.can(&Permission::CompanyAdminUpdate));
-        assert!(!id_admin.can(&Permission::CompanyAdminDelete));
-        assert!(!id_admin.can(&Permission::CompanySetType));
+        let traveller = Role::TimeTraveller;
+        assert!(traveller.can(&Permission::TimeTravel));
+        assert!(!traveller.can(&Permission::UserCreate));
+        assert!(!traveller.can(&Permission::UserUpdate));
+        assert!(!traveller.can(&Permission::UserAdminUpdate));
+        assert!(!traveller.can(&Permission::UserSetPubkey));
+        assert!(!traveller.can(&Permission::UserDelete));
+        assert!(!traveller.can(&Permission::CompanyCreatePrivate));
+        assert!(!traveller.can(&Permission::CompanyAdminUpdate));
+        assert!(!traveller.can(&Permission::CompanyAdminDelete));
+        assert!(!traveller.can(&Permission::CompanySetType));
 
         let comp_admin = Role::CompanyAdmin;
+        assert!(!comp_admin.can(&Permission::TimeTravel));
         assert!(!comp_admin.can(&Permission::UserCreate));
         assert!(!comp_admin.can(&Permission::UserUpdate));
         assert!(!comp_admin.can(&Permission::UserAdminUpdate));
