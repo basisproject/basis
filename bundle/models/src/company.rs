@@ -27,6 +27,8 @@ pub enum Permission {
     MemberSetRoles,
     MemberDelete,
 
+    LaborSetClock,
+
     ProductCreate,
     ProductUpdate,
     ProductDelete,
@@ -43,6 +45,7 @@ pub enum Role {
     Owner,
     Admin,
     MemberAdmin,
+    LaborAdmin,
     ProductAdmin,
     Purchaser,
     Supplier,
@@ -64,6 +67,11 @@ impl Role {
                     Permission::MemberCreate,
                     Permission::MemberSetRoles,
                     Permission::MemberDelete,
+                ]
+            }
+            Role::LaborAdmin => {
+                vec![
+                    Permission::LaborSetClock,
                 ]
             }
             Role::ProductAdmin => {

@@ -17,6 +17,7 @@ use models::{
     user::User,
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
+    labor::Labor,
     product::{Product, Unit, Dimensions, Input, Effort},
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
 };
@@ -220,7 +221,7 @@ impl<T> Schema<T>
 
     pub fn companies_members_set_roles(&mut self, company_id: &str, member: CompanyMember, roles: &Vec<CompanyRole>, updated: &DateTime<Utc>, transaction: &Hash) {
         let member = {
-            let mut history = self.companies_history(company_id);
+            let mut history = self.companies_members_history(company_id, &member.user_id);
             history.push(*transaction);
             let history_hash = history.object_hash();
             member.set_roles(roles, updated, &history_hash)
@@ -231,6 +232,47 @@ impl<T> Schema<T>
     pub fn companies_members_delete(&mut self, company_id: &str, user_id: &str) {
         self.companies_members(company_id).remove(&crypto::hash(user_id.as_bytes()));
         self.companies_members_history(company_id, user_id).clear();
+    }
+
+    // -------------------------------------------------------------------------
+    // Labor
+    // -------------------------------------------------------------------------
+    pub fn labor(&self) -> ProofMapIndex<T, Hash, Labor> {
+        ProofMapIndex::new("basis.labor.table", self.access.clone())
+    }
+
+    pub fn labor_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.labor.history", &crypto::hash(id.as_bytes()), self.access.clone())
+    }
+
+    pub fn labor_idx_company_id(&self, company_id: &str) -> ListIndex<T, String> {
+        ListIndex::new_in_family("basis.labor.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
+    pub fn get_labor(&self, id: &str) -> Option<Labor> {
+        self.labor().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
+        let labor = {
+            let mut history = self.labor_history(id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            Labor::new(id, company_id, user_id, Some(created), None, created, created, history.len(), &history_hash)
+        };
+        self.labor().put(&crypto::hash(id.as_bytes()), labor);
+        self.labor_idx_company_id(company_id).push(id.to_owned());
+    }
+
+    pub fn labor_set_time(&mut self, labor: Labor, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = labor.id.clone();
+        let labor = {
+            let mut history = self.labor_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            labor.set_time(start, end, updated, &history_hash)
+        };
+        self.labor().put(&crypto::hash(id.as_bytes()), labor);
     }
 
     // -------------------------------------------------------------------------

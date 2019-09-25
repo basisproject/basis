@@ -25,6 +25,8 @@ pub enum Permission {
     CompanyAdminDelete,
     CompanySetType,
     CompanyUpdateMembers,
+    CompanyClockIn,
+    CompanyClockOut,
 
     ProductCreate,
     ProductUpdate,
@@ -101,6 +103,8 @@ impl Role {
                     Permission::CompanyCreateSyndicate,
                     Permission::CompanyCreatePrivate,
                     Permission::CompanyUpdateMembers,
+                    Permission::CompanyClockIn,
+                    Permission::CompanyClockOut,
                     Permission::ProductCreate,
                     Permission::ProductUpdate,
                     Permission::ProductDelete,

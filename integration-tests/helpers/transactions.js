@@ -24,6 +24,9 @@ const message_id_map = (function() {
 		'company_member.TxSetRoles',
 		'company_member.TxDelete',
 
+		'labor.TxCreate',
+		'labor.TxSetTime',
+
 		'product.TxCreate',
 		'product.TxUpdate',
 		'product.TxDelete',

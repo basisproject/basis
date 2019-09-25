@@ -63,6 +63,7 @@ pub mod access;
 pub mod user;
 pub mod company;
 pub mod company_member;
+pub mod labor;
 pub mod product;
 pub mod order;
 
@@ -82,6 +83,9 @@ pub enum TransactionGroup {
     CompanyMemberCreate(company_member::TxCreate),
     CompanyMemberSetRoles(company_member::TxSetRoles),
     CompanyMemberDelete(company_member::TxDelete),
+
+    LaborCreate(labor::TxCreate),
+    LaborSetTime(labor::TxSetTime),
 
     ProductCreate(product::TxCreate),
     ProductUpdate(product::TxUpdate),
