@@ -33,6 +33,37 @@ impl<T> AsMut<T> for Schema<T> {
     }
 }
 
+fn index_and_rotate_mapindex<T>(idx: &mut MapIndex<T, String, String>, timestamp: i64, item_id: &str, cutoff: &DateTime<Utc>)
+    where T: IndexAccess
+{
+    fn key_to_datetime(key: &str) -> DateTime<Utc> {
+        match key.find(":") {
+            Some(x) => {
+                match &key[0..x].parse::<i64>() {
+                    Ok(ts) => util::time::from_timestamp(*ts),
+                    Err(_) => util::time::default_time(),
+                }
+            }
+            None => util::time::default_time(),
+        }
+    }
+    let key = format!("{}:{}", timestamp, item_id);
+
+    idx.put(&key.to_owned(), item_id.to_owned());
+    let mut remove_keys = Vec::new();
+    for k in idx.keys() {
+        let date = key_to_datetime(&k);
+        if date < *cutoff {
+            remove_keys.push(k);
+        } else {
+            break;
+        }
+    }
+    for k in &remove_keys {
+        idx.remove(k);
+    }
+}
+
 impl<T> Schema<T>
     where T: IndexAccess
 {
@@ -249,6 +280,10 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.labor.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
+    pub fn labor_idx_company_id_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+        MapIndex::new_in_family("basis.labor.idx_company_id_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
     pub fn get_labor(&self, id: &str) -> Option<Labor> {
         self.labor().get(&crypto::hash(id.as_bytes()))
     }
@@ -264,15 +299,26 @@ impl<T> Schema<T>
         self.labor_idx_company_id(company_id).push(id.to_owned());
     }
 
+    fn labor_update_rolling_index(&self, labor: &Labor, cutoff: &DateTime<Utc>) {
+        let mut idx = self.labor_idx_company_id_rolling(&labor.company_id);
+        index_and_rotate_mapindex(&mut idx, labor.created.timestamp(), &labor.id, cutoff);
+    }
+
     pub fn labor_set_time(&mut self, labor: Labor, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = labor.id.clone();
+        let has_end = end.is_some();
         let labor = {
             let mut history = self.labor_history(&id);
             history.push(*transaction);
             let history_hash = history.object_hash();
             labor.set_time(start, end, updated, &history_hash)
         };
-        self.labor().put(&crypto::hash(id.as_bytes()), labor);
+        self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
+        if has_end {
+            // one year cutoff, hardcoded for now
+            let cutoff = util::time::from_timestamp(labor.created.timestamp() - (3600 * 24 * 365));
+            self.labor_update_rolling_index(&labor, &cutoff);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -428,39 +474,10 @@ impl<T> Schema<T>
     }
 
     fn orders_update_rolling_index(&self, order: &Order, cutoff: &DateTime<Utc>) {
-        let key = format!("{}:{}", order.updated.timestamp(), order.id);
-        fn key_to_datetime(key: &str) -> DateTime<Utc> {
-            match key.find(":") {
-                Some(x) => {
-                    match &key[0..x].parse::<i64>() {
-                        Ok(ts) => util::time::from_timestamp(*ts),
-                        Err(_) => util::time::default_time(),
-                    }
-                }
-                None => util::time::default_time(),
-            }
-        }
-        fn index_and_rotate<T>(idx: &mut MapIndex<T, String, String>, key: &str, order_id: &str, cutoff: &DateTime<Utc>)
-            where T: IndexAccess
-        {
-            idx.put(&key.to_owned(), order_id.to_owned());
-            let mut remove_keys = Vec::new();
-            for k in idx.keys() {
-                let date = key_to_datetime(&k);
-                if date < *cutoff {
-                    remove_keys.push(k);
-                } else {
-                    break;
-                }
-            }
-            for k in &remove_keys {
-                idx.remove(k);
-            }
-        }
         let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
         let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
-        index_and_rotate(&mut idx_from, &key, &order.id, cutoff);
-        index_and_rotate(&mut idx_to, &key, &order.id, cutoff);
+        index_and_rotate_mapindex(&mut idx_from, order.updated.timestamp(), &order.id, cutoff);
+        index_and_rotate_mapindex(&mut idx_to, order.updated.timestamp(), &order.id, cutoff);
     }
 
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {

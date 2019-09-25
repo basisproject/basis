@@ -163,7 +163,6 @@ pub mod tests {
         let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
         testkit.create_block_with_transactions(txvec![tx_user]);
 
-
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
         let tx_co1 = transactions::company::TxCreatePrivate::sign(

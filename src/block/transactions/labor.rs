@@ -71,7 +71,12 @@ impl Transaction for TxCreate {
         }
 
         if !util::time::is_current(&self.created) {
-            Err(CommonError::InvalidTime)?;
+            match access::check(&mut schema, pubkey, Permission::TimeTravel) {
+                Ok(_) => {}
+                Err(_) => {
+                    Err(CommonError::InvalidTime)?;
+                }
+            }
         }
 
         schema.labor_create(&self.id, &self.company_id, &self.user_id, &self.created, &hash);
@@ -123,6 +128,115 @@ impl Transaction for TxSetTime {
         }
         schema.labor_set_time(labor, start, end, &self.updated, &hash);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use chrono::{DateTime, Utc};
+    use util;
+    use crate::block::{transactions, schema::Schema};
+    use crate::test::{self, gen_uuid};
+
+    #[test]
+    fn rotating_indexes_work_properly() {
+        let mut testkit = test::init_testkit();
+        let uid = gen_uuid();
+        let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
+        testkit.create_block_with_transactions(txvec![tx_user]);
+
+        let co1_id = gen_uuid();
+        let tx_co1 = transactions::company::TxCreatePrivate::sign(
+            &co1_id,
+            &String::from("company1@basis.org"),
+            &String::from("Widget Builders Inc"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_co1]);
+
+        let labor1_id = gen_uuid();
+        let labor2_id = gen_uuid();
+        let labor3_id = gen_uuid();
+        let labor1_date: DateTime<Utc> = "2018-01-01T00:00:00Z".parse().unwrap();
+        let labor2_date: DateTime<Utc> = "2018-07-01T00:00:00Z".parse().unwrap();
+        let labor3_date: DateTime<Utc> = "2019-03-01T00:00:00Z".parse().unwrap();
+        let tx_labor1 = transactions::labor::TxCreate::sign(
+            &labor1_id,
+            &co1_id,
+            &uid,
+            &labor1_date,
+            &root_pub,
+            &root_sec
+        );
+        let tx_labor2 = transactions::labor::TxCreate::sign(
+            &labor2_id,
+            &co1_id,
+            &uid,
+            &labor2_date,
+            &root_pub,
+            &root_sec
+        );
+        let tx_labor3 = transactions::labor::TxCreate::sign(
+            &labor3_id,
+            &co1_id,
+            &uid,
+            &labor3_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1, tx_labor2, tx_labor3]);
+
+        let snapshot = testkit.snapshot();
+        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        assert_eq!(idx.keys().count(), 0);
+
+        let labor1_date: DateTime<Utc> = "2018-01-01T04:00:00Z".parse().unwrap();
+        let labor2_date: DateTime<Utc> = "2018-07-01T08:00:00Z".parse().unwrap();
+        let labor3_date: DateTime<Utc> = "2019-03-01T06:00:00Z".parse().unwrap();
+        let tx_labor1 = transactions::labor::TxSetTime::sign(
+            &labor1_id,
+            &util::time::default_time(),
+            &labor1_date,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1]);
+
+        let snapshot = testkit.snapshot();
+        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        assert_eq!(idx.keys().count(), 1);
+
+        let tx_labor2 = transactions::labor::TxSetTime::sign(
+            &labor2_id,
+            &util::time::default_time(),
+            &labor2_date,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor2]);
+
+        let snapshot = testkit.snapshot();
+        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        assert_eq!(idx.keys().count(), 2);
+
+        let tx_labor3 = transactions::labor::TxSetTime::sign(
+            &labor3_id,
+            &util::time::default_time(),
+            &labor3_date,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor3]);
+
+        let snapshot = testkit.snapshot();
+        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        assert_eq!(idx.keys().count(), 2);
     }
 }
 
