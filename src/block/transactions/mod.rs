@@ -26,6 +26,9 @@ pub enum CommonError {
 
     #[fail(display = "User not found")]
     UserNotFound = 2,
+
+    #[fail(display = "Cannot calculate costs")]
+    CostError = 3,
 }
 define_exec_error!(CommonError);
 
@@ -63,6 +66,7 @@ pub mod access;
 pub mod user;
 pub mod company;
 pub mod company_member;
+pub mod costs;
 pub mod labor;
 pub mod product;
 pub mod order;

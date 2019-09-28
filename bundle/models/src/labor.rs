@@ -44,11 +44,24 @@ impl Labor {
             history_hash
         )
     }
+
+    /// lets us know if we have both a start and end data
+    pub fn is_finalized(&self) -> bool {
+        let empty = util::time::default_time();
+        self.start != empty && self.end != empty
+    }
+
+    /// Get the number of hours this labor entry encompasses
+    pub fn hours(&self) -> f64 {
+        let duration = self.end - self.start;
+        duration.num_milliseconds() as f64 / (60.0 * 60.0 * 1000.0)
+    }
 }
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use chrono::{DateTime, Utc};
     use util;
 
     fn make_hash() -> Hash {
@@ -103,6 +116,28 @@ pub mod tests {
         assert_eq!(labor2.history_len, 1);
         assert_eq!(labor3.history_len, 2);
         assert_eq!(labor3.history_hash, hash3);
+    }
+
+    #[test]
+    fn hours() {
+        let labor = make_labor();
+        let start: DateTime<Utc> = "2018-01-01T15:32:59.033Z".parse().unwrap();
+        let end: DateTime<Utc> = "2018-01-02T03:17:11.573Z".parse().unwrap();
+        let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 233, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let labor2 = labor.set_time(Some(&start), Some(&end), &end, &hash2);
+        // long day...
+        assert_eq!(labor2.hours(), 11.736816666666666);
+    }
+
+    #[test]
+    fn empty() {
+        let labor = make_labor();
+        assert!(!labor.is_finalized());
+        let start: DateTime<Utc> = "2018-01-01T15:32:59.033Z".parse().unwrap();
+        let end: DateTime<Utc> = "2018-01-02T03:17:11.573Z".parse().unwrap();
+        let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 233, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        let labor2 = labor.set_time(Some(&start), Some(&end), &end, &hash2);
+        assert!(labor2.is_finalized());
     }
 }
 

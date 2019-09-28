@@ -8,18 +8,29 @@ use models::costs::Costs;
 use models::order::{CostCategory, Order};
 use models::amortization::Amortization;
 use models::product::Product;
+use models::labor::Labor;
 
 /// Takes two sets of orders: a company's incoming orders ("sales" in the
 /// current vernacular) and outgoing orders ("purchases").
 ///
 /// The orders *must* be filtered such that both sets are a particular window
 /// in time (ex, the last 365 days) and must be ordered from oldest to newest.
-pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order>, _wamortization: &HashMap<String, Amortization>, products: &HashMap<String, Product>) -> BResult<HashMap<String, Costs>> {
+pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order>, labor: &Vec<Labor>, _wamortization: &HashMap<String, Amortization>, products: &HashMap<String, Product>) -> BResult<HashMap<String, Costs>> {
     // grab how many hours our orders cover
     let sum_hours = {
-        let incoming_time = if orders_incoming.len() > 0 { orders_incoming[0].updated.timestamp() } else { Utc::now().timestamp() };
-        let outgoing_time = if orders_outgoing.len() > 0 { orders_outgoing[0].updated.timestamp() } else { Utc::now().timestamp() };
-        cmp::min(incoming_time, outgoing_time)
+        let incoming_start_time = if orders_incoming.len() > 0 { orders_incoming[0].updated.timestamp() } else { Utc::now().timestamp() };
+        let outgoing_start_time = if orders_outgoing.len() > 0 { orders_outgoing[0].updated.timestamp() } else { Utc::now().timestamp() };
+        let start_time = cmp::min(incoming_start_time, outgoing_start_time) as f64;
+        let incoming_end_time = if orders_incoming.len() > 0 { orders_incoming[orders_incoming.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
+        let outgoing_end_time = if orders_outgoing.len() > 0 { orders_outgoing[orders_incoming.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
+        let end_time = cmp::min(incoming_end_time, outgoing_end_time) as f64;
+        let seconds = end_time - start_time;
+        let hours = if seconds < 3600.0 {
+            1.0
+        } else {
+            seconds / 3600.0
+        };
+        hours
     };
     // holds a mapping for cost_type -> sum costs for all of our costs
     let mut sum_costs: HashMap<CostCategory, Costs> = HashMap::new();
@@ -29,6 +40,13 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
     let mut sum_inventory_costs: HashMap<String, Vec<Costs>> = HashMap::new();
     // holds product_id -> average_costs for products we bought for inventory
     let mut avg_input_costs: HashMap<String, Costs> = HashMap::new();
+
+    {
+        let op_costs = sum_costs.entry(CostCategory::Operating).or_insert(Default::default());
+        for entry in labor {
+            *op_costs = op_costs.clone() + Costs::new_with_labor(entry.hours());
+        }
+    }
 
     // for all "purchase" orders, sum the costs of the different categories:
     // inventory and operating costs. also, if inventory, track a vector of the
@@ -60,6 +78,12 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         for prod in &order.products {
             let current = sum_produced.entry(prod.product_id.clone()).or_insert(Default::default());
             *current += prod.quantity;
+        }
+    }
+
+    if sum_produced.len() == 0 {
+        for prod in products.values() {
+            sum_produced.insert(prod.id.clone(), 1.0);
         }
     }
 

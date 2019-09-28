@@ -35,6 +35,7 @@ pub enum Permission {
 
     OrderCreate,
     OrderUpdateProcessStatus,
+    OrderUpdateCostCategory,
     OrderUpdateShipping,
     OrderUpdateShippingDates,
     OrderCancel,
@@ -84,6 +85,7 @@ impl Role {
             Role::Purchaser => {
                 vec![
                     Permission::OrderCreate,
+                    Permission::OrderUpdateCostCategory,
                     Permission::OrderCancel,
                 ]
             }
@@ -191,6 +193,14 @@ impl Company {
             history_hash
         )
     }
+
+    pub fn is_active(&self) -> bool {
+        true && !self.is_deleted()
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -212,6 +222,7 @@ pub mod tests {
         assert!(owner.can(&Permission::ProductDelete));
         assert!(owner.can(&Permission::OrderCreate));
         assert!(owner.can(&Permission::OrderUpdateProcessStatus));
+        assert!(owner.can(&Permission::OrderUpdateCostCategory));
         assert!(owner.can(&Permission::OrderCancel));
 
         let admin = Role::Admin;
@@ -225,6 +236,7 @@ pub mod tests {
         assert!(admin.can(&Permission::ProductDelete));
         assert!(admin.can(&Permission::OrderCreate));
         assert!(admin.can(&Permission::OrderUpdateProcessStatus));
+        assert!(admin.can(&Permission::OrderUpdateCostCategory));
         assert!(admin.can(&Permission::OrderCancel));
 
         let member_admin = Role::MemberAdmin;
@@ -238,6 +250,7 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::ProductDelete));
         assert!(!member_admin.can(&Permission::OrderCreate));
         assert!(!member_admin.can(&Permission::OrderUpdateProcessStatus));
+        assert!(!member_admin.can(&Permission::OrderUpdateCostCategory));
         assert!(!member_admin.can(&Permission::OrderCancel));
     }
 

@@ -20,6 +20,7 @@ use models::{
     labor::Labor,
     product::{Product, Unit, Dimensions, Input, Effort},
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
+    costs::Costs,
 };
 
 #[derive(Debug)]
@@ -288,6 +289,16 @@ impl<T> Schema<T>
         self.labor().get(&crypto::hash(id.as_bytes()))
     }
 
+    pub fn get_labor_recent(&self, company_id: &str) -> Vec<Labor> {
+        self.labor_idx_company_id_rolling(company_id)
+            .values()
+            .map(|x| self.get_labor(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .filter(|x| x.is_finalized())
+            .collect::<Vec<_>>()
+    }
+
     pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let labor = {
             let mut history = self.labor_history(id);
@@ -407,6 +418,31 @@ impl<T> Schema<T>
         self.products().put(&crypto::hash(product.id.as_bytes()), product);
         self.products_idx_company_id(&company_id).remove(&id);
         self.products_idx_company_active(&company_id).remove(&id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Product costs
+    // -------------------------------------------------------------------------
+    pub fn product_costs(&self) -> MapIndex<T, String, Costs> {
+        MapIndex::new("basis.product_costs.table", self.access.clone())
+    }
+
+    pub fn get_product_costs(&self, product_id: &str) -> Option<Costs> {
+        self.product_costs().get(product_id)
+    }
+
+    pub fn get_product_with_costs(&self, product_id: &str) -> (Option<Product>, Option<Costs>) {
+        let product = self.get_product(product_id);
+        let costs = if product.is_some() {
+            self.get_product_costs(product_id)
+        } else {
+            None
+        };
+        (product, costs)
+    }
+
+    pub fn product_costs_attach(&self, product_id: &str, costs: &Costs) {
+        self.product_costs().put(&product_id.to_string(), costs.clone());
     }
 
     // -------------------------------------------------------------------------

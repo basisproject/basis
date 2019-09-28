@@ -159,6 +159,10 @@ impl Product {
         )
     }
 
+    pub fn is_active(&self) -> bool {
+        self.active && !self.is_deleted()
+    }
+
     pub fn is_deleted(&self) -> bool {
         self.deleted != util::time::default_time()
     }

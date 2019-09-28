@@ -10,7 +10,7 @@ use models::{
 };
 use crate::block::{
     schema::Schema,
-    transactions::{company, access},
+    transactions::{company, access, costs},
 };
 use util;
 use super::CommonError;
@@ -29,6 +29,15 @@ pub enum TransactionError {
 
     #[fail(display = "Cannot update a canceled order")]
     OrderCanceled = 3,
+
+    #[fail(display = "Company not found")]
+    CompanyNotFound = 4,
+
+    #[fail(display = "Product not found")]
+    ProductNotFound = 5,
+
+    #[fail(display = "Product is missing costs")]
+    CostsNotFound = 6,
 }
 define_exec_error!(TransactionError);
 
@@ -53,6 +62,33 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::OrderCreate)?;
         company::check(&mut schema, &self.company_id_from, pubkey, CompanyPermission::OrderCreate)?;
+
+        match schema.get_company(&self.company_id_to) {
+            Some(x) => {
+                if !x.is_active() {
+                    Err(TransactionError::CompanyNotFound)?;
+                }
+            }
+            None => Err(TransactionError::CompanyNotFound)?,
+        }
+
+        let mut products = self.products.clone();
+        for product in &mut products {
+            match schema.get_product_with_costs(&product.product_id) {
+                (Some(prod), Some(costs)) => {
+                    if !prod.is_active() {
+                        Err(TransactionError::ProductNotFound)?;
+                    }
+                    product.costs = costs;
+                }
+                (Some(_), None) => {
+                    Err(TransactionError::CostsNotFound)?;
+                }
+                _ => {
+                    Err(TransactionError::ProductNotFound)?;
+                }
+            }
+        }
 
         if schema.get_order(&self.id).is_some() {
             Err(TransactionError::IDExists)?;
@@ -106,7 +142,14 @@ impl Transaction for TxUpdateStatus {
                 }
             }
         }
+        let is_finalized = order.process_status == ProcessStatus::Finalized;
+        let company_id_from = order.company_id_from.clone();
+        let company_id_to = order.company_id_to.clone();
         schema.orders_update_status(order, &self.process_status, &self.updated, &hash);
+        if is_finalized {
+            costs::calculate_product_costs(&mut schema, &company_id_from)?;
+            costs::calculate_product_costs(&mut schema, &company_id_to)?;
+        }
         Ok(())
     }
 }
@@ -132,17 +175,22 @@ impl Transaction for TxUpdateCostCategory {
             Err(TransactionError::OrderNotFound)?;
         }
         let order = ord.unwrap();
-        if order.process_status == ProcessStatus::Canceled {
-            Err(TransactionError::OrderCanceled)?;
-        }
 
         access::check(&mut schema, pubkey, Permission::OrderUpdate)?;
-        company::check(&mut schema, &order.company_id_to, pubkey, CompanyPermission::OrderUpdateProcessStatus)?;
+        company::check(&mut schema, &order.company_id_from, pubkey, CompanyPermission::OrderUpdateCostCategory)?;
 
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?;
         }
+
+        let is_finalized = order.process_status == ProcessStatus::Finalized;
+        let company_id_from = order.company_id_from.clone();
+        let company_id_to = order.company_id_to.clone();
         schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
+        if is_finalized {
+            costs::calculate_product_costs(&mut schema, &company_id_from)?;
+            costs::calculate_product_costs(&mut schema, &company_id_to)?;
+        }
         Ok(())
     }
 }
@@ -150,7 +198,7 @@ impl Transaction for TxUpdateCostCategory {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use chrono::{DateTime, Utc};
+    use chrono::{DateTime, Utc, Duration};
     use models;
     use util;
     use crate::block::{transactions, schema::Schema};
@@ -192,7 +240,7 @@ pub mod tests {
             &3.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
             &Vec::new(),
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 6),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -200,6 +248,29 @@ pub mod tests {
             &root_sec
         );
         testkit.create_block_with_transactions(txvec![tx_prod]);
+
+        let labor_id = gen_uuid();
+        let tx_labor1 = transactions::labor::TxCreate::sign(
+            &labor_id,
+            &co1_id,
+            &uid,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1]);
+
+        let now = util::time::now();
+        let then = now - Duration::hours(8);
+        let tx_labor2 = transactions::labor::TxSetTime::sign(
+            &labor_id,
+            &then,
+            &now,
+            &now,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor2]);
 
         let ord1_id = gen_uuid();
         let ord2_id = gen_uuid();
@@ -237,8 +308,10 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_ord1, tx_ord2, tx_ord3]);
 
         let snapshot = testkit.snapshot();
+        let num_orders = Schema::new(&snapshot).orders().keys().count();
         let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
+        assert_eq!(num_orders, 3);
         assert_eq!(idx_from.keys().count(), 0);
         assert_eq!(idx_to.keys().count(), 0);
 
