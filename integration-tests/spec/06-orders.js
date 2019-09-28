@@ -135,6 +135,25 @@ describe('orders', function() {
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+
+		const labor_id = uuid();
+		var res = await trans.send_as('sandra', tx.labor.TxCreate, {
+			id: labor_id,
+			company_id: company1_id,
+			user_id: sandra_user_id,
+			created: new Date().toISOString(),
+		});
+		expect(res.success).toBe(true);
+
+		var now = new Date().getTime();
+		var res = await trans.send_as('root', tx.labor.TxSetTime, {
+			id: labor_id,
+			start: new Date(now - (3600 * 7.4 * 1000)).toISOString(),
+			end: new Date(now).toISOString(),
+			updated: new Date(now).toISOString(),
+		});
+		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 	});
 
 	it('can be created', async () => {
@@ -160,6 +179,7 @@ describe('orders', function() {
 		order.created = new Date().toISOString();
 		var res = await trans.send_as('jerry', tx.order.TxCreate, order);
 		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 
 		var ord = await Orders.get({id: order_id});
 		expect(ord.company_id_from).toBe(company2_id);
@@ -193,14 +213,57 @@ describe('orders', function() {
 	});
 
 	it('can update category', async () => {
-		var res = await trans.send_as('sandra', tx.order.TxUpdateCostCategory, {
+		var res = await trans.send_as('jerry', tx.order.TxUpdateCostCategory, {
 			id: order_id,
 			cost_category: 'INVENTORY',
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 		var ord = await Orders.get({id: order_id});
 		expect(ord.cost_category).toBe('INVENTORY');
+	});
+
+	it('will fail when it\'s supposed to', async () => {
+		const order = {
+			id: order_id,
+			company_id_from: company2_id,
+			// notice the bogus id
+			company_id_to: company1_id,
+			cost_category: 'OPERATING',
+			products: [{
+				product_id: product1_id,
+				quantity: 3,
+			}, {
+				product_id: product2_id,
+				quantity: 6,
+			}],
+			created: new Date().toISOString(),
+		};
+		// bad dates
+		var ord = Object.assign({}, order, {company_id_to: company1_id+'z'});
+		var res = await trans.send_as('jerry', tx.order.TxCreate, ord);
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/company not found/i);
+
+		// bad dates
+		var ord = Object.assign({}, order, {company_id_from: company2_id+'zex'});
+		var res = await trans.send_as('jerry', tx.order.TxCreate, ord);
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/insufficient priv/i);
+
+		// bad dates
+		var ord = Object.assign({}, order, {
+			products: order.products.map((x, i) => {
+				if(i == 1) {
+					return Object.assign({}, x, {product_id: x.product_id+'5'});
+				}
+				return x;
+			}),
+		});
+		var res = await trans.send_as('jerry', tx.order.TxCreate, ord);
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/product not found/i);
 	});
 
 	it('destroys', async () => {
