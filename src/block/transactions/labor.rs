@@ -58,7 +58,10 @@ impl Transaction for TxCreate {
         match schema.get_user_by_pubkey(&pubkey) {
             Some(user) => {
                 if user.id != self.user_id {
-                    company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::LaborSetClock)?;
+                    company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::LaborSetClock)
+                        .or_else(|_| {
+                            access::check(&mut schema, pubkey, Permission::CompanyAdminClock)
+                        })?;
                 }
             }
             None => {
@@ -117,7 +120,10 @@ impl Transaction for TxSetTime {
         };
 
         if user_id != labor.user_id {
-            company::check(&mut schema, &labor.company_id, pubkey, CompanyPermission::LaborSetClock)?;
+            company::check(&mut schema, &labor.company_id, pubkey, CompanyPermission::LaborSetClock)
+                .or_else(|_| {
+                    access::check(&mut schema, pubkey, Permission::CompanyAdminClock)
+                })?;
         }
 
         let start = if self.start == util::time::default_time() { None } else { Some(&self.start) };

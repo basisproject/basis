@@ -27,6 +27,7 @@ pub enum Permission {
     CompanyUpdateMembers,
     CompanyClockIn,
     CompanyClockOut,
+    CompanyAdminClock,
 
     ProductCreate,
     ProductUpdate,
