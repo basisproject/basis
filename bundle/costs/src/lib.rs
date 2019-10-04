@@ -56,10 +56,10 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         let cat = order.cost_category.clone();
         let current = sum_costs.entry(cat).or_insert(Default::default());
         for prod in &order.products {
-            *current = current.clone() + prod.costs.clone();
+            *current = current.clone() + (prod.costs.clone() * prod.quantity);
             if cat == CostCategory::Inventory {
                 let prod_inp_costs = sum_inventory_costs.entry(prod.product_id.clone()).or_insert(vec![]);
-                prod_inp_costs.push(prod.costs.clone());
+                prod_inp_costs.push(prod.costs.clone() * prod.quantity);
             }
         }
     }
@@ -81,6 +81,7 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         }
     }
 
+    // if we haven't made anything, just assume we've made one of each
     if sum_produced.len() == 0 {
         for prod in products.values() {
             sum_produced.insert(prod.id.clone(), 1.0);
