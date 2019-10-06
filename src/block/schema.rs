@@ -19,6 +19,7 @@ use models::{
     company_member::CompanyMember,
     labor::Labor,
     product::{Product, Unit, Dimensions, Input, Effort},
+    resource_tag::ResourceTag,
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
     costs::Costs,
 };
@@ -418,6 +419,50 @@ impl<T> Schema<T>
         self.products().put(&crypto::hash(product.id.as_bytes()), product);
         self.products_idx_company_id(&company_id).remove(&id);
         self.products_idx_company_active(&company_id).remove(&id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Resource tags
+    // -------------------------------------------------------------------------
+    pub fn resource_tags(&self) -> ProofMapIndex<T, Hash, ResourceTag> {
+        ProofMapIndex::new("basis.resource_tags.table", self.access.clone())
+    }
+
+    pub fn resource_tags_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.resource_tags.history", &crypto::hash(id.as_bytes()), self.access.clone())
+    }
+
+    pub fn resource_tags_idx_product_id(&self) -> MapIndex<T, String, String> {
+        MapIndex::new("basis.resource_tags.idx_product_id", self.access.clone())
+    }
+
+    pub fn get_resource_tag(&self, id: &str) -> Option<ResourceTag> {
+        self.resource_tags().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn resource_tags_create(&mut self, id: &str, product_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
+        let resource_tag = {
+            let mut history = self.resource_tags_history(id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            ResourceTag::new(id, product_id, created, created, None, history.len(), &history_hash)
+        };
+        let product_id = resource_tag.product_id.clone();
+        self.resource_tags().put(&crypto::hash(id.as_bytes()), resource_tag);
+        self.resource_tags_idx_product_id().put(&product_id, id.to_owned());
+    }
+
+    pub fn resource_tags_delete(&mut self, resource_tag: ResourceTag, deleted: &DateTime<Utc>, transaction: &Hash) {
+        let id = resource_tag.id.clone();
+        let product_id = resource_tag.product_id.clone();
+        let resource_tag = {
+            let mut history = self.resource_tags_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            resource_tag.delete(deleted, &history_hash)
+        };
+        self.resource_tags().put(&crypto::hash(id.as_bytes()), resource_tag);
+        self.resource_tags_idx_product_id().remove(&product_id);
     }
 
     // -------------------------------------------------------------------------

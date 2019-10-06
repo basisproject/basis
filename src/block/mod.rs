@@ -79,6 +79,7 @@ impl blockchain::Service for Service {
         api::company_member::CompanyMemberApi::wire(builder);
         api::labor::LaborApi::wire(builder);
         api::product::ProductApi::wire(builder);
+        api::resource_tag::ResourceTagApi::wire(builder);
         api::order::OrderApi::wire(builder);
     }
 }

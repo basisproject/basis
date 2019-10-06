@@ -35,6 +35,9 @@ pub enum Permission {
     ProductAdminUpdate,
     ProductAdminDelete,
 
+    ResourceTagCreate,
+    ResourceTagDelete,
+
     OrderCreate,
     OrderUpdate,
     OrderAdminUpdate,
@@ -48,6 +51,7 @@ pub enum Role {
     IdentityAdmin,
     CompanyAdmin,
     ProductAdmin,
+    TagAdmin,
     OrderAdmin,
     Bank,
     User,
@@ -84,6 +88,12 @@ impl Role {
                 vec![
                     Permission::ProductAdminUpdate,
                     Permission::ProductAdminDelete,
+                ]
+            }
+            Role::TagAdmin => {
+                vec![
+                    Permission::ResourceTagCreate,
+                    Permission::ResourceTagDelete,
                 ]
             }
             Role::OrderAdmin => {
@@ -173,6 +183,8 @@ pub mod tests {
         assert!(super_admin.can(&Permission::CompanyAdminUpdate));
         assert!(super_admin.can(&Permission::CompanyAdminDelete));
         assert!(super_admin.can(&Permission::CompanySetType));
+        assert!(super_admin.can(&Permission::ResourceTagCreate));
+        assert!(super_admin.can(&Permission::ResourceTagDelete));
 
         let traveller = Role::TimeTraveller;
         assert!(traveller.can(&Permission::TimeTravel));
@@ -185,6 +197,8 @@ pub mod tests {
         assert!(!traveller.can(&Permission::CompanyAdminUpdate));
         assert!(!traveller.can(&Permission::CompanyAdminDelete));
         assert!(!traveller.can(&Permission::CompanySetType));
+        assert!(!traveller.can(&Permission::ResourceTagCreate));
+        assert!(!traveller.can(&Permission::ResourceTagDelete));
 
         let comp_admin = Role::CompanyAdmin;
         assert!(!comp_admin.can(&Permission::TimeTravel));

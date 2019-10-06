@@ -69,6 +69,7 @@ pub mod company_member;
 pub mod costs;
 pub mod labor;
 pub mod product;
+pub mod resource_tag;
 pub mod order;
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
@@ -94,6 +95,9 @@ pub enum TransactionGroup {
     ProductCreate(product::TxCreate),
     ProductUpdate(product::TxUpdate),
     ProductDelete(product::TxDelete),
+
+    ResourceTagCreate(resource_tag::TxCreate),
+    ResourceTagDelete(resource_tag::TxDelete),
 
     OrderCreate(order::TxCreate),
     OrderUpdateStatus(order::TxUpdateStatus),

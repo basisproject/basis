@@ -1,0 +1,26 @@
+syntax = "proto3";
+package basis.resource_tag;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+message ResourceTag {
+	string id = 1;
+	string product_id = 2;
+	google.protobuf.Timestamp created = 3;
+	google.protobuf.Timestamp updated = 4;
+	google.protobuf.Timestamp deleted = 5;
+	uint64 history_len = 6;
+	exonum.Hash history_hash = 7;
+}
+
+message TxCreate {
+	string id = 1;
+	string product_id = 2;
+	google.protobuf.Timestamp created = 3;
+}
+
+message TxDelete {
+	string id = 1;
+	google.protobuf.Timestamp deleted = 2;
+}
+

@@ -31,6 +31,9 @@ const message_id_map = (function() {
 		'product.TxUpdate',
 		'product.TxDelete',
 
+		'resource_tag.TxCreate',
+		'resource_tag.TxDelete',
+
 		'order.TxCreate',
 		'order.TxUpdateStatus',
 		'order.TxUpdateCostCategory',
