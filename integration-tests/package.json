@@ -6,10 +6,6 @@
   "license": "GPLv3",
   "dependencies": {
     "bluebird": "^3.5.5",
-    "exonum-client": "^0.17.1",
-    "protobufjs": "^6.8.8",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4",
-    "uuid": "^3.3.2"
+    "lib-basis-client": "git+ssh://git@gitlab.com:basis-/lib-basis-client.git#master"
   }
 }

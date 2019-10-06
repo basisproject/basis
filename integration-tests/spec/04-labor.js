@@ -1,13 +1,16 @@
 "use strict";
 
+const Basis = require('lib-basis-client');
+Basis.init(__dirname+'/../config');
+
 const uuid = require('uuid/v4');
 const Exonum = require('exonum-client');
-const trans = require('../helpers/transactions');
+const trans = Basis.transactions
 const tx = trans.types;
-const bootstrap = require('../helpers/bootstrap');
-const config = require('../helpers/config');
-const Labor = require('../models/labor');
-const Timestamp = require('../helpers/protobuf').types.Timestamp;
+const bootstrap = Basis.bootstrap;
+const config = Basis.config;
+const Labor = Basis.models.labor;
+const Timestamp = Basis.protobuf.types.Timestamp;
 
 describe('labor', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
