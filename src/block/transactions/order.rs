@@ -102,7 +102,7 @@ impl Transaction for TxCreate {
                 }
             }
         }
-        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &self.products, &self.created, &hash);
+        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &products, &self.created, &hash);
         Ok(())
     }
 }
@@ -250,6 +250,16 @@ pub mod tests {
         );
         testkit.create_block_with_transactions(txvec![tx_prod]);
 
+        let tag_id = gen_uuid();
+        let tx_tag = transactions::resource_tag::TxCreate::sign(
+            &tag_id,
+            &prod_id,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_tag]);
+
         let labor_id = gen_uuid();
         let tx_labor1 = transactions::labor::TxCreate::sign(
             &labor_id,
@@ -315,6 +325,10 @@ pub mod tests {
         assert_eq!(num_orders, 3);
         assert_eq!(idx_from.keys().count(), 0);
         assert_eq!(idx_to.keys().count(), 0);
+
+        // test for resource tagging
+        let order = Schema::new(&snapshot).get_order(&ord1_id).unwrap();
+        assert!(order.products[0].is_resource());
 
         let ord1_date: DateTime<Utc> = "2018-01-01T00:00:00Z".parse().unwrap();
         let ord2_date: DateTime<Utc> = "2018-07-01T00:00:00Z".parse().unwrap();

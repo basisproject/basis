@@ -41,6 +41,7 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
     // holds product_id -> average_costs for products we bought for inventory
     let mut avg_input_costs: HashMap<String, Costs> = HashMap::new();
 
+    // labor is an operating cost
     {
         let op_costs = sum_costs.entry(CostCategory::Operating).or_insert(Default::default());
         for entry in labor {
@@ -56,10 +57,18 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         let cat = order.cost_category.clone();
         let current = sum_costs.entry(cat).or_insert(Default::default());
         for prod in &order.products {
-            *current = current.clone() + (prod.costs.clone() * prod.quantity);
+            let mut prod_costs = prod.costs.clone() * prod.quantity;
+            // if this product is a resource, add its id and quantity to the
+            // cost list
+            if prod.is_resource() {
+                let mut tmp_costs = Costs::new();
+                tmp_costs.track(&prod.product_id, prod.quantity);
+                prod_costs = prod_costs + tmp_costs;
+            }
+            *current = current.clone() + prod_costs.clone();
             if cat == CostCategory::Inventory {
                 let prod_inp_costs = sum_inventory_costs.entry(prod.product_id.clone()).or_insert(vec![]);
-                prod_inp_costs.push(prod.costs.clone() * prod.quantity);
+                prod_inp_costs.push(prod_costs);
             }
         }
     }
@@ -182,7 +191,7 @@ pub mod tests {
     // TODO: write tests
     #[test]
     fn calculates() {
-        calculate_costs(&vec![], &vec![], &HashMap::new(), &HashMap::new()).expect("costs failed");
+        calculate_costs(&vec![], &vec![], &vec![], &HashMap::new(), &HashMap::new()).expect("costs failed");
     }
 }
 
