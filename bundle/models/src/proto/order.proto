@@ -24,6 +24,7 @@ message Order {
 		string product_id = 1;
 		double quantity = 2;
 		basis.costs.Costs costs = 3;
+		bool resource = 4;
 	}
 
 	string id = 1;

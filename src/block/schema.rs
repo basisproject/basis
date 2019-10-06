@@ -440,6 +440,15 @@ impl<T> Schema<T>
         self.resource_tags().get(&crypto::hash(id.as_bytes()))
     }
 
+    pub fn get_resource_tag_by_product_id(&self, product_id: &str) -> Option<ResourceTag> {
+        match self.resource_tags_idx_product_id().get(product_id) {
+            Some(tag_id) => {
+                self.get_resource_tag(&tag_id)
+            }
+            None => None,
+        }
+    }
+
     pub fn resource_tags_create(&mut self, id: &str, product_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let resource_tag = {
             let mut history = self.resource_tags_history(id);
@@ -476,14 +485,14 @@ impl<T> Schema<T>
         self.product_costs().get(product_id)
     }
 
-    pub fn get_product_with_costs(&self, product_id: &str) -> (Option<Product>, Option<Costs>) {
+    pub fn get_product_with_costs_tagged(&self, product_id: &str) -> (Option<Product>, Option<Costs>, Option<ResourceTag>) {
         let product = self.get_product(product_id);
-        let costs = if product.is_some() {
-            self.get_product_costs(product_id)
+        let (costs, tag) = if product.is_some() {
+            (self.get_product_costs(product_id), self.get_resource_tag_by_product_id(product_id))
         } else {
-            None
+            (None, None)
         };
-        (product, costs)
+        (product, costs, tag)
     }
 
     pub fn product_costs_attach(&self, product_id: &str, costs: &Costs) {

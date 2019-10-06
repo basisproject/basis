@@ -74,14 +74,15 @@ impl Transaction for TxCreate {
 
         let mut products = self.products.clone();
         for product in &mut products {
-            match schema.get_product_with_costs(&product.product_id) {
-                (Some(prod), Some(costs)) => {
+            match schema.get_product_with_costs_tagged(&product.product_id) {
+                (Some(prod), Some(costs), tag) => {
                     if !prod.is_active() {
                         Err(TransactionError::ProductNotFound)?;
                     }
                     product.costs = costs;
+                    product.resource = tag.is_some();
                 }
-                (Some(_), None) => {
+                (Some(_), None, _) => {
                     Err(TransactionError::CostsNotFound)?;
                 }
                 _ => {
@@ -280,7 +281,7 @@ pub mod tests {
             &co2_id,
             &co1_id,
             &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new())],
+            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -290,7 +291,7 @@ pub mod tests {
             &co2_id,
             &co1_id,
             &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new())],
+            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -300,7 +301,7 @@ pub mod tests {
             &co2_id,
             &co1_id,
             &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new())],
+            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
             &util::time::now(),
             &root_pub,
             &root_sec

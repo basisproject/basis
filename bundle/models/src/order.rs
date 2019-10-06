@@ -35,15 +35,21 @@ pub struct ProductEntry {
     pub product_id: String,
     pub quantity: f64,
     pub costs: Costs,
+    pub resource: bool,
 }
 
 impl ProductEntry {
-    pub fn new(product_id: &str, quantity: f64, costs: &Costs) -> Self {
+    pub fn new(product_id: &str, quantity: f64, costs: &Costs, resource: bool) -> Self {
         Self {
             product_id: product_id.to_owned(),
             quantity,
             costs: costs.clone(),
+            resource,
         }
+    }
+
+    pub fn is_resource(&self) -> bool {
+        self.resource
     }
 }
 
@@ -132,8 +138,8 @@ pub mod tests {
         cists1.track("1234", 6969.0);
         cists2.track("5678", 1212.0);
         let products = vec![
-            ProductEntry::new("ea682431-d0d0-48c5-9166-be5b76a35d62", 183.0, &cists1),
-            ProductEntry::new("0aabf72f-0cbf-4363-a39d-502be618060d", 1.0, &cists2),
+            ProductEntry::new("ea682431-d0d0-48c5-9166-be5b76a35d62", 183.0, &cists1, false),
+            ProductEntry::new("0aabf72f-0cbf-4363-a39d-502be618060d", 1.0, &cists2, false),
         ];
         Order::new(
             "a3c7a63d-e4de-49e3-889d-78853a2169e6",
