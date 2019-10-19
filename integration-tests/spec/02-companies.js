@@ -1,14 +1,13 @@
 "use strict";
 
+const config = require('../helpers/config');
 const Basis = require('lib-basis-client');
-Basis.init(__dirname+'/../config');
-
+Basis.init(config);
 const uuid = require('uuid/v4');
 const Exonum = require('exonum-client');
 const trans = Basis.transactions
 const tx = trans.types;
 const bootstrap = Basis.bootstrap;
-const config = Basis.config;
 const Companies = Basis.models.companies;
 
 describe('companies', function() {
