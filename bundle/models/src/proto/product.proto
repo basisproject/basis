@@ -10,6 +10,7 @@ message Product {
 		MILLIMETER = 1;
 		MILLILITER = 2;
 		WATTHOUR = 3;
+		EACH = 4;
 	}
 	// physical dimensions, if applicable
 	message Dimensions {

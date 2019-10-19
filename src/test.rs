@@ -33,7 +33,7 @@ pub fn tx_superuser(uid: &str) -> (Signed<RawTransaction>, PublicKey, SecretKey)
     let txuser = transactions::user::TxCreate::sign(
         &uid.to_owned(),
         &root_pub,
-        &vec![models::access::Role::SuperAdmin, models::access::Role::TimeTraveller],
+        &vec![models::access::Role::SuperAdmin, models::access::Role::TimeTraveler],
         &String::from("frothy@gibbertarian.com"),
         &String::from("FREEDOM OR FAIR TRADE SOY TENDIES #PICKASIDE"),
         &String::from("{}"),

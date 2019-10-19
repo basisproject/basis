@@ -9,6 +9,7 @@ proto_enum! {
         Millimeter = 1,
         Milliliter = 2,
         WattHour = 3,
+        Each = 4,
     };
     proto::product::Product_Unit
 }

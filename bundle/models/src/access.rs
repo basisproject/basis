@@ -47,7 +47,7 @@ pub enum Permission {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Role {
     SuperAdmin,
-    TimeTraveller,
+    TimeTraveler,
     IdentityAdmin,
     CompanyAdmin,
     ProductAdmin,
@@ -65,7 +65,7 @@ impl Role {
                     Permission::AllBut(vec![Permission::TimeTravel]),
                 ]
             },
-            Role::TimeTraveller => {
+            Role::TimeTraveler => {
                 vec![Permission::TimeTravel]
             },
             Role::IdentityAdmin => {
@@ -186,7 +186,7 @@ pub mod tests {
         assert!(super_admin.can(&Permission::ResourceTagCreate));
         assert!(super_admin.can(&Permission::ResourceTagDelete));
 
-        let traveller = Role::TimeTraveller;
+        let traveller = Role::TimeTraveler;
         assert!(traveller.can(&Permission::TimeTravel));
         assert!(!traveller.can(&Permission::UserCreate));
         assert!(!traveller.can(&Permission::UserUpdate));
