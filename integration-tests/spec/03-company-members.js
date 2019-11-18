@@ -67,6 +67,7 @@ describe('company members', function() {
 			id: company_id,
 			email: company_email,
 			name: 'jerry\'s WIDGETS',
+			founder_occupation: 'Widget builder',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -75,6 +76,7 @@ describe('company members', function() {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['ProductAdmin'],
+			occupation: 'Apprentice Widget Builder',
 			memo: 'Sandra seems trustworthy',
 			created: new Date().toISOString(),
 		});
@@ -83,6 +85,7 @@ describe('company members', function() {
 		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
 		expect(sandra.user_id).toBe(sandra_user_id);
 		expect(sandra.roles).toEqual(['ProductAdmin']);
+		expect(sandra.occupation).toBe('Apprentice Widget Builder');
 	});
 
 	it('enforces permissions and ownership', async () => {
@@ -103,26 +106,31 @@ describe('company members', function() {
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/insufficient priv/i);
 
-		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['Owner'],
+			occupation: 'Master Widget Builder',
 			memo: 'WhOoOoPs!! ;)',
 			deleted: new Date().toISOString(),
 		});
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/insufficient priv/i);
 
-		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['MemberAdmin'],
+			occupation: 'Widget Builder',
 			memo: 'be careful, sandra',
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		expect(sandra.roles).toEqual(['MemberAdmin']);
+		expect(sandra.occupation).toBe('Widget Builder');
 
-		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['ProductAdmin'],
@@ -130,8 +138,11 @@ describe('company members', function() {
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		expect(sandra.roles).toEqual(['ProductAdmin']);
+		expect(sandra.occupation).toBe('Widget Builder');
 
-		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['MemberAdmin'],
@@ -143,7 +154,7 @@ describe('company members', function() {
 	});
 
 	it('enforces at least one owner', async () => {
-		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: jerry_user_id,
 			roles: ['MemberAdmin'],
@@ -162,7 +173,7 @@ describe('company members', function() {
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/company must have at least one owner/i);
 
-		var res = await trans.send_as('jerry', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['Owner'],
@@ -171,7 +182,7 @@ describe('company members', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['Admin'],
@@ -180,7 +191,7 @@ describe('company members', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var res = await trans.send_as('sandra', tx.company_member.TxSetRoles, {
+		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			company_id: company_id,
 			user_id: jerry_user_id,
 			roles: ['Admin'],

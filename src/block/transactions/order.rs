@@ -218,6 +218,7 @@ pub mod tests {
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
+            &String::from("Widget builder"),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -226,6 +227,7 @@ pub mod tests {
             &co2_id,
             &String::from("company2@basis.org"),
             &String::from("Widget Distributors Inc"),
+            &String::from("Widget builder"),
             &util::time::now(),
             &root_pub,
             &root_sec

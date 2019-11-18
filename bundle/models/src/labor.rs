@@ -8,6 +8,7 @@ pub struct Labor {
     pub id: String,
     pub company_id: String,
     pub user_id: String,
+    pub occupation: String,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
     pub created: DateTime<Utc>,
@@ -17,11 +18,12 @@ pub struct Labor {
 }
 
 impl Labor {
-    pub fn new(id: &str, company_id: &str, user_id: &str, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, history_hash: &Hash) -> Self {
+    pub fn new(id: &str, company_id: &str, user_id: &str, occupation: &str, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             company_id: company_id.to_owned(),
             user_id: user_id.to_owned(),
+            occupation: occupation.to_owned(),
             start: start.unwrap_or(&util::time::default_time()).clone(),
             end: end.unwrap_or(&util::time::default_time()).clone(),
             created: created.clone(),
@@ -36,6 +38,7 @@ impl Labor {
             &self.id,
             &self.company_id,
             &self.user_id,
+            &self.occupation,
             Some(start.unwrap_or(&self.start)),
             Some(end.unwrap_or(&self.end)),
             &self.created,
@@ -74,6 +77,7 @@ pub mod tests {
             "9fd8cdc6-04a8-4a35-9cd8-9dc6073a2d10",
             "df874abc-5583-4740-9f4e-3236530bcc1e",
             "7de177ba-d589-4f7b-94e0-96d2b0752460",
+            "tremendous president. the best president. everyone says so.",
             Some(&date),
             None,
             &date,
@@ -93,6 +97,7 @@ pub mod tests {
         assert_eq!(labor.id, labor2.id);
         assert_eq!(labor.company_id, labor2.company_id);
         assert_eq!(labor.user_id, labor2.user_id);
+        assert_eq!(labor.occupation, labor2.occupation);
         assert!(labor.start != labor2.start);
         assert_eq!(labor2.start, date2);
         assert_eq!(labor.end, util::time::default_time());
@@ -108,6 +113,7 @@ pub mod tests {
         assert_eq!(labor2.id, labor3.id);
         assert_eq!(labor2.company_id, labor3.company_id);
         assert_eq!(labor2.user_id, labor3.user_id);
+        assert_eq!(labor2.occupation, labor3.occupation);
         assert_eq!(labor2.start, labor3.start);
         assert_eq!(labor3.start, date2);
         assert_eq!(labor2.end, util::time::default_time());

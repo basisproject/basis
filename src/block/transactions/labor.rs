@@ -50,10 +50,10 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::CompanyClockIn)?;
 
-        match schema.get_company_member(&self.company_id, &self.user_id) {
-            Some(_) => {}
+        let member = match schema.get_company_member(&self.company_id, &self.user_id) {
+            Some(m) => m,
             None => Err(TransactionError::UserNotFound)?,
-        }
+        };
 
         match schema.get_user_by_pubkey(&pubkey) {
             Some(user) => {
@@ -82,7 +82,7 @@ impl Transaction for TxCreate {
             }
         }
 
-        schema.labor_create(&self.id, &self.company_id, &self.user_id, &self.created, &hash);
+        schema.labor_create(&self.id, &self.company_id, &self.user_id, &member.occupation, &self.created, &hash);
         Ok(())
     }
 }
@@ -162,6 +162,7 @@ pub mod tests {
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
+            &String::from("Master widget builder"),
             &util::time::now(),
             &root_pub,
             &root_sec

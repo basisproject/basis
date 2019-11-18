@@ -33,7 +33,8 @@ time = "0.1.42"
 util = { path = "bundle/util/" }
 
 [patch.crates-io]
-#exonum_sodiumoxide = { path = "../exonum-container/exonum_sodiumoxide" }
+rocksdb = { path = "../crate-container/rust-rocksdb" }
+#exonum-merkledb = { path = "../crate-container/exonum/components/merkledb" }
 
 [dev-dependencies]
 assert_matches = "1.2.0"

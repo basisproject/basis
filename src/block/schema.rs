@@ -242,22 +242,22 @@ impl<T> Schema<T>
         self.companies_members(company_id).get(&crypto::hash(user_id.as_bytes()))
     }
 
-    pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(company_id, user_id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            CompanyMember::new(user_id, roles, created, created, history.len(), &history_hash)
+            CompanyMember::new(user_id, roles, occupation, created, created, history.len(), &history_hash)
         };
         self.companies_members(company_id).put(&crypto::hash(user_id.as_bytes()), member);
     }
 
-    pub fn companies_members_set_roles(&mut self, company_id: &str, member: CompanyMember, roles: &Vec<CompanyRole>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_update(&mut self, company_id: &str, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(company_id, &member.user_id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            member.set_roles(roles, updated, &history_hash)
+            member.update(roles, occupation, updated, &history_hash)
         };
         self.companies_members(company_id).put(&crypto::hash(member.user_id.as_bytes()), member);
     }
@@ -300,12 +300,12 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let labor = {
             let mut history = self.labor_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Labor::new(id, company_id, user_id, Some(created), None, created, created, history.len(), &history_hash)
+            Labor::new(id, company_id, user_id, occupation, Some(created), None, created, created, history.len(), &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor);
         self.labor_idx_company_id(company_id).push(id.to_owned());
@@ -371,6 +371,15 @@ impl<T> Schema<T>
             .map(|x| self.get_product(&x))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
+            .collect::<Vec<_>>()
+    }
+
+    pub fn get_active_products_for_company_extended(&self, company_id: &str) -> Vec<(Product, Option<Costs>, Option<ResourceTag>)> {
+        self.products_idx_company_active(company_id)
+            .iter()
+            .map(|x| self.get_product_with_costs_tagged(&x))
+            .filter(|(x, ..)| x.is_some())
+            .map(|(x, y, z)| (x.unwrap(), y, z))
             .collect::<Vec<_>>()
     }
 

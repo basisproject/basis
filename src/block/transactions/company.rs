@@ -61,6 +61,7 @@ deftransaction! {
         pub id: String,
         pub email: String,
         pub name: String,
+        pub founder_occupation: String,
         pub created: DateTime<Utc>,
     }
 }
@@ -86,7 +87,7 @@ impl Transaction for TxCreatePrivate {
             Err(TransactionError::InvalidEmail)?
         } else {
             schema.companies_create(&self.id, &CompanyType::Private, None, &self.email, &self.name, &self.created, &hash);
-            schema.companies_members_create(&self.id, &user.id, &vec![CompanyRole::Owner], &self.created, &hash);
+            schema.companies_members_create(&self.id, &user.id, &vec![CompanyRole::Owner], &self.founder_occupation, &self.created, &hash);
             Ok(())
         }
     }

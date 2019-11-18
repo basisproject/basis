@@ -86,7 +86,7 @@ pub enum TransactionGroup {
     CompanyDelete(company::TxDelete),
 
     CompanyMemberCreate(company_member::TxCreate),
-    CompanyMemberSetRoles(company_member::TxSetRoles),
+    CompanyMemberUpdate(company_member::TxUpdate),
     CompanyMemberDelete(company_member::TxDelete),
 
     LaborCreate(labor::TxCreate),

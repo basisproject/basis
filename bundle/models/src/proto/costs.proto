@@ -4,6 +4,7 @@ package basis.costs;
 message Costs {
 	// product_id -> amount map
 	map<string, double> products = 1;
-	double labor = 2;
+	// labor_type -> amount map
+	map<string, double> labor = 2;
 }
 

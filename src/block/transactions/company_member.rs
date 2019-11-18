@@ -8,7 +8,10 @@ use models::{
     company::{Permission as CompanyPermission, Role as CompanyRole},
     access::Permission,
 };
-use util;
+use util::{
+    self,
+    protobuf::empty_opt,
+};
 use crate::block::{
     schema::Schema,
     transactions::{company, access},
@@ -53,6 +56,7 @@ deftransaction! {
         pub company_id: String,
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
+        pub occupation: String,
         pub memo: String,
         pub created: DateTime<Utc>,
     }
@@ -84,24 +88,25 @@ impl Transaction for TxCreate {
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_create(&self.company_id, &self.user_id, &self.roles, &self.created, &hash);
+            schema.companies_members_create(&self.company_id, &self.user_id, &self.roles, &self.occupation, &self.created, &hash);
             Ok(())
         }
     }
 }
 
 deftransaction! {
-    #[exonum(pb = "proto::company_member::TxSetRoles")]
-    pub struct TxSetRoles {
+    #[exonum(pb = "proto::company_member::TxUpdate")]
+    pub struct TxUpdate {
         pub company_id: String,
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
+        pub occupation: String,
         pub memo: String,
         pub updated: DateTime<Utc>,
     }
 }
 
-impl Transaction for TxSetRoles {
+impl Transaction for TxUpdate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         let pubkey = &context.author();
         let hash = context.tx_hash();
@@ -135,7 +140,9 @@ impl Transaction for TxSetRoles {
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_set_roles(&self.company_id, member, &self.roles, &self.updated, &hash);
+            let roles = empty_opt(&self.roles);
+            let occupation = empty_opt(&self.occupation).map(|x| x.as_str());
+            schema.companies_members_update(&self.company_id, member, roles, occupation, &self.updated, &hash);
             Ok(())
         }
     }

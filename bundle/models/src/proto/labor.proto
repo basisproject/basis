@@ -7,19 +7,20 @@ message Labor {
 	string id = 1;
 	string company_id = 2;
 	string user_id = 3;
-	google.protobuf.Timestamp start = 4;
-	google.protobuf.Timestamp end = 5;
-	google.protobuf.Timestamp created = 6;
-	google.protobuf.Timestamp updated = 7;
-	uint64 history_len = 8;
-	exonum.Hash history_hash = 9;
+	string occupation = 4;
+	google.protobuf.Timestamp start = 5;
+	google.protobuf.Timestamp end = 6;
+	google.protobuf.Timestamp created = 7;
+	google.protobuf.Timestamp updated = 8;
+	uint64 history_len = 9;
+	exonum.Hash history_hash = 10;
 }
 
 message TxCreate {
 	string id = 1;
 	string company_id = 2;
 	string user_id = 3;
-	google.protobuf.Timestamp created = 4;
+	google.protobuf.Timestamp created = 5;
 }
 
 message TxSetTime {

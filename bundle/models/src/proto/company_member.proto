@@ -6,8 +6,9 @@ import "google/protobuf/timestamp.proto";
 message CompanyMember {
 	string user_id = 1;
 	repeated string roles = 2;
-	google.protobuf.Timestamp created = 3;
-	google.protobuf.Timestamp updated = 4;
+	string occupation = 3;
+	google.protobuf.Timestamp created = 4;
+	google.protobuf.Timestamp updated = 5;
 	uint64 history_len = 8;
 	exonum.Hash history_hash = 9;
 }
@@ -16,16 +17,18 @@ message TxCreate {
 	string company_id = 1;
 	string user_id = 2;
 	repeated string roles = 3;
-	string memo = 4;
-	google.protobuf.Timestamp created = 5;
+	string occupation = 4;
+	string memo = 5;
+	google.protobuf.Timestamp created = 6;
 }
 
-message TxSetRoles {
+message TxUpdate {
 	string company_id = 1;
 	string user_id = 2;
 	repeated string roles = 3;
-	string memo = 4;
-	google.protobuf.Timestamp updated = 5;
+	string occupation = 4;
+	string memo = 5;
+	google.protobuf.Timestamp updated = 6;
 }
 
 message TxDelete {

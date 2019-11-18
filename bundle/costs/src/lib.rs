@@ -45,7 +45,7 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
     {
         let op_costs = sum_costs.entry(CostCategory::Operating).or_insert(Default::default());
         for entry in labor {
-            *op_costs = op_costs.clone() + Costs::new_with_labor(entry.hours());
+            *op_costs = op_costs.clone() + Costs::new_with_labor(&entry.occupation, entry.hours());
         }
     }
 

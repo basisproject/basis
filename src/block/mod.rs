@@ -25,6 +25,9 @@ pub const SERVICE_NAME: &str = "basis";
 pub enum ApiError {
     #[fail(display = "Bad query")]
     BadQuery = 0,
+
+    #[fail(display = "Not found")]
+    NotFound = 1,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
