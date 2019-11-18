@@ -33,7 +33,7 @@ time = "0.1.42"
 util = { path = "bundle/util/" }
 
 [patch.crates-io]
-rocksdb = { path = "../crate-container/rust-rocksdb" }
+#rocksdb = { path = "../crate-container/rust-rocksdb" }
 #exonum-merkledb = { path = "../crate-container/exonum/components/merkledb" }
 
 [dev-dependencies]
