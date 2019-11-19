@@ -23,7 +23,7 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         let start_time = cmp::min(incoming_start_time, outgoing_start_time) as f64;
         let incoming_end_time = if orders_incoming.len() > 0 { orders_incoming[orders_incoming.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
         let outgoing_end_time = if orders_outgoing.len() > 0 { orders_outgoing[orders_outgoing.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
-        let end_time = cmp::min(incoming_end_time, outgoing_end_time) as f64;
+        let end_time = cmp::max(incoming_end_time, outgoing_end_time) as f64;
         let seconds = end_time - start_time;
         let hours = if seconds < 3600.0 {
             1.0
@@ -188,10 +188,14 @@ pub mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    // TODO: write tests
     #[test]
     fn calculates() {
-        calculate_costs(&vec![], &vec![], &vec![], &HashMap::new(), &HashMap::new()).expect("costs failed");
+        let orders_incoming = vec![];
+        let orders_outgoing = vec![];
+        let labor = vec![];
+        let amortization = HashMap::new();
+        let products = HashMap::new();
+        calculate_costs(&orders_incoming, &orders_outgoing, &labor, &amortization, &products).expect("costs failed");
     }
 }
 

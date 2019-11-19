@@ -24,8 +24,19 @@ pub struct OrdersQuery {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OrdersCurrentQuery {
+    pub company_id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OrderQuery {
     pub id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrdersCurrentResult {
+    pub incoming: Vec<models::order::Order>,
+    pub outgoing: Vec<models::order::Order>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,6 +60,30 @@ impl OrderApi {
             .collect::<Vec<_>>();
         Ok(ListResult {
             items: orders,
+        })
+    }
+
+
+    pub fn get_orders_current(state: &ServiceApiState, query: OrdersCurrentQuery) -> api::Result<OrdersCurrentResult> {
+        let snapshot = state.snapshot();
+        let schema = Schema::new(&snapshot);
+
+        let company = if query.company_id.is_some() {
+            schema.get_company(query.company_id.as_ref().unwrap())
+        } else {
+            let err: failure::Error = From::from(ApiError::BadQuery);
+            Err(err)?
+        };
+        let company_id = match company.as_ref() {
+            Some(u) => u.id.clone(),
+            None => String::from(""),
+        };
+
+        let incoming = schema.get_orders_incoming_recent(&company_id);
+        let outgoing = schema.get_orders_outgoing_recent(&company_id);
+        Ok(OrdersCurrentResult {
+            incoming,
+            outgoing,
         })
     }
 
