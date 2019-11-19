@@ -135,6 +135,7 @@ impl OrderApi {
     pub fn wire(builder: &mut ServiceApiBuilder) {
         builder.public_scope()
             .endpoint("v1/orders", Self::get_orders)
+            .endpoint("v1/orders/company-current", Self::get_orders_current)
             .endpoint("v1/orders/info", Self::get_order);
     }
 }
