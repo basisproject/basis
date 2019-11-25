@@ -449,7 +449,6 @@ pub mod tests {
         let (_, costs, _) = schema.get_product_with_costs_tagged(&prod_id);
         let costs = costs.unwrap();
         assert_eq!(costs.labor().get("Widget builder").unwrap().clone(), 8.0 / 20334.0);
-        println!("--- costs\n{:?}", costs);
     }
 }
 

@@ -15,7 +15,7 @@ pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> R
     // grab how many finalized incoming orders we have
     let num_orders_incoming_finalized = orders_incoming.iter()
         .filter(|x| x.process_status == ProcessStatus::Finalized)
-        .fold(0, |acc, x| acc + 1);
+        .count();
     let orders_incoming = if num_orders_incoming_finalized > 10 {
         // we have more than 10 finalized orders, so only use finalized orders
         // in our cAlCulAtIOnS BEEp bOOP
