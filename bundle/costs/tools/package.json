@@ -1,0 +1,12 @@
+{
+  "name": "basis-costs-tools",
+  "version": "0.1.0",
+  "description": "Some tools for generating test code for basis entities",
+  "author": "Andrew Lyon",
+  "license": "GPLv3",
+  "dependencies": {
+    "bluebird": "^3.7.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5"
+  }
+}

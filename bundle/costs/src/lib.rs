@@ -186,16 +186,64 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use exonum::crypto::Hash;
     use std::collections::HashMap;
+    use models::order::{Order, ProcessStatus, CostCategory, ProductEntry};
+    use models::labor::Labor;
+    use models::product::{Product, Unit, Dimensions, Input, EffortTime, Effort};
+    use util::time;
+
+    fn make_hash() -> Hash {
+        Hash::new([1, 28, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4])
+    }
 
     #[test]
     fn calculates() {
-        let orders_incoming = vec![];
-        let orders_outgoing = vec![];
-        let labor = vec![];
+        let orders_incoming = test_orders_incoming();
+        let orders_outgoing = test_orders_outgoing();
+        let labor = test_labor();
         let amortization = HashMap::new();
-        let products = HashMap::new();
-        calculate_costs(&orders_incoming, &orders_outgoing, &labor, &amortization, &products).expect("costs failed");
+        let products = test_products();
+        let costs = calculate_costs(&orders_incoming, &orders_outgoing, &labor, &amortization, &products).expect("costs failed");
+        println!(">>> final costs: {:?}", costs);
+    }
+
+    fn test_orders_incoming() -> Vec<Order> {
+        let fakehash = make_hash();
+        vec![
+            Order::new( "d1024686-d9ff-4afa-871b-5d9ad43b3b04", "6eb292de-35b7-46f3-9214-5ac8fe074a36", "9f54262a-5765-4252-bb5b-8bba6efe25dc", &CostCategory::Operating, &vec![{ let mut costs = Costs::new(); costs.track_labor("technician", 64 as f64); costs.track_labor("plant president", 16 as f64); ProductEntry::new("b69089f7-8d9c-4925-956f-516e0d41fcec", 910000 as f64, &costs, false) }], &ProcessStatus::Finalized, &time::from_timestamp(1574569609), &time::from_timestamp(1574863200), 1, &fakehash ),
+            Order::new( "8eaa94ae-ce29-4ff6-b962-ce69d5a6bb39", "ad4b34ff-534b-47ef-a3a7-6c6f4c702611", "9f54262a-5765-4252-bb5b-8bba6efe25dc", &CostCategory::Operating, &vec![{ let mut costs = Costs::new(); costs.track_labor("technician", 96 as f64); costs.track_labor("plant president", 24 as f64); ProductEntry::new("b69089f7-8d9c-4925-956f-516e0d41fcec", 455000 as f64, &costs, false) }], &ProcessStatus::Finalized, &time::from_timestamp(1574569614), &time::from_timestamp(1574942400), 1, &fakehash ),
+            Order::new( "238cac5b-36c2-4f8a-99a4-311e9fb73527", "f2d76111-d7c2-4a9b-9b78-0427eb5ab960", "9f54262a-5765-4252-bb5b-8bba6efe25dc", &CostCategory::Operating, &vec![{ let mut costs = Costs::new(); costs.track_labor("plant president", 0.00003516483516483517 as f64); costs.track_labor("technician", 0.00014065934065934067 as f64); ProductEntry::new("b69089f7-8d9c-4925-956f-516e0d41fcec", 1137500 as f64, &costs, false) }], &ProcessStatus::Finalized, &time::from_timestamp(1574569619), &time::from_timestamp(1575032400), 1, &fakehash ),
+        ]
+    }
+
+    fn test_orders_outgoing() -> Vec<Order> {
+        let fakehash = make_hash();
+        vec![
+        ]
+    }
+
+    fn test_labor() -> Vec<Labor> {
+        let fakehash = make_hash();
+        vec![
+            Labor::new( "c7f5cc32-2a1a-4797-b41a-6837502676a8", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "e93fbea0-dc92-4508-a0e5-442d5a49fc4c", "technician", Some(&time::from_timestamp(1574614800)), Some(&time::from_timestamp(1574643600)), &time::from_timestamp(1574614800), &time::from_timestamp(1574643600), 1, &fakehash ),
+            Labor::new( "6162cb90-a600-43f7-870c-e3ae37de4881", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "f08ca5a4-47dd-461c-a7a8-3feaff111b12", "technician", Some(&time::from_timestamp(1574614800)), Some(&time::from_timestamp(1574643600)), &time::from_timestamp(1574614800), &time::from_timestamp(1574643600), 1, &fakehash ),
+            Labor::new( "1e405dce-1f98-44fd-99b0-a49cba7c6704", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "d2121e75-a70d-4233-af9b-19811c462e34", "technician", Some(&time::from_timestamp(1574614800)), Some(&time::from_timestamp(1574643600)), &time::from_timestamp(1574614800), &time::from_timestamp(1574643600), 1, &fakehash ),
+            Labor::new( "8fbb4562-3e9c-4599-9590-1fee8ccf4975", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "16ab2c66-0902-40e2-86b1-bd825ebeac97", "plant president", Some(&time::from_timestamp(1574614800)), Some(&time::from_timestamp(1574643600)), &time::from_timestamp(1574614800), &time::from_timestamp(1574643600), 1, &fakehash ),
+            Labor::new( "0416b20a-24cd-44a9-87c5-83ee48094760", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "5b149932-b807-4784-8c1d-d1dc15b350a6", "technician", Some(&time::from_timestamp(1574614800)), Some(&time::from_timestamp(1574643600)), &time::from_timestamp(1574614800), &time::from_timestamp(1574643600), 1, &fakehash ),
+            Labor::new( "e61c08c6-296a-4339-bc80-7e7870e537d1", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "e93fbea0-dc92-4508-a0e5-442d5a49fc4c", "technician", Some(&time::from_timestamp(1574701200)), Some(&time::from_timestamp(1574730000)), &time::from_timestamp(1574701200), &time::from_timestamp(1574730000), 1, &fakehash ),
+            Labor::new( "4e261c70-f40c-4b1f-baea-33ba0761cd9a", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "d2121e75-a70d-4233-af9b-19811c462e34", "technician", Some(&time::from_timestamp(1574701200)), Some(&time::from_timestamp(1574730000)), &time::from_timestamp(1574701200), &time::from_timestamp(1574730000), 1, &fakehash ),
+            Labor::new( "00dba20d-a95e-4ac1-bd0e-95f06757919a", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "5b149932-b807-4784-8c1d-d1dc15b350a6", "technician", Some(&time::from_timestamp(1574701200)), Some(&time::from_timestamp(1574730000)), &time::from_timestamp(1574701200), &time::from_timestamp(1574730000), 1, &fakehash ),
+            Labor::new( "24c175b7-fd19-4851-a030-b7170790a2a3", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "f08ca5a4-47dd-461c-a7a8-3feaff111b12", "technician", Some(&time::from_timestamp(1574701200)), Some(&time::from_timestamp(1574730000)), &time::from_timestamp(1574701200), &time::from_timestamp(1574730000), 1, &fakehash ),
+            Labor::new( "2393bd5f-f4a2-48bc-b53b-032e6120c821", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "16ab2c66-0902-40e2-86b1-bd825ebeac97", "plant president", Some(&time::from_timestamp(1574701200)), Some(&time::from_timestamp(1574730000)), &time::from_timestamp(1574701200), &time::from_timestamp(1574730000), 1, &fakehash ),
+        ]
+    }
+
+    fn test_products() -> HashMap<String, Product> {
+        let fakehash = make_hash();
+        let mut products = HashMap::new();
+        products.insert("b69089f7-8d9c-4925-956f-516e0d41fcec".to_owned(), Product::new( "b69089f7-8d9c-4925-956f-516e0d41fcec", "9f54262a-5765-4252-bb5b-8bba6efe25dc", "electricity", &Unit::WattHour, 0 as f64, &Dimensions::new( 1 as f64, 1 as f64, 1 as f64 ), &vec![Input::new("950c7ee4-56da-43e5-9694-0ee2796fa2f7", 0.002711685944438878 as f64)], &Effort::new(&EffortTime::Hours, 1 as u64), true, "{}", &time::from_timestamp(1574569588), &time::from_timestamp(1574569588), None, 1, &fakehash ));
+        products
     }
 }
 
