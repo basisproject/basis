@@ -5,12 +5,30 @@ use exonum_merkledb::IndexAccess;
 use costs;
 use crate::block::schema::Schema;
 use super::CommonError;
+use models::order::ProcessStatus;
 
 pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> Result<(), CommonError>
     where T: IndexAccess
 {
     let orders_incoming = schema.get_orders_incoming_recent(company_id);
     let orders_outgoing = schema.get_orders_outgoing_recent(company_id);
+    // grab how many finalized incoming orders we have
+    let num_orders_incoming_finalized = orders_incoming.iter()
+        .filter(|x| x.process_status == ProcessStatus::Finalized)
+        .fold(0, |acc, x| acc + 1);
+    let orders_incoming = if num_orders_incoming_finalized > 10 {
+        // we have more than 10 finalized orders, so only use finalized orders
+        // in our cAlCulAtIOnS BEEp bOOP
+        orders_incoming.into_iter()
+            .filter(|x| x.process_status == ProcessStatus::Finalized)
+            .collect::<Vec<_>>()
+    } else {
+        // we don't have a lot of finalized orders so we're going to use all
+        // pending orders for calculations. this helps to alleviate cases where
+        // the first order that is made against a company can inflate costs to
+        // extreme amounts
+        orders_incoming
+    };
     let mut products_dedupe = HashMap::new();
     schema.products_idx_company_active(company_id)
         .iter()

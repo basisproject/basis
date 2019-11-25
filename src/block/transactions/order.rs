@@ -103,6 +103,8 @@ impl Transaction for TxCreate {
             }
         }
         schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &products, &self.created, &hash);
+        costs::calculate_product_costs(&mut schema, &self.company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &self.company_id_to)?;
         Ok(())
     }
 }
@@ -143,14 +145,11 @@ impl Transaction for TxUpdateStatus {
                 }
             }
         }
-        let is_finalized = order.process_status == ProcessStatus::Finalized;
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_status(order, &self.process_status, &self.updated, &hash);
-        if is_finalized {
-            costs::calculate_product_costs(&mut schema, &company_id_from)?;
-            costs::calculate_product_costs(&mut schema, &company_id_to)?;
-        }
+        costs::calculate_product_costs(&mut schema, &company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to)?;
         Ok(())
     }
 }
@@ -184,14 +183,11 @@ impl Transaction for TxUpdateCostCategory {
             Err(CommonError::InvalidTime)?;
         }
 
-        let is_finalized = order.process_status == ProcessStatus::Finalized;
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
-        if is_finalized {
-            costs::calculate_product_costs(&mut schema, &company_id_from)?;
-            costs::calculate_product_costs(&mut schema, &company_id_to)?;
-        }
+        costs::calculate_product_costs(&mut schema, &company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to)?;
         Ok(())
     }
 }
@@ -325,8 +321,8 @@ pub mod tests {
         let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
         assert_eq!(num_orders, 3);
-        assert_eq!(idx_from.keys().count(), 0);
-        assert_eq!(idx_to.keys().count(), 0);
+        assert_eq!(idx_from.keys().count(), 3);
+        assert_eq!(idx_to.keys().count(), 3);
 
         // test for resource tagging
         let order = Schema::new(&snapshot).get_order(&ord1_id).unwrap();
@@ -334,7 +330,6 @@ pub mod tests {
 
         let ord1_date: DateTime<Utc> = "2018-01-01T00:00:00Z".parse().unwrap();
         let ord2_date: DateTime<Utc> = "2018-07-01T00:00:00Z".parse().unwrap();
-        let ord3_date: DateTime<Utc> = "2019-03-01T00:00:00Z".parse().unwrap();
         let tx_ord1_stat = transactions::order::TxUpdateStatus::sign(
             &ord1_id,
             &models::order::ProcessStatus::Finalized,
@@ -347,8 +342,8 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 1);
-        assert_eq!(idx_to.keys().count(), 1);
+        assert_eq!(idx_from.keys().count(), 3);
+        assert_eq!(idx_to.keys().count(), 3);
 
         let tx_ord2_stat = transactions::order::TxUpdateStatus::sign(
             &ord2_id,
@@ -362,26 +357,99 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 2);
-        assert_eq!(idx_to.keys().count(), 2);
+        assert_eq!(idx_from.keys().count(), 3);
+        assert_eq!(idx_to.keys().count(), 3);
+    }
 
-        // this third order pushes the first off the rotate list, so the counts
-        // below will both be 2 instead of 3.
-        let tx_ord3_stat = transactions::order::TxUpdateStatus::sign(
-            &ord3_id,
-            &models::order::ProcessStatus::Finalized,
-            &ord3_date,
+    #[test]
+    fn order_costs() {
+        let mut testkit = test::init_testkit();
+        let uid = gen_uuid();
+        let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
+        testkit.create_block_with_transactions(txvec![tx_user]);
+
+        let co1_id = gen_uuid();
+        let co2_id = gen_uuid();
+        let tx_co1 = transactions::company::TxCreatePrivate::sign(
+            &co1_id,
+            &String::from("company1@basis.org"),
+            &String::from("Widget Builders Inc"),
+            &String::from("Widget builder"),
+            &util::time::now(),
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_ord3_stat]);
+        let tx_co2 = transactions::company::TxCreatePrivate::sign(
+            &co2_id,
+            &String::from("company2@basis.org"),
+            &String::from("Widget Distributors Inc"),
+            &String::from("Widget builder"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_co1, tx_co2]);
+
+        let prod_id = gen_uuid();
+        let tx_prod = transactions::product::TxCreate::sign(
+            &prod_id,
+            &co1_id,
+            &String::from("Red widget"),
+            &models::product::Unit::Millimeter,
+            &3.0,
+            &models::product::Dimensions::new(100.0, 100.0, 100.0),
+            &Vec::new(),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
+            &true,
+            &String::from("{}"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_prod]);
+
+        let labor_id = gen_uuid();
+        let tx_labor1 = transactions::labor::TxCreate::sign(
+            &labor_id,
+            &co1_id,
+            &uid,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1]);
+
+        let now = util::time::now();
+        let then = now - Duration::hours(8);
+        let tx_labor2 = transactions::labor::TxSetTime::sign(
+            &labor_id,
+            &then,
+            &now,
+            &now,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor2]);
+
+        let ord1_id = gen_uuid();
+        let tx_ord1 = transactions::order::TxCreate::sign(
+            &ord1_id,
+            &co2_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_id, 20334.0, &models::costs::Costs::new(), false)],
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord1]);
 
         let snapshot = testkit.snapshot();
-        let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
-        let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 2);
-        assert_eq!(idx_to.keys().count(), 2);
-        // success!
+        let schema = Schema::new(&snapshot);
+        let (_, costs, _) = schema.get_product_with_costs_tagged(&prod_id);
+        let costs = costs.unwrap();
+        assert_eq!(costs.labor().get("Widget builder").unwrap().clone(), 8.0 / 20334.0);
+        println!("--- costs\n{:?}", costs);
     }
 }
 

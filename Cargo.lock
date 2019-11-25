@@ -462,8 +462,10 @@ version = "0.1.0"
 dependencies = [
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "error 0.1.0",
+ "exonum 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "models 0.1.0",
  "serde 1.0.100 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.1.0",
 ]
 
 [[package]]

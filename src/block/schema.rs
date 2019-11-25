@@ -545,7 +545,6 @@ impl<T> Schema<T>
             .map(|x| self.get_order(&x))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
-            .filter(|x| x.process_status == ProcessStatus::Finalized)
             .collect::<Vec<_>>()
     }
 
@@ -555,7 +554,6 @@ impl<T> Schema<T>
             .map(|x| self.get_order(&x))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
-            .filter(|x| x.process_status == ProcessStatus::Finalized)
             .collect::<Vec<_>>()
     }
 
@@ -567,16 +565,19 @@ impl<T> Schema<T>
             Order::new(id, company_id_from, company_id_to, category, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
         };
         let id = order.id.clone();
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
+        self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
         self.orders_idx_company_id_from(company_id_from).push(id.clone());
         self.orders_idx_company_id_to(company_id_to).push(id.clone());
+        self.orders_update_rolling_index(&order);
     }
 
-    fn orders_update_rolling_index(&self, order: &Order, cutoff: &DateTime<Utc>) {
+    fn orders_update_rolling_index(&self, order: &Order) {
         let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
         let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
-        index_and_rotate_mapindex(&mut idx_from, order.updated.timestamp(), &order.id, cutoff);
-        index_and_rotate_mapindex(&mut idx_to, order.updated.timestamp(), &order.id, cutoff);
+        // one year cutoff, hardcoded for now
+        let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
+        index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &cutoff);
+        index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &cutoff);
     }
 
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -588,14 +589,7 @@ impl<T> Schema<T>
             order.update_status(process_status, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
-        // NOTE: for now we assume that an order can only be marked as finalized
-        // !!once!! so there is no logic to prevent duplicate orders in ze
-        // rolling index or anything like that. mmkay?
-        if order.process_status == ProcessStatus::Finalized {
-            // one year cutoff, hardcoded for now
-            let cutoff = util::time::from_timestamp(updated.timestamp() - (3600 * 24 * 365));
-            self.orders_update_rolling_index(&order, &cutoff);
-        }
+        self.orders_update_rolling_index(&order);
     }
 
     pub fn orders_update_cost_category(&self, order: Order, category: &CostCategory, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -606,7 +600,8 @@ impl<T> Schema<T>
             let history_hash = history.object_hash();
             order.update_cost_category(category, updated, &history_hash)
         };
-        self.orders().put(&crypto::hash(id.as_bytes()), order);
+        self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
+        self.orders_update_rolling_index(&order);
     }
 }
 
