@@ -56,6 +56,7 @@ pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> R
     };
     let empty_costs = Costs::new();
     for (product_id, costs) in product_costs.iter() {
+        // if we have no incoming orders, effectively set costs to 0
         let costs = if orders_incoming.len() > 0 { costs } else { &empty_costs };
         schema.product_costs_attach(product_id, costs);
     }
