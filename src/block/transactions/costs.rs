@@ -5,7 +5,10 @@ use exonum_merkledb::IndexAccess;
 use costs;
 use crate::block::schema::Schema;
 use super::CommonError;
-use models::order::ProcessStatus;
+use models::{
+    order::ProcessStatus,
+    costs::Costs,
+};
 
 pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> Result<(), CommonError>
     where T: IndexAccess
@@ -51,9 +54,131 @@ pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> R
         Ok(x) => x,
         Err(_) => Err(CommonError::CostError)?,
     };
+    let empty_costs = Costs::new();
     for (product_id, costs) in product_costs.iter() {
+        let costs = if orders_incoming.len() > 0 { costs } else { &empty_costs };
         schema.product_costs_attach(product_id, costs);
     }
     Ok(())
+}
+
+#[cfg(test)]
+pub mod tests {
+    use chrono::Duration;
+    use models;
+    use util;
+    use crate::block::{transactions, schema::Schema};
+    use crate::test::{self, gen_uuid};
+
+    #[test]
+    fn order_costs() {
+        let mut testkit = test::init_testkit();
+        let uid = gen_uuid();
+        let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
+        testkit.create_block_with_transactions(txvec![tx_user]);
+
+        let co1_id = gen_uuid();
+        let co2_id = gen_uuid();
+        let co3_id = gen_uuid();
+        let tx_co1 = transactions::company::TxCreatePrivate::sign(
+            &co1_id,
+            &String::from("company1@basis.org"),
+            &String::from("Widget Builders Inc"),
+            &String::from("Widget builder"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        let tx_co2 = transactions::company::TxCreatePrivate::sign(
+            &co2_id,
+            &String::from("company2@basis.org"),
+            &String::from("Widget Distributors Inc"),
+            &String::from("Widget distributor"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        let tx_co3 = transactions::company::TxCreatePrivate::sign(
+            &co3_id,
+            &String::from("company3lol@basis.org"),
+            &String::from("Widget BLOWOUT EMPORIUM!!!1"),
+            &String::from("Widget distributor"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_co1, tx_co2, tx_co3]);
+
+        let prod_id = gen_uuid();
+        let tx_prod = transactions::product::TxCreate::sign(
+            &prod_id,
+            &co1_id,
+            &String::from("Red widget"),
+            &models::product::Unit::Millimeter,
+            &3.0,
+            &models::product::Dimensions::new(100.0, 100.0, 100.0),
+            &Vec::new(),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
+            &true,
+            &String::from("{}"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_prod]);
+
+        let labor_id = gen_uuid();
+        let tx_labor1 = transactions::labor::TxCreate::sign(
+            &labor_id,
+            &co1_id,
+            &uid,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1]);
+
+        let now = util::time::now();
+        let then = now - Duration::hours(8);
+        let tx_labor2 = transactions::labor::TxSetTime::sign(
+            &labor_id,
+            &then,
+            &now,
+            &now,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor2]);
+
+        let ord1_id = gen_uuid();
+        let tx_ord1 = transactions::order::TxCreate::sign(
+            &ord1_id,
+            &co2_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_id, 20334.0, &models::costs::Costs::new(), false)],
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        let ord2_id = gen_uuid();
+        let tx_ord2 = transactions::order::TxCreate::sign(
+            &ord2_id,
+            &co3_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_id, 10000.0, &models::costs::Costs::new(), false)],
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord1, tx_ord2]);
+
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let (_, costs, _) = schema.get_product_with_costs_tagged(&prod_id);
+        let costs = costs.unwrap();
+        assert_eq!(costs.labor().get("Widget builder").unwrap().clone(), 8.0 / (10000.0 + 20334.0));
+    }
 }
 
