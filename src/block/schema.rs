@@ -10,6 +10,7 @@ use exonum_merkledb::{
     ProofListIndex,
     ProofMapIndex,
     KeySetIndex,
+    BinaryValue,
 };
 use util;
 use models::{
@@ -35,8 +36,9 @@ impl<T> AsMut<T> for Schema<T> {
     }
 }
 
-fn index_and_rotate_mapindex<T>(idx: &mut MapIndex<T, String, String>, timestamp: i64, item_id: &str, cutoff: &DateTime<Utc>)
-    where T: IndexAccess
+fn index_and_rotate_mapindex<T, X>(idx: &mut MapIndex<T, String, X>, timestamp: i64, item_id: &str, item: &X, cutoff: &DateTime<Utc>)
+    where T: IndexAccess,
+          X: Clone + BinaryValue
 {
     fn key_to_datetime(key: &str) -> DateTime<Utc> {
         match key.find(":") {
@@ -51,7 +53,7 @@ fn index_and_rotate_mapindex<T>(idx: &mut MapIndex<T, String, String>, timestamp
     }
     let key = format!("{}:{}", timestamp, item_id);
 
-    idx.put(&key.to_owned(), item_id.to_owned());
+    idx.put(&key.to_owned(), item.clone());
     let mut remove_keys = Vec::new();
     for k in idx.keys() {
         let date = key_to_datetime(&k);
@@ -282,7 +284,7 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.labor.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn labor_idx_company_id_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+    pub fn labor_idx_company_id_rolling(&self, company_id: &str) -> MapIndex<T, String, Labor> {
         MapIndex::new_in_family("basis.labor.idx_company_id_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
@@ -293,9 +295,6 @@ impl<T> Schema<T>
     pub fn get_labor_recent(&self, company_id: &str) -> Vec<Labor> {
         self.labor_idx_company_id_rolling(company_id)
             .values()
-            .map(|x| self.get_labor(&x))
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
             .filter(|x| x.is_finalized())
             .collect::<Vec<_>>()
     }
@@ -313,7 +312,7 @@ impl<T> Schema<T>
 
     fn labor_update_rolling_index(&self, labor: &Labor, cutoff: &DateTime<Utc>) {
         let mut idx = self.labor_idx_company_id_rolling(&labor.company_id);
-        index_and_rotate_mapindex(&mut idx, labor.created.timestamp(), &labor.id, cutoff);
+        index_and_rotate_mapindex(&mut idx, labor.created.timestamp(), &labor.id, labor, cutoff);
     }
 
     pub fn labor_set_time(&mut self, labor: Labor, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -527,11 +526,11 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+    pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, Order> {
         MapIndex::new_in_family("basis.orders.idx_company_id_from_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
+    pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, Order> {
         MapIndex::new_in_family("basis.orders.idx_company_id_to_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
@@ -542,18 +541,12 @@ impl<T> Schema<T>
     pub fn get_orders_incoming_recent(&self, company_id: &str) -> Vec<Order> {
         self.orders_idx_company_id_to_rolling(company_id)
             .values()
-            .map(|x| self.get_order(&x))
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
             .collect::<Vec<_>>()
     }
 
     pub fn get_orders_outgoing_recent(&self, company_id: &str) -> Vec<Order> {
         self.orders_idx_company_id_from_rolling(company_id)
             .values()
-            .map(|x| self.get_order(&x))
-            .filter(|x| x.is_some())
-            .map(|x| x.unwrap())
             .collect::<Vec<_>>()
     }
 
@@ -569,15 +562,6 @@ impl<T> Schema<T>
         self.orders_idx_company_id_from(company_id_from).push(id.clone());
         self.orders_idx_company_id_to(company_id_to).push(id.clone());
         self.orders_update_rolling_index(&order);
-    }
-
-    fn orders_update_rolling_index(&self, order: &Order) {
-        let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
-        let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
-        // one year cutoff, hardcoded for now
-        let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
-        index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &cutoff);
-        index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &cutoff);
     }
 
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
@@ -602,6 +586,15 @@ impl<T> Schema<T>
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
         self.orders_update_rolling_index(&order);
+    }
+
+    fn orders_update_rolling_index(&self, order: &Order) {
+        let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
+        let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
+        // one year cutoff, hardcoded for now
+        let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
+        index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &order, &cutoff);
+        index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &order, &cutoff);
     }
 }
 
