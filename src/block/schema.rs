@@ -594,7 +594,7 @@ impl<T> Schema<T>
 
     pub fn orders_cost_gen_cache_get(&self, company_id: &str, now: &DateTime<Utc>) -> bool {
         let then = self.orders_cost_gen_cache().get(company_id).unwrap_or(util::time::default_time());
-        (*now - then).num_hours() >= 24
+        (*now - then).num_hours() < 24
     }
 
     pub fn orders_cost_gen_cache_set(&self, company_id: &str, now: &DateTime<Utc>) {
