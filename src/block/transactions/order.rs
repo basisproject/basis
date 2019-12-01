@@ -103,8 +103,8 @@ impl Transaction for TxCreate {
             }
         }
         schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &products, &self.created, &hash);
-        costs::calculate_product_costs(&mut schema, &self.company_id_from)?;
-        costs::calculate_product_costs(&mut schema, &self.company_id_to)?;
+        costs::calculate_product_costs(&mut schema, &self.company_id_from, &self.created)?;
+        costs::calculate_product_costs(&mut schema, &self.company_id_to, &self.created)?;
         Ok(())
     }
 }
@@ -148,8 +148,8 @@ impl Transaction for TxUpdateStatus {
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_status(order, &self.process_status, &self.updated, &hash);
-        costs::calculate_product_costs(&mut schema, &company_id_from)?;
-        costs::calculate_product_costs(&mut schema, &company_id_to)?;
+        costs::calculate_product_costs(&mut schema, &company_id_from, &self.updated)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to, &self.updated)?;
         Ok(())
     }
 }
@@ -186,8 +186,8 @@ impl Transaction for TxUpdateCostCategory {
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
-        costs::calculate_product_costs(&mut schema, &company_id_from)?;
-        costs::calculate_product_costs(&mut schema, &company_id_to)?;
+        costs::calculate_product_costs(&mut schema, &company_id_from, &self.updated)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to, &self.updated)?;
         Ok(())
     }
 }

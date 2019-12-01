@@ -534,6 +534,10 @@ impl<T> Schema<T>
         MapIndex::new_in_family("basis.orders.idx_company_id_to_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
+    pub fn orders_cost_gen_cache(&self) -> MapIndex<T, String, DateTime<Utc>> {
+        MapIndex::new("basis.orders.cost_gen_cache", self.access.clone())
+    }
+
     pub fn get_order(&self, id: &str) -> Option<Order> {
         self.orders().get(&crypto::hash(id.as_bytes()))
     }
@@ -586,6 +590,15 @@ impl<T> Schema<T>
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
         self.orders_update_rolling_index(&order);
+    }
+
+    pub fn orders_cost_gen_cache_get(&self, company_id: &str, now: &DateTime<Utc>) -> bool {
+        let then = self.orders_cost_gen_cache().get(company_id).unwrap_or(util::time::default_time());
+        (*now - then).num_hours() >= 24
+    }
+
+    pub fn orders_cost_gen_cache_set(&self, company_id: &str, now: &DateTime<Utc>) {
+        self.orders_cost_gen_cache().put(&company_id.to_string(), now.clone());
     }
 
     fn orders_update_rolling_index(&self, order: &Order) {

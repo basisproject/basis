@@ -136,7 +136,7 @@ impl Transaction for TxSetTime {
         let company_id = labor.company_id.clone();
         schema.labor_set_time(labor, start, end, &self.updated, &hash);
         if has_end {
-            costs::calculate_product_costs(&mut schema, &company_id)?;
+            costs::calculate_product_costs(&mut schema, &company_id, &self.updated)?;
         }
         Ok(())
     }
