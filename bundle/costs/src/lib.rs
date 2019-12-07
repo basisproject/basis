@@ -18,11 +18,11 @@ use models::labor::Labor;
 pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order>, labor: &Vec<Labor>, _wamortization: &HashMap<String, Amortization>, products: &HashMap<String, Product>) -> BResult<HashMap<String, Costs>> {
     // grab how many hours our orders cover
     let sum_hours = {
-        let incoming_start_time = if orders_incoming.len() > 0 { orders_incoming[0].updated.timestamp() } else { Utc::now().timestamp() };
-        let outgoing_start_time = if orders_outgoing.len() > 0 { orders_outgoing[0].updated.timestamp() } else { Utc::now().timestamp() };
+        let incoming_start_time = if orders_incoming.len() > 0 { orders_incoming[0].created.timestamp() } else { Utc::now().timestamp() };
+        let outgoing_start_time = if orders_outgoing.len() > 0 { orders_outgoing[0].created.timestamp() } else { Utc::now().timestamp() };
         let start_time = cmp::min(incoming_start_time, outgoing_start_time) as f64;
-        let incoming_end_time = if orders_incoming.len() > 0 { orders_incoming[orders_incoming.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
-        let outgoing_end_time = if orders_outgoing.len() > 0 { orders_outgoing[orders_outgoing.len() - 1].updated.timestamp() } else { Utc::now().timestamp() };
+        let incoming_end_time = if orders_incoming.len() > 0 { orders_incoming[orders_incoming.len() - 1].created.timestamp() } else { Utc::now().timestamp() };
+        let outgoing_end_time = if orders_outgoing.len() > 0 { orders_outgoing[orders_outgoing.len() - 1].created.timestamp() } else { Utc::now().timestamp() };
         let end_time = cmp::max(incoming_end_time, outgoing_end_time) as f64;
         let seconds = end_time - start_time;
         let hours = if seconds < 3600.0 {
