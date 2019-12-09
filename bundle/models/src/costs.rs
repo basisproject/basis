@@ -297,6 +297,18 @@ impl CostsBucketMap {
         entry.subtract(costs);
     }
 
+    pub fn add_map(&mut self, map: &HashMap<String, Costs>) {
+        for (key, val) in map.iter() {
+            self.add(key, val);
+        }
+    }
+
+    pub fn subtract_map(&mut self, map: &HashMap<String, Costs>) {
+        for (key, val) in map.iter() {
+            self.subtract(key, val);
+        }
+    }
+
     pub fn into_map(self) -> HashMap<String, CostsBucket> {
         let CostsBucketMap { map } = self;
         map
@@ -510,6 +522,28 @@ mod tests {
         assert_eq!(inv.len(), 2);
         assert_eq!(op.total(), Costs::new_with_product("BULLDOZER", 20.0 + 2.0));
         assert_eq!(op.len(), 2);
+
+        let mut bucketmap = CostsBucketMap::new();
+        let mut map = HashMap::new();
+        {
+            let inv = map.entry("inventory".to_owned()).or_insert(Costs::new());
+            *inv = inv.clone() + Costs::new_with_product("UNOBTAINIUM", 244.0);
+            *inv = inv.clone() + Costs::new_with_product("UNOBTAINIUM", 198.0);
+        }
+        {
+            let op = map.entry("operating".to_owned()).or_insert(Costs::new());
+            *op = op.clone() + Costs::new_with_product("BULLDOZER", 20.0);
+            *op = op.clone() + Costs::new_with_product("BULLDOZER", 2.0);
+        }
+        bucketmap.add_map(&map);
+
+        let map = bucketmap.into_map();
+        let inv = map.get("inventory").unwrap();
+        let op = map.get("operating").unwrap();
+        assert_eq!(inv.total(), Costs::new_with_product("UNOBTAINIUM", 244.0 + 198.0));
+        assert_eq!(inv.len(), 1);
+        assert_eq!(op.total(), Costs::new_with_product("BULLDOZER", 20.0 + 2.0));
+        assert_eq!(op.len(), 1);
     }
 }
 
