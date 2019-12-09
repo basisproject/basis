@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use crate::proto;
-use std::ops::{Add, Mul, Div};
+use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Clone, Debug, Default, ProtobufConvert)]
+#[derive(Clone, Debug, Default, PartialEq, ProtobufConvert)]
 #[exonum(pb = "proto::costs::Costs", serde_pb_convert)]
 pub struct Costs {
     pub products: HashMap<String, f64>,
@@ -108,6 +108,22 @@ impl Add for Costs {
     }
 }
 
+impl Sub for Costs {
+    type Output = Self;
+
+    fn sub(mut self, other: Self) -> Self {
+        for k in other.labor().keys() {
+            let entry = self.labor.entry(k.to_owned()).or_insert(0.0);
+            *entry -= other.labor().get(k).unwrap();
+        }
+        for k in other.products().keys() {
+            let entry = self.products.entry(k.to_owned()).or_insert(0.0);
+            *entry -= other.products().get(k).unwrap();
+        }
+        self
+    }
+}
+
 impl Mul for Costs {
     type Output = Self;
 
@@ -197,6 +213,34 @@ impl Div<f64> for Costs {
             *v /= rhs
         }
         self
+    }
+}
+
+#[derive(Clone, Debug, Default, ProtobufConvert)]
+#[exonum(pb = "proto::costs::CostsBucket", serde_pb_convert)]
+pub struct CostsBucket {
+    pub costs: Costs,
+    pub count: u64,
+}
+
+impl CostsBucket {
+    pub fn new() -> Self {
+        Self {
+            costs: Costs::new(),
+            count: 0,
+        }
+    }
+
+    /// Add an entry to the cost bucket
+    pub fn add(&mut self, costs: &Costs) {
+        self.costs = self.costs.clone() + costs.clone();
+        self.count += 1;
+    }
+
+    /// Subtract an entry from the cost bucket
+    pub fn subtract(&mut self, costs: &Costs) {
+        self.costs = self.costs.clone() - costs.clone();
+        self.count -= 1;
     }
 }
 
@@ -353,6 +397,34 @@ mod tests {
         costs.track("widget", 5.0);
         assert!(!costs.is_zero());
         assert!(!Costs::new_with_labor("dictator", 4.0).is_zero());
+    }
+
+    #[test]
+    fn cost_buckets() {
+        let mut bucket = CostsBucket::new();
+        assert_eq!(bucket.costs, Costs::new());
+        assert_eq!(bucket.count, 0);
+
+        let mut costs = Costs::new();
+        costs.track("widget", 69.0);
+        bucket.add(&costs);
+
+        assert_eq!(bucket.costs.get("widget"), 69.0);
+        assert_eq!(bucket.count, 1);
+
+        let mut costs = Costs::new();
+        costs.track("widget", 42.0);
+        bucket.add(&costs);
+
+        assert_eq!(bucket.costs.get("widget"), 69.0 + 42.0);
+        assert_eq!(bucket.count, 2);
+
+        let mut costs = Costs::new();
+        costs.track("widget", 69.0);
+        bucket.subtract(&costs);
+
+        assert_eq!(bucket.costs.get("widget"), 42.0);
+        assert_eq!(bucket.count, 1);
     }
 }
 

@@ -8,3 +8,8 @@ message Costs {
 	map<string, double> labor = 2;
 }
 
+message CostsBucket {
+	Costs costs = 1;
+	uint64 count = 2;
+}
+
