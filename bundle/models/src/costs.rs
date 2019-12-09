@@ -242,6 +242,30 @@ impl CostsBucket {
         self.costs = self.costs.clone() - costs.clone();
         self.count -= 1;
     }
+
+    pub fn add_single(&mut self, val: f64) {
+        self.costs.track("_single", val);
+        self.count += 1;
+    }
+
+    pub fn subtract_single(&mut self, val: f64) {
+        let mut tmp_costs = Costs::new();
+        tmp_costs.track("_single", val);
+        self.costs = self.costs.clone() - tmp_costs;
+        self.count -= 1;
+    }
+
+    pub fn total(&self) -> Costs {
+        self.costs.clone()
+    }
+
+    pub fn total_single(&self) -> f64 {
+        self.costs.get("_single")
+    }
+
+    pub fn len(&self) -> u64 {
+        self.count
+    }
 }
 
 #[cfg(test)]
@@ -409,22 +433,34 @@ mod tests {
         costs.track("widget", 69.0);
         bucket.add(&costs);
 
-        assert_eq!(bucket.costs.get("widget"), 69.0);
-        assert_eq!(bucket.count, 1);
+        assert_eq!(bucket.total().get("widget"), 69.0);
+        assert_eq!(bucket.len(), 1);
 
         let mut costs = Costs::new();
         costs.track("widget", 42.0);
         bucket.add(&costs);
 
-        assert_eq!(bucket.costs.get("widget"), 69.0 + 42.0);
-        assert_eq!(bucket.count, 2);
+        assert_eq!(bucket.total().get("widget"), 69.0 + 42.0);
+        assert_eq!(bucket.len(), 2);
 
         let mut costs = Costs::new();
         costs.track("widget", 69.0);
         bucket.subtract(&costs);
 
-        assert_eq!(bucket.costs.get("widget"), 42.0);
-        assert_eq!(bucket.count, 1);
+        assert_eq!(bucket.total().get("widget"), 42.0);
+        assert_eq!(bucket.len(), 1);
+
+        let mut single_bucket = CostsBucket::new();
+        single_bucket.add_single(64.5);
+        single_bucket.add_single(12.0);
+
+        assert_eq!(single_bucket.total_single(), 64.5 + 12.0);
+        assert_eq!(single_bucket.len(), 2);
+
+        single_bucket.subtract_single(64.5);
+
+        assert_eq!(single_bucket.total_single(), 12.0);
+        assert_eq!(single_bucket.len(), 1);
     }
 }
 
