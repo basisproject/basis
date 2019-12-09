@@ -75,10 +75,17 @@ impl<T> Schema<T>
         Schema { access }
     }
 
-    // TODO: ???
-    // obviously this should be more general than just users?
     pub fn state_hash(&self) -> Vec<Hash> {
-        vec![self.users().object_hash()]
+        vec![
+            self.users().object_hash(),
+            self.companies().object_hash(),
+            // NOTE: Should this be a flat list, with an index by company id?
+            //self.companies_members().object_hash(),
+            self.labor().object_hash(),
+            self.products().object_hash(),
+            self.resource_tags().object_hash(),
+            self.orders().object_hash(),
+        ]
     }
 
     // -------------------------------------------------------------------------
