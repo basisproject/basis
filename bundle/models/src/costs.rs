@@ -23,6 +23,12 @@ impl Costs {
         costs
     }
 
+    pub fn new_with_product(prod: &str, val: f64) -> Self {
+        let mut costs = Self::new();
+        costs.track(prod, val);
+        costs
+    }
+
     pub fn track(&mut self, prod: &str, val: f64) {
         if val < 0.0 {
             panic!("Costs::track() -- given value must be >= 0.0")
@@ -268,6 +274,35 @@ impl CostsBucket {
     }
 }
 
+#[derive(Clone, Debug, Default, ProtobufConvert)]
+#[exonum(pb = "proto::costs::CostsBucketMap", serde_pb_convert)]
+pub struct CostsBucketMap {
+    pub map: HashMap<String, CostsBucket>,
+}
+
+impl CostsBucketMap {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn add(&mut self, key: &str, costs: &Costs) {
+        let entry = self.map.entry(key.to_owned()).or_insert(CostsBucket::new());
+        entry.add(costs);
+    }
+
+    pub fn subtract(&mut self, key: &str, costs: &Costs) {
+        let entry = self.map.entry(key.to_owned()).or_insert(CostsBucket::new());
+        entry.subtract(costs);
+    }
+
+    pub fn into_map(self) -> HashMap<String, CostsBucket> {
+        let CostsBucketMap { map } = self;
+        map
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -461,6 +496,20 @@ mod tests {
 
         assert_eq!(single_bucket.total_single(), 12.0);
         assert_eq!(single_bucket.len(), 1);
+
+        let mut bucketmap = CostsBucketMap::new();
+        bucketmap.add("inventory", &Costs::new_with_product("UNOBTAINIUM", 244.0));
+        bucketmap.add("inventory", &Costs::new_with_product("UNOBTAINIUM", 198.0));
+        bucketmap.add("operating", &Costs::new_with_product("BULLDOZER", 20.0));
+        bucketmap.add("operating", &Costs::new_with_product("BULLDOZER", 2.0));
+
+        let map = bucketmap.into_map();
+        let inv = map.get("inventory").unwrap();
+        let op = map.get("operating").unwrap();
+        assert_eq!(inv.total(), Costs::new_with_product("UNOBTAINIUM", 244.0 + 198.0));
+        assert_eq!(inv.len(), 2);
+        assert_eq!(op.total(), Costs::new_with_product("BULLDOZER", 20.0 + 2.0));
+        assert_eq!(op.len(), 2);
     }
 }
 

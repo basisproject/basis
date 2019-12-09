@@ -13,3 +13,7 @@ message CostsBucket {
 	uint64 count = 2;
 }
 
+message CostsBucketMap {
+	map<string, CostsBucket> map = 1;
+}
+
