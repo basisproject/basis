@@ -96,7 +96,10 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
             sum_produced.insert(prod.id.clone(), 1.0);
         }
     }
+    calculate_costs_with_aggregates(products, sum_hours, &sum_costs, &sum_produced, &avg_input_costs)
+}
 
+pub fn calculate_costs_with_aggregates(products: &HashMap<String, Product>, sum_hours: f64, sum_costs: &HashMap<CostCategory, Costs>, sum_produced: &HashMap<String, f64>, avg_input_costs: &HashMap<String, Costs>) -> BResult<HashMap<String, Costs>> {
     // grab our cost category sums
     let costs_operating = sum_costs.get(&CostCategory::Operating).unwrap_or(&Costs::new()).clone();
     let costs_inputs = sum_costs.get(&CostCategory::Inventory).unwrap_or(&Costs::new()).clone();
