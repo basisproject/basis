@@ -1,5 +1,6 @@
 /play
 vars.mk
+vars.*.mk
 target
 /config/config.yaml
 *sess.vim
