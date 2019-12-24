@@ -63,6 +63,7 @@ impl Costs {
         *self.labor.get(ty).unwrap_or(&0.0)
     }
 
+    /// Test if we have an empty cost set
     pub fn is_zero(&self) -> bool {
         for (_, val) in self.labor.iter() {
             if val > &0.0 {
@@ -277,7 +278,7 @@ impl CostsBucket {
 #[derive(Clone, Debug, Default, ProtobufConvert)]
 #[exonum(pb = "proto::costs::CostsBucketMap", serde_pb_convert)]
 pub struct CostsBucketMap {
-    pub map: HashMap<String, CostsBucket>,
+    map: HashMap<String, CostsBucket>,
 }
 
 impl CostsBucketMap {
@@ -307,6 +308,10 @@ impl CostsBucketMap {
         for (key, val) in map.iter() {
             self.subtract(key, val);
         }
+    }
+
+    pub fn map_ref<'a>(&'a self) -> &'a HashMap<String, CostsBucket> {
+        &self.map
     }
 
     pub fn into_map(self) -> HashMap<String, CostsBucket> {
