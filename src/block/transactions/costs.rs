@@ -1,7 +1,6 @@
 //! Defines logic for generating and assigning costs to products
 
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use exonum_merkledb::IndexAccess;
 use costs;
 use crate::block::schema::Schema;
@@ -11,15 +10,9 @@ use models::{
     costs::Costs,
 };
 
-pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str, now: &DateTime<Utc>) -> Result<(), CommonError>
+pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> Result<(), CommonError>
     where T: IndexAccess
 {
-    // check our cost gen cache. companies should only generate their costs once
-    // every set period of time (eg 24h) and otherwise
-    if schema.orders_cost_gen_cache_get(company_id, now) {
-        return Ok(());
-    }
-
     let orders_incoming = schema.get_orders_incoming_recent(company_id);
     let orders_outgoing = schema.get_orders_outgoing_recent(company_id);
     // grab how many finalized incoming orders we have
@@ -67,9 +60,6 @@ pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str, now:
         let costs = if orders_incoming.len() > 0 { costs } else { &empty_costs };
         schema.product_costs_attach(product_id, costs);
     }
-    // costs were generated. make sure we don't do it again for some period of
-    // time
-    schema.orders_cost_gen_cache_set(company_id, now);
     Ok(())
 }
 

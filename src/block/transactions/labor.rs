@@ -136,7 +136,7 @@ impl Transaction for TxSetTime {
         let company_id = labor.company_id.clone();
         schema.labor_set_time(labor, start, end, &self.updated, &hash);
         if has_end {
-            costs::calculate_product_costs(&mut schema, &company_id, &self.updated)?;
+            costs::calculate_product_costs(&mut schema, &company_id)?;
         }
         Ok(())
     }
@@ -149,6 +149,7 @@ pub mod tests {
     use util;
     use crate::block::{transactions, schema::Schema};
     use crate::test::{self, gen_uuid};
+    use models::costs::Costs;
 
     #[test]
     fn rotating_indexes_work_properly() {
@@ -219,8 +220,12 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_labor1]);
 
         let snapshot = testkit.snapshot();
-        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
         assert_eq!(idx.keys().count(), 1);
+        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", 4.0));
 
         let tx_labor2 = transactions::labor::TxSetTime::sign(
             &labor2_id,
@@ -233,8 +238,12 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_labor2]);
 
         let snapshot = testkit.snapshot();
-        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
         assert_eq!(idx.keys().count(), 2);
+        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", 4.0 + 8.0));
 
         let tx_labor3 = transactions::labor::TxSetTime::sign(
             &labor3_id,
@@ -247,8 +256,12 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_labor3]);
 
         let snapshot = testkit.snapshot();
-        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
         assert_eq!(idx.keys().count(), 2);
+        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", (4.0 + 8.0 + 6.0) - 4.0));
     }
 }
 

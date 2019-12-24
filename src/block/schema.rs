@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use exonum::{
     crypto::{self, Hash, PublicKey},
@@ -10,7 +11,6 @@ use exonum_merkledb::{
     ProofListIndex,
     ProofMapIndex,
     KeySetIndex,
-    BinaryValue,
 };
 use util;
 use models::{
@@ -22,7 +22,7 @@ use models::{
     product::{Product, Unit, Dimensions, Input, Effort},
     resource_tag::ResourceTag,
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
-    costs::Costs,
+    costs::{Costs, CostsBucketMap},
 };
 
 #[derive(Debug)]
@@ -36,24 +36,47 @@ impl<T> AsMut<T> for Schema<T> {
     }
 }
 
-fn index_and_rotate_mapindex<T, X>(idx: &mut MapIndex<T, String, X>, timestamp: i64, item_id: &str, item: &X, cutoff: &DateTime<Utc>)
-    where T: IndexAccess,
-          X: Clone + BinaryValue
-{
-    fn key_to_datetime(key: &str) -> DateTime<Utc> {
-        match key.find(":") {
-            Some(x) => {
-                match &key[0..x].parse::<i64>() {
-                    Ok(ts) => util::time::from_timestamp(*ts),
-                    Err(_) => util::time::default_time(),
-                }
+/// Given a rotational index key, return a DateTime object
+fn key_to_datetime(key: &str) -> DateTime<Utc> {
+    match key.find(":") {
+        Some(x) => {
+            match &key[0..x].parse::<i64>() {
+                Ok(ts) => util::time::from_timestamp(*ts),
+                Err(_) => util::time::default_time(),
             }
-            None => util::time::default_time(),
+        }
+        None => util::time::default_time(),
+    }
+}
+/// Given a time-rotated index, test if the given timestamp is obsolete (as in,
+/// is older than the oldest record in the index, signifying that it has been
+/// rotated out and no longer belongs in the index).
+fn is_rotate_record_obsolete<T>(idx: &mut MapIndex<T, String, String>, timestamp: i64) -> bool
+    where T: IndexAccess,
+{
+    match idx.keys().next() {
+        Some(key) => {
+            let key_date = key_to_datetime(&key);
+            timestamp < key_date.timestamp()
+        }
+        None => false,
+    }
+}
+
+fn index_and_rotate_mapindex<T, F>(idx: &mut MapIndex<T, String, String>, timestamp: i64, item_id: &str, cutoff: &DateTime<Utc>, mut op_cb: F)
+    where T: IndexAccess,
+          F: FnMut(String, bool),
+{
+    fn key_to_id(key: &str) -> String {
+        match key.find(":") {
+            Some(x) => String::from(&key[(x + 1)..]),
+            None => key.to_owned()
         }
     }
     let key = format!("{}:{}", timestamp, item_id);
 
-    idx.put(&key.to_owned(), item.clone());
+    op_cb(item_id.to_owned(), false);
+    idx.put(&key, item_id.to_owned());
     let mut remove_keys = Vec::new();
     for k in idx.keys() {
         let date = key_to_datetime(&k);
@@ -64,6 +87,8 @@ fn index_and_rotate_mapindex<T, X>(idx: &mut MapIndex<T, String, X>, timestamp: 
         }
     }
     for k in &remove_keys {
+        let item_id = key_to_id(k);
+        op_cb(item_id, true);
         idx.remove(k);
     }
 }
@@ -291,7 +316,7 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.labor.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn labor_idx_company_id_rolling(&self, company_id: &str) -> MapIndex<T, String, Labor> {
+    pub fn labor_idx_company_id_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
         MapIndex::new_in_family("basis.labor.idx_company_id_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
@@ -302,6 +327,9 @@ impl<T> Schema<T>
     pub fn get_labor_recent(&self, company_id: &str) -> Vec<Labor> {
         self.labor_idx_company_id_rolling(company_id)
             .values()
+            .map(|x| self.get_labor(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
             .filter(|x| x.is_finalized())
             .collect::<Vec<_>>()
     }
@@ -313,18 +341,14 @@ impl<T> Schema<T>
             let history_hash = history.object_hash();
             Labor::new(id, company_id, user_id, occupation, Some(created), None, created, created, history.len(), &history_hash)
         };
-        self.labor().put(&crypto::hash(id.as_bytes()), labor);
+        self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
         self.labor_idx_company_id(company_id).push(id.to_owned());
-    }
-
-    fn labor_update_rolling_index(&self, labor: &Labor, cutoff: &DateTime<Utc>) {
-        let mut idx = self.labor_idx_company_id_rolling(&labor.company_id);
-        index_and_rotate_mapindex(&mut idx, labor.created.timestamp(), &labor.id, labor, cutoff);
+        self.labor_update_rolling_index(&labor, None);
     }
 
     pub fn labor_set_time(&mut self, labor: Labor, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = labor.id.clone();
-        let has_end = end.is_some();
+        let labor_original = labor.clone();
         let labor = {
             let mut history = self.labor_history(&id);
             history.push(*transaction);
@@ -332,11 +356,43 @@ impl<T> Schema<T>
             labor.set_time(start, end, updated, &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
-        if has_end {
-            // one year cutoff, hardcoded for now
-            let cutoff = util::time::from_timestamp(labor.created.timestamp() - (3600 * 24 * 365));
-            self.labor_update_rolling_index(&labor, &cutoff);
+        self.labor_update_rolling_index(&labor, Some(&labor_original));
+    }
+
+    fn labor_update_rolling_index(&self, labor: &Labor, original: Option<&Labor>) {
+        let mut idx = self.labor_idx_company_id_rolling(&labor.company_id);
+        if is_rotate_record_obsolete(&mut idx, labor.created.timestamp()) {
+            return;
         }
+        // one year cutoff, hardcoded for now
+        let cutoff = util::time::from_timestamp(labor.created.timestamp() - (3600 * 24 * 365));
+        let labor_tbl = self.labor();
+        let mut cost_agg = self.costs_aggregate(&labor.company_id);
+        let mut bucket_map_labor = match cost_agg.get("labor.v1") {
+            Some(x) => x,
+            None => CostsBucketMap::new(),
+        };
+
+        let mut op_cb_impl = |labor: Labor, is_remove: bool| {
+            if !labor.is_finalized() {
+                return;
+            }
+            if is_remove {
+                bucket_map_labor.subtract("hours", &Costs::new_with_labor(&labor.occupation, labor.hours()));
+            } else {
+                bucket_map_labor.add("hours", &Costs::new_with_labor(&labor.occupation, labor.hours()));
+            }
+        };
+        original.map(|x| op_cb_impl(x.clone(), true));
+        let op_cb = |labor_id: String, is_remove: bool| {
+            let labor = match labor_tbl.get(&crypto::hash(labor_id.as_bytes())) {
+                Some(x) => x,
+                None => return,
+            };
+            op_cb_impl(labor, is_remove);
+        };
+        index_and_rotate_mapindex(&mut idx, labor.created.timestamp(), &labor.id, &cutoff, op_cb);
+        cost_agg.put(&String::from("labor.v1"), bucket_map_labor);
     }
 
     // -------------------------------------------------------------------------
@@ -362,7 +418,7 @@ impl<T> Schema<T>
         self.products().get(&crypto::hash(id.as_bytes()))
     }
 
-    pub fn get_products_for_company_id(&self, company_id: &str) -> Vec<Product> {
+    pub fn get_products_by_company_id(&self, company_id: &str) -> Vec<Product> {
         self.products_idx_company_id(company_id)
             .iter()
             .map(|x| self.get_product(&x))
@@ -496,6 +552,10 @@ impl<T> Schema<T>
         MapIndex::new("basis.product_costs.table", self.access.clone())
     }
 
+    pub fn costs_aggregate(&self, company_id: &str) -> MapIndex<T, String, CostsBucketMap> {
+        MapIndex::new_in_family("basis.costs_aggregate.table", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
     pub fn get_product_costs(&self, product_id: &str) -> Option<Costs> {
         self.product_costs().get(product_id)
     }
@@ -533,16 +593,12 @@ impl<T> Schema<T>
         ListIndex::new_in_family("basis.orders.idx_company_id_to", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, Order> {
+    pub fn orders_idx_company_id_from_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
         MapIndex::new_in_family("basis.orders.idx_company_id_from_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, Order> {
+    pub fn orders_idx_company_id_to_rolling(&self, company_id: &str) -> MapIndex<T, String, String> {
         MapIndex::new_in_family("basis.orders.idx_company_id_to_rolling", &crypto::hash(company_id.as_bytes()), self.access.clone())
-    }
-
-    pub fn orders_cost_gen_cache(&self) -> MapIndex<T, String, DateTime<Utc>> {
-        MapIndex::new("basis.orders.cost_gen_cache", self.access.clone())
     }
 
     pub fn get_order(&self, id: &str) -> Option<Order> {
@@ -552,12 +608,18 @@ impl<T> Schema<T>
     pub fn get_orders_incoming_recent(&self, company_id: &str) -> Vec<Order> {
         self.orders_idx_company_id_to_rolling(company_id)
             .values()
+            .map(|x| self.get_order(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
             .collect::<Vec<_>>()
     }
 
     pub fn get_orders_outgoing_recent(&self, company_id: &str) -> Vec<Order> {
         self.orders_idx_company_id_from_rolling(company_id)
             .values()
+            .map(|x| self.get_order(&x))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
             .collect::<Vec<_>>()
     }
 
@@ -572,11 +634,12 @@ impl<T> Schema<T>
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
         self.orders_idx_company_id_from(company_id_from).push(id.clone());
         self.orders_idx_company_id_to(company_id_to).push(id.clone());
-        self.orders_update_rolling_index(&order);
+        self.orders_update_rolling_index(&order, None);
     }
 
     pub fn orders_update_status(&self, order: Order, process_status: &ProcessStatus, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = order.id.clone();
+        let order_original = order.clone();
         let order = {
             let mut history = self.orders_history(&id);
             history.push(*transaction);
@@ -584,11 +647,12 @@ impl<T> Schema<T>
             order.update_status(process_status, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
-        self.orders_update_rolling_index(&order);
+        self.orders_update_rolling_index(&order, Some(&order_original));
     }
 
     pub fn orders_update_cost_category(&self, order: Order, category: &CostCategory, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = order.id.clone();
+        let order_original = order.clone();
         let order = {
             let mut history = self.orders_history(&id);
             history.push(*transaction);
@@ -596,25 +660,109 @@ impl<T> Schema<T>
             order.update_cost_category(category, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
-        self.orders_update_rolling_index(&order);
+        self.orders_update_rolling_index(&order, Some(&order_original));
     }
 
-    pub fn orders_cost_gen_cache_get(&self, company_id: &str, now: &DateTime<Utc>) -> bool {
-        let then = self.orders_cost_gen_cache().get(company_id).unwrap_or(util::time::default_time());
-        (*now - then).num_hours() < 24
-    }
-
-    pub fn orders_cost_gen_cache_set(&self, company_id: &str, now: &DateTime<Utc>) {
-        self.orders_cost_gen_cache().put(&company_id.to_string(), now.clone());
-    }
-
-    fn orders_update_rolling_index(&self, order: &Order) {
+    fn orders_update_rolling_index(&self, order: &Order, original: Option<&Order>) {
         let mut idx_from = self.orders_idx_company_id_from_rolling(&order.company_id_from);
         let mut idx_to = self.orders_idx_company_id_to_rolling(&order.company_id_to);
+        if is_rotate_record_obsolete(&mut idx_from, order.created.timestamp()) {
+            return;
+        }
         // one year cutoff, hardcoded for now
         let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
-        index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &order, &cutoff);
-        index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &order, &cutoff);
+        let order_tbl = self.orders();
+
+        // company from (the company making the order) is going to track this
+        // order as costs
+        let mut cost_agg = self.costs_aggregate(&order.company_id_from);
+        let mut bucket_map_costs = match cost_agg.get("costs.v1") {
+            Some(x) => x,
+            None => CostsBucketMap::new(),
+        };
+        let mut bucket_map_costs_inputs = match cost_agg.get("costs_inputs.v1") {
+            Some(x) => x,
+            None => CostsBucketMap::new(),
+        };
+        let mut op_cb_impl = |order: Order, is_remove: bool| {
+            if order.process_status != ProcessStatus::Finalized {
+                return;
+            }
+            let mut costs: HashMap<String, Costs> = HashMap::new();
+            let mut costs_inputs: HashMap<String, Costs> = HashMap::new();
+            for entry in &order.products {
+                let cat = order.cost_category.clone();
+                let cat_string = cat.as_str().to_owned();
+                let current = costs.entry(cat_string).or_insert(Default::default());
+                let mut prod_costs = entry.costs.clone() * entry.quantity;
+                if entry.is_resource() {
+                    let mut tmp_costs = Costs::new();
+                    tmp_costs.track(&entry.product_id, entry.quantity);
+                    prod_costs = prod_costs + tmp_costs;
+                }
+                *current = current.clone() + prod_costs.clone();
+                if cat == CostCategory::Inventory {
+                    let prod_inp_costs = costs_inputs.entry(entry.product_id.clone()).or_insert(Costs::new());
+                    *prod_inp_costs = prod_inp_costs.clone() + prod_costs;
+                }
+            }
+
+            if is_remove {
+                bucket_map_costs.subtract_map(&costs);
+                bucket_map_costs_inputs.subtract_map(&costs_inputs);
+            } else {
+                bucket_map_costs.add_map(&costs);
+                bucket_map_costs_inputs.add_map(&costs_inputs);
+            }
+        };
+        original.map(|x| op_cb_impl(x.clone(), true));
+        let op_cb = |order_id: String, is_remove: bool| {
+            let order = match order_tbl.get(&crypto::hash(order_id.as_bytes())) {
+                Some(x) => x,
+                None => return,
+            };
+            op_cb_impl(order, is_remove)
+        };
+        index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &cutoff, op_cb);
+        cost_agg.put(&String::from("costs.v1"), bucket_map_costs);
+        cost_agg.put(&String::from("costs_inputs.v1"), bucket_map_costs_inputs);
+
+        // company to (the receiver) is going to track this order as product
+        // output(s)
+        let mut cost_agg = self.costs_aggregate(&order.company_id_to);
+        let mut bucket_map_outputs = match cost_agg.get("product_outputs.v1") {
+            Some(x) => x,
+            None => CostsBucketMap::new(),
+        };
+        // one year cutoff, hardcoded for now
+        let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
+        let mut op_cb_impl = |order: Order, is_remove: bool| {
+            if order.process_status != ProcessStatus::Finalized {
+                return;
+            }
+            let mut outputs = Costs::new();
+            for entry in &order.products {
+                outputs.track(&entry.product_id, entry.quantity);
+            }
+            if is_remove {
+                bucket_map_outputs.subtract("outputs", &outputs);
+            } else {
+                bucket_map_outputs.add("outputs", &outputs);
+            }
+        };
+        match original {
+            Some(x) => op_cb_impl(x.clone(), true),
+            None => {}
+        }
+        let op_cb = |order_id: String, is_remove: bool| {
+            let order = match order_tbl.get(&crypto::hash(order_id.as_bytes())) {
+                Some(x) => x,
+                None => return,
+            };
+            op_cb_impl(order, is_remove)
+        };
+        index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &cutoff, op_cb);
+        cost_agg.put(&String::from("product_outputs.v1"), bucket_map_outputs);
     }
 }
 

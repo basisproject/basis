@@ -103,8 +103,8 @@ impl Transaction for TxCreate {
             }
         }
         schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &products, &self.created, &hash);
-        costs::calculate_product_costs(&mut schema, &self.company_id_from, &self.created)?;
-        costs::calculate_product_costs(&mut schema, &self.company_id_to, &self.created)?;
+        costs::calculate_product_costs(&mut schema, &self.company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &self.company_id_to)?;
         Ok(())
     }
 }
@@ -148,8 +148,8 @@ impl Transaction for TxUpdateStatus {
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_status(order, &self.process_status, &self.updated, &hash);
-        costs::calculate_product_costs(&mut schema, &company_id_from, &self.updated)?;
-        costs::calculate_product_costs(&mut schema, &company_id_to, &self.updated)?;
+        costs::calculate_product_costs(&mut schema, &company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to)?;
         Ok(())
     }
 }
@@ -186,8 +186,8 @@ impl Transaction for TxUpdateCostCategory {
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
         schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
-        costs::calculate_product_costs(&mut schema, &company_id_from, &self.updated)?;
-        costs::calculate_product_costs(&mut schema, &company_id_to, &self.updated)?;
+        costs::calculate_product_costs(&mut schema, &company_id_from)?;
+        costs::calculate_product_costs(&mut schema, &company_id_to)?;
         Ok(())
     }
 }
@@ -208,8 +208,10 @@ pub mod tests {
         let (tx_user, root_pub, root_sec) = test::tx_superuser(&uid);
         testkit.create_block_with_transactions(txvec![tx_user]);
 
+        // create our STINKIN COMPANIES
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
+        let co3_id = gen_uuid();
         let tx_co1 = transactions::company::TxCreatePrivate::sign(
             &co1_id,
             &String::from("company1@basis.org"),
@@ -228,17 +230,57 @@ pub mod tests {
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_co1, tx_co2]);
+        let tx_co3 = transactions::company::TxCreatePrivate::sign(
+            &co3_id,
+            &String::from("company3@basis.org"),
+            &String::from("Miner 49er"),
+            &String::from("Coal miner"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_co1, tx_co2, tx_co3]);
 
-        let prod_id = gen_uuid();
+        // create our coal product
+        let prod_coal_id = gen_uuid();
         let tx_prod = transactions::product::TxCreate::sign(
-            &prod_id,
+            &prod_coal_id,
+            &co3_id,
+            &String::from("Coal"),
+            &models::product::Unit::Millimeter,
+            &1.0,
+            &models::product::Dimensions::new(100.0, 100.0, 100.0),
+            &Vec::new(),
+            &models::product::Effort::new(&models::product::EffortTime::Minutes, 3),
+            &true,
+            &String::from("{}"),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_prod]);
+
+        // tag coal as a resource
+        let tag_id = gen_uuid();
+        let tx_tag = transactions::resource_tag::TxCreate::sign(
+            &tag_id,
+            &prod_coal_id,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_tag]);
+
+        // make some WIDGETS
+        let prod_widget_id = gen_uuid();
+        let tx_prod = transactions::product::TxCreate::sign(
+            &prod_widget_id,
             &co1_id,
             &String::from("Red widget"),
             &models::product::Unit::Millimeter,
             &3.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
-            &Vec::new(),
+            &vec![models::product::Input::new(&prod_coal_id, 6.0)],
             &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
             &true,
             &String::from("{}"),
@@ -248,88 +290,64 @@ pub mod tests {
         );
         testkit.create_block_with_transactions(txvec![tx_prod]);
 
-        let tag_id = gen_uuid();
-        let tx_tag = transactions::resource_tag::TxCreate::sign(
-            &tag_id,
-            &prod_id,
-            &util::time::now(),
-            &root_pub,
-            &root_sec
-        );
-        testkit.create_block_with_transactions(txvec![tx_tag]);
-
-        let labor_id = gen_uuid();
+        // log some labor into the widget builder and miner
+        let labor1_id = gen_uuid();
+        let labor2_id = gen_uuid();
         let tx_labor1 = transactions::labor::TxCreate::sign(
-            &labor_id,
+            &labor1_id,
             &co1_id,
             &uid,
             &util::time::now(),
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_labor1]);
+        let tx_labor2 = transactions::labor::TxCreate::sign(
+            &labor2_id,
+            &co3_id,
+            &uid,
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor1, tx_labor2]);
 
         let now = util::time::now();
         let then = now - Duration::hours(8);
-        let tx_labor2 = transactions::labor::TxSetTime::sign(
-            &labor_id,
+        let tx_labor_fin1 = transactions::labor::TxSetTime::sign(
+            &labor1_id,
             &then,
             &now,
             &now,
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_labor2]);
+        let tx_labor_fin2 = transactions::labor::TxSetTime::sign(
+            &labor2_id,
+            &then,
+            &now,
+            &now,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_labor_fin1, tx_labor_fin2]);
 
+        // orders!
+        let costs = models::costs::Costs::new();
+        // widget builder orders coal
         let ord1_id = gen_uuid();
-        let ord2_id = gen_uuid();
-        let ord3_id = gen_uuid();
+        let ord1_date: DateTime<Utc> = "2018-01-01T04:00:00Z".parse().unwrap();
         let tx_ord1 = transactions::order::TxCreate::sign(
             &ord1_id,
-            &co2_id,
             &co1_id,
+            &co3_id,
             &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
-            &util::time::now(),
+            &vec![models::order::ProductEntry::new(&prod_coal_id, 100.0, &costs, false)],
+            &ord1_date,
             &root_pub,
             &root_sec
         );
-        let tx_ord2 = transactions::order::TxCreate::sign(
-            &ord2_id,
-            &co2_id,
-            &co1_id,
-            &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
-            &util::time::now(),
-            &root_pub,
-            &root_sec
-        );
-        let tx_ord3 = transactions::order::TxCreate::sign(
-            &ord3_id,
-            &co2_id,
-            &co1_id,
-            &models::order::CostCategory::Operating,
-            &vec![models::order::ProductEntry::new(&prod_id, 2.0, &models::costs::Costs::new(), false)],
-            &util::time::now(),
-            &root_pub,
-            &root_sec
-        );
-        testkit.create_block_with_transactions(txvec![tx_ord1, tx_ord2, tx_ord3]);
-
-        let snapshot = testkit.snapshot();
-        let num_orders = Schema::new(&snapshot).orders().keys().count();
-        let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
-        let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(num_orders, 3);
-        assert_eq!(idx_from.keys().count(), 3);
-        assert_eq!(idx_to.keys().count(), 3);
-
-        // test for resource tagging
-        let order = Schema::new(&snapshot).get_order(&ord1_id).unwrap();
-        assert!(order.products[0].is_resource());
-
-        let ord1_date: DateTime<Utc> = "2018-01-01T00:00:00Z".parse().unwrap();
-        let ord2_date: DateTime<Utc> = "2018-07-01T00:00:00Z".parse().unwrap();
+        testkit.create_block_with_transactions(txvec![tx_ord1]);
+        // finalize
         let tx_ord1_stat = transactions::order::TxUpdateStatus::sign(
             &ord1_id,
             &models::order::ProcessStatus::Finalized,
@@ -339,26 +357,157 @@ pub mod tests {
         );
         testkit.create_block_with_transactions(txvec![tx_ord1_stat]);
 
-        let snapshot = testkit.snapshot();
-        let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
-        let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 3);
-        assert_eq!(idx_to.keys().count(), 3);
-
-        let tx_ord2_stat = transactions::order::TxUpdateStatus::sign(
-            &ord2_id,
+        // widget builder orders coal (again, gets costs of coal into widgets)
+        let ord1_1_id = gen_uuid();
+        let ord1_1_date: DateTime<Utc> = "2018-01-02T04:00:00Z".parse().unwrap();
+        let tx_ord1_1 = transactions::order::TxCreate::sign(
+            &ord1_1_id,
+            &co1_id,
+            &co3_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_coal_id, 50.0, &costs, false)],
+            &ord1_1_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord1_1]);
+        // finalize
+        let tx_ord1_1_stat = transactions::order::TxUpdateStatus::sign(
+            &ord1_1_id,
             &models::order::ProcessStatus::Finalized,
+            &ord1_1_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord1_1_stat]);
+
+        // widget distributor orders widgets
+        let ord2_id = gen_uuid();
+        let ord3_id = gen_uuid();
+        let ord2_date: DateTime<Utc> = "2018-01-03T04:00:00Z".parse().unwrap();
+        let ord3_date: DateTime<Utc> = "2018-07-01T08:00:00Z".parse().unwrap();
+        let costs = models::costs::Costs::new();
+        let tx_ord2 = transactions::order::TxCreate::sign(
+            &ord2_id,
+            &co2_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_widget_id, 12.0, &costs, false)],
             &ord2_date,
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_ord2_stat]);
+        // opps need maor widgets lol thx
+        let tx_ord3 = transactions::order::TxCreate::sign(
+            &ord3_id,
+            &co2_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_widget_id, 5.0, &costs, false)],
+            &ord3_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord2, tx_ord3]);
 
         let snapshot = testkit.snapshot();
-        let idx_from = Schema::new(&snapshot).orders_idx_company_id_from_rolling(&co2_id);
-        let idx_to = Schema::new(&snapshot).orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 3);
-        assert_eq!(idx_to.keys().count(), 3);
+        let schema = Schema::new(&snapshot);
+        let num_orders = schema.orders().keys().count();
+        let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
+        let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
+        assert_eq!(num_orders, 4);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
+
+        let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
+        let costs_inputs_map = schema.costs_aggregate(&co2_id).get("costs_inputs.v1").expect("costs_inputs.v1 cost map doesn't exist");
+        assert_eq!(costs_map.map_ref().is_empty(), true);
+        assert_eq!(costs_inputs_map.map_ref().is_empty(), true);
+
+        // finalize our widget orders, we should start seeing tracking now
+        let tx_ord2_stat = transactions::order::TxUpdateStatus::sign(
+            &ord2_id,
+            &models::order::ProcessStatus::Finalized,
+            &ord1_date,
+            &root_pub,
+            &root_sec
+        );
+        let tx_ord3_stat = transactions::order::TxUpdateStatus::sign(
+            &ord3_id,
+            &models::order::ProcessStatus::Finalized,
+            &ord1_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord2_stat, tx_ord3_stat]);
+
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let num_orders = schema.orders().keys().count();
+        let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
+        let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
+        assert_eq!(num_orders, 4);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
+
+        let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
+        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs = op_costs_bucket.total();
+        assert_eq!(op_costs_bucket.len(), 2);
+        assert_eq!(op_costs.get(&prod_coal_id), 62.5);
+        assert!(op_costs.get_labor("Coal miner") - (1.0 + (2.0 / 3.0)) < 0.000000001);
+        assert!(op_costs.get_labor("Widget builder") - (10.0 / 3.0) < 0.000000001);
+
+        // distrib orders more widgets, should cycle out ord2
+        let ord4_id = gen_uuid();
+        let ord4_date: DateTime<Utc> = "2019-03-01T06:00:00Z".parse().unwrap();
+        let tx_ord4 = transactions::order::TxCreate::sign(
+            &ord4_id,
+            &co2_id,
+            &co1_id,
+            &models::order::CostCategory::Operating,
+            &vec![models::order::ProductEntry::new(&prod_widget_id, 3.0, &costs, false)],
+            &ord4_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord4]);
+
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
+        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs = op_costs_bucket.total();
+        assert_eq!(op_costs_bucket.len(), 1);
+        assert_eq!(op_costs.get(&prod_coal_id), 62.5);
+        assert!(op_costs.get_labor("Coal miner") - (1.0 + (2.0 / 3.0)) < 0.000000001);
+        assert!(op_costs.get_labor("Widget builder") - (10.0 / 3.0) < 0.000000001);
+
+        let tx_ord4_stat = transactions::order::TxUpdateStatus::sign(
+            &ord4_id,
+            &models::order::ProcessStatus::Finalized,
+            &ord4_date,
+            &root_pub,
+            &root_sec
+        );
+        testkit.create_block_with_transactions(txvec![tx_ord4_stat]);
+        // test for resource tagging
+        let order = Schema::new(&snapshot).get_order(&ord1_id).unwrap();
+        assert!(order.products[0].is_resource());
+
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
+        let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
+        let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
+        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs = op_costs_bucket.total();
+        assert_eq!(op_costs_bucket.len(), 2);
+        assert_eq!(op_costs.get(&prod_coal_id), 88.97058823529412);
+        assert!(op_costs.get_labor("Coal miner") - 2.3725490196078427 < 0.000000001);
+        assert!(op_costs.get_labor("Widget builder") - 4.745098039215685 < 0.000000001);
     }
 }
 
