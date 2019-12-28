@@ -14,6 +14,7 @@ const ResourceTags = Basis.models.resource_tags;
 describe('resource tags', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
+	const member_id = uuid();
 	const company_id = uuid();
 	const product_id = uuid();
 	const tag_id = uuid();
@@ -33,6 +34,8 @@ describe('resource tags', function() {
 			id: company_id,
 			email: 'wedonthaveanykids@gmail.com',
 			name: 'LEONARD\'S IRON MINE',
+			founder_member_id: member_id,
+			founder_occupation: 'Miner 49er',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);

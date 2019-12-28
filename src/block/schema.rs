@@ -118,8 +118,7 @@ impl<T> Schema<T>
         vec![
             self.users().object_hash(),
             self.companies().object_hash(),
-            // NOTE: Should this be a flat list, with an index by company id?
-            //self.companies_members().object_hash(),
+            self.companies_members().object_hash(),
             self.labor().object_hash(),
             self.products().object_hash(),
             self.resource_tags().object_hash(),
@@ -271,70 +270,94 @@ impl<T> Schema<T>
         self.companies().put(&crypto::hash(id.as_bytes()), company.clone());
     }
 
-    pub fn companies_update(&mut self, company: Company, id: &str, email: Option<&str>, name: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_update(&mut self, company: Company, email: Option<&str>, name: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
         let company = {
-            let mut history = self.companies_history(id);
+            let mut history = self.companies_history(&company.id);
             history.push(*transaction);
             let history_hash = history.object_hash();
             company.update(email, name, updated, &history_hash)
         };
-        self.companies().put(&crypto::hash(id.as_bytes()), company);
+        self.companies().put(&crypto::hash(company.id.as_bytes()), company);
     }
 
-    pub fn companies_set_type(&mut self, company: Company, id: &str, ty: &CompanyType, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_set_type(&mut self, company: Company, ty: &CompanyType, updated: &DateTime<Utc>, transaction: &Hash) {
         let company = {
-            let mut history = self.companies_history(id);
+            let mut history = self.companies_history(&company.id);
             history.push(*transaction);
             let history_hash = history.object_hash();
             company.set_type(ty, updated, &history_hash)
         };
-        self.companies().put(&crypto::hash(id.as_bytes()), company);
+        self.companies().put(&crypto::hash(company.id.as_bytes()), company);
     }
 
     pub fn companies_delete(&mut self, id: &str) {
         self.companies().remove(&crypto::hash(id.as_bytes()));
-        self.companies_members(id).clear();
+        self.companies_members_delete_by_company(id);
         self.companies_history(id).clear();
     }
 
     // -------------------------------------------------------------------------
     // Company members
     // -------------------------------------------------------------------------
-    pub fn companies_members(&self, company_id: &str) -> ProofMapIndex<T, Hash, CompanyMember> {
-        ProofMapIndex::new_in_family("basis.companies_members.table", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    pub fn companies_members(&self) -> ProofMapIndex<T, Hash, CompanyMember> {
+        ProofMapIndex::new("basis.companies_members.table", self.access.clone())
     }
 
-    pub fn companies_members_history(&self, company_id: &str, user_id: &str) -> ProofListIndex<T, Hash> {
-        ProofListIndex::new_in_family("basis.companies_members.history", &crypto::hash(format!("{}:{}", company_id, user_id).as_bytes()), self.access.clone())
+    pub fn companies_members_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.companies_members.history", &crypto::hash(id.as_bytes()), self.access.clone())
     }
 
-    pub fn get_company_member(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
-        self.companies_members(company_id).get(&crypto::hash(user_id.as_bytes()))
+    pub fn companies_members_idx_company_id(&self, company_id: &str) -> MapIndex<T, String, String> {
+        MapIndex::new_in_family("basis.companies_members.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
-    pub fn companies_members_create(&mut self, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn get_company_member(&self, id: &str) -> Option<CompanyMember> {
+        self.companies_members().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn get_company_member_by_company_id_user_id(&self, company_id: &str, user_id: &str) -> Option<CompanyMember> {
+        self.companies_members_idx_company_id(company_id).get(user_id)
+            .and_then(|member_id| { self.get_company_member(&member_id) })
+    }
+
+    pub fn companies_members_create(&mut self, id: &str, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let member = {
-            let mut history = self.companies_members_history(company_id, user_id);
+            let mut history = self.companies_members_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            CompanyMember::new(user_id, roles, occupation, created, created, history.len(), &history_hash)
+            CompanyMember::new(id, company_id, user_id, roles, occupation, created, created, history.len(), &history_hash)
         };
-        self.companies_members(company_id).put(&crypto::hash(user_id.as_bytes()), member);
+        self.companies_members().put(&crypto::hash(id.as_bytes()), member);
+        self.companies_members_idx_company_id(company_id).put(&user_id.to_owned(), id.to_owned());
     }
 
-    pub fn companies_members_update(&mut self, company_id: &str, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_update(&mut self, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
         let member = {
-            let mut history = self.companies_members_history(company_id, &member.user_id);
+            let mut history = self.companies_members_history(&member.id);
             history.push(*transaction);
             let history_hash = history.object_hash();
             member.update(roles, occupation, updated, &history_hash)
         };
-        self.companies_members(company_id).put(&crypto::hash(member.user_id.as_bytes()), member);
+        self.companies_members().put(&crypto::hash(member.id.as_bytes()), member);
     }
 
-    pub fn companies_members_delete(&mut self, company_id: &str, user_id: &str) {
-        self.companies_members(company_id).remove(&crypto::hash(user_id.as_bytes()));
-        self.companies_members_history(company_id, user_id).clear();
+    pub fn companies_members_delete(&mut self, member: CompanyMember) {
+        self.companies_members().remove(&crypto::hash(member.id.as_bytes()));
+        self.companies_members_idx_company_id(&member.company_id).remove(&member.user_id);
+        self.companies_members_history(&member.id).clear();
+    }
+
+    pub fn companies_members_delete_by_company(&mut self, company_id: &str) {
+        // don't delete while iterating...
+        let mut members = Vec::new();
+        for (user_id, member_id) in self.companies_members_idx_company_id(company_id).iter() {
+            members.push((user_id, member_id));
+        }
+        for (user_id, member_id) in members {
+            let tmp_member = CompanyMember::new(&member_id, company_id, &user_id, &vec![], "tmp", &util::time::now(), &util::time::now(), 0, &Default::default());
+            self.companies_members_delete(tmp_member);
+        }
+        self.companies_members_idx_company_id(company_id).clear();
     }
 
     // -------------------------------------------------------------------------

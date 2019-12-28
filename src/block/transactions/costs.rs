@@ -192,10 +192,14 @@ pub mod tests {
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
         let co3_id = gen_uuid();
+        let co1_founder_id = gen_uuid();
+        let co2_founder_id = gen_uuid();
+        let co3_founder_id = gen_uuid();
         let tx_co1 = transactions::company::TxCreatePrivate::sign(
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
+            &co1_founder_id,
             &String::from("Widget builder"),
             &util::time::now(),
             &root_pub,
@@ -205,6 +209,7 @@ pub mod tests {
             &co2_id,
             &String::from("company2@basis.org"),
             &String::from("Widget Distributors Inc"),
+            &co2_founder_id,
             &String::from("Widget distributor"),
             &util::time::now(),
             &root_pub,
@@ -214,6 +219,7 @@ pub mod tests {
             &co3_id,
             &String::from("company3lol@basis.org"),
             &String::from("Widget BLOWOUT EMPORIUM!!!1"),
+            &co3_founder_id,
             &String::from("Widget distributor"),
             &util::time::now(),
             &root_pub,

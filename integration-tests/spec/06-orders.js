@@ -15,11 +15,14 @@ describe('orders', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 	const jerry_user_id = uuid();
+	const jerry_member_id = uuid();
+	const jerry_member_id2 = uuid();
 	const {publicKey: jerry_pubkey, secretKey: jerry_seckey} = Exonum.keyPair();
 	const jerry_email = 'jerry@thatscool.net';
 	const jerry_email_new = 'jerry2@jerrythejerjer.net';
 
 	const sandra_user_id = uuid();
+	const sandra_member_id = uuid();
 	const {publicKey: sandra_pubkey, secretKey: sandra_seckey} = Exonum.keyPair();
 	const sandra_email = 'sandra@thatscool.net';
 
@@ -76,6 +79,8 @@ describe('orders', function() {
 			id: company1_id,
 			email: company1_email,
 			name: 'SANDRA\'s (NOT Jerry\'s) WIDGETS',
+			founder_member_id: sandra_member_id,
+			founder_occupation: 'Widget builder',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -83,6 +88,8 @@ describe('orders', function() {
 			id: company2_id,
 			email: company2_email,
 			name: 'jerry\'s resold widgets',
+			founder_member_id: jerry_member_id,
+			founder_occupation: 'Widget seller',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -90,9 +97,12 @@ describe('orders', function() {
 			id: company_shipping_id,
 			email: 'shipping@jerry.net',
 			name: 'jerry\'s logistix',
+			founder_member_id: jerry_member_id2,
+			founder_occupation: 'Shipper',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
+		expect(res.description).toBeFalsy();
 
 		var res = await trans.send_as('sandra', tx.product.TxCreate, {
 			id: product1_id,

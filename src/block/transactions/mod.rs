@@ -32,6 +32,9 @@ pub enum CommonError {
 
     #[fail(display = "Bad cost category")]
     BadCostCategory = 4,
+
+    #[fail(display = "ID already exists")]
+    IDExists = 5,
 }
 define_exec_error!(CommonError);
 

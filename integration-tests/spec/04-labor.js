@@ -15,6 +15,7 @@ describe('labor', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 	const jerry_user_id = uuid();
+	const jerry_member_id = uuid();
 	const {publicKey: jerry_pubkey, secretKey: jerry_seckey} = Exonum.keyPair();
 	const jerry_email = 'jerry@thatscool.net';
 	const jerry_email_new = 'jerry2@jerrythejerjer.net';
@@ -53,6 +54,8 @@ describe('labor', function() {
 			id: company_id,
 			email: company_email,
 			name: 'jerry\'s WIDGETS',
+			founder_member_id: jerry_member_id,
+			founder_occupation: 'Widget builder',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);

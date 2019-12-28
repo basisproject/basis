@@ -23,7 +23,7 @@ pub fn check<T>(schema: &mut Schema<T>, company_id: &str, pubkey: &PublicKey, pe
         Some(x) => x,
         None => Err(CommonError::UserNotFound)?,
     };
-    let member = match schema.get_company_member(company_id, &user.id) {
+    let member = match schema.get_company_member_by_company_id_user_id(company_id, &user.id) {
         Some(x) => x,
         None => Err(CommonError::InsufficientPrivileges)?,
     };
@@ -44,9 +44,6 @@ pub enum TransactionError {
     #[fail(display = "Invalid email")]
     InvalidEmail = 2,
 
-    #[fail(display = "ID already exists")]
-    IDExists = 3,
-
     #[fail(display = "Email already exists")]
     EmailExists = 5,
 
@@ -61,6 +58,7 @@ deftransaction! {
         pub id: String,
         pub email: String,
         pub name: String,
+        pub founder_member_id: String,
         pub founder_occupation: String,
         pub created: DateTime<Utc>,
     }
@@ -79,15 +77,19 @@ impl Transaction for TxCreatePrivate {
             None => Err(CommonError::UserNotFound)?,
         };
 
+        if schema.get_company_member(&self.founder_member_id).is_some() {
+            Err(CommonError::IDExists)?;
+        }
+
         if schema.get_company(&self.id).is_some() {
-            Err(TransactionError::IDExists)?
+            Err(CommonError::IDExists)?
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else if !self.email.contains("@") {
             Err(TransactionError::InvalidEmail)?
         } else {
             schema.companies_create(&self.id, &CompanyType::Private, None, &self.email, &self.name, &self.created, &hash);
-            schema.companies_members_create(&self.id, &user.id, &vec![CompanyRole::Owner], &self.founder_occupation, &self.created, &hash);
+            schema.companies_members_create(&self.founder_member_id, &self.id, &user.id, &vec![CompanyRole::Owner], &self.founder_occupation, &self.created, &hash);
             Ok(())
         }
     }
@@ -132,7 +134,7 @@ impl Transaction for TxUpdate {
             Err(CommonError::InvalidTime)?
         }
 
-        schema.companies_update(company, &self.id, email, name, &self.updated, &hash);
+        schema.companies_update(company, email, name, &self.updated, &hash);
         Ok(())
     }
 }
@@ -164,7 +166,7 @@ impl Transaction for TxSetType {
             Err(CommonError::InvalidTime)?
         }
 
-        schema.companies_set_type(company, &self.id, &self.ty, &self.updated, &hash);
+        schema.companies_set_type(company, &self.ty, &self.updated, &hash);
         Ok(())
     }
 }

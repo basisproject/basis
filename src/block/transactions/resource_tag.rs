@@ -22,9 +22,6 @@ pub enum TransactionError {
     #[fail(display = "Product not found")]
     ProductNotFound = 2,
 
-    #[fail(display = "ID already exists")]
-    IDExists = 3,
-
     #[fail(display = "Resource tag is already deleted")]
     AlreadyDeleted = 4,
 }
@@ -54,7 +51,7 @@ impl Transaction for TxCreate {
         }
 
         if let Some(_) = schema.get_resource_tag(&self.id) {
-            Err(TransactionError::IDExists)?;
+            Err(CommonError::IDExists)?;
         }
 
         if !util::time::is_current(&self.created) {

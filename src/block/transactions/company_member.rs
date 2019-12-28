@@ -22,8 +22,11 @@ use super::CommonError;
 pub fn is_only_owner<T>(schema: &mut Schema<T>, company_id: &str, user_id: &str) -> bool
     where T: IndexAccess
 {
-    let owners = schema.companies_members(company_id)
+    let owners = schema.companies_members_idx_company_id(company_id)
         .values()
+        .map(|member_id| schema.get_company_member(&member_id))
+        .filter(|m| m.is_some())
+        .map(|m| m.unwrap())
         .filter(|m| m.roles.contains(&CompanyRole::Owner))
         .map(|m| m.user_id.to_owned())
         .collect::<Vec<_>>();
@@ -53,6 +56,7 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxCreate")]
     pub struct TxCreate {
+        pub id: String,
         pub company_id: String,
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
@@ -69,6 +73,10 @@ impl Transaction for TxCreate {
 
         let mut schema = Schema::new(context.fork());
 
+        if schema.get_company_member(&self.id).is_some() {
+            Err(CommonError::IDExists)?;
+        }
+
         if schema.get_company(&self.company_id).is_none() {
             Err(TransactionError::CompanyNotFound)?;
         }
@@ -76,19 +84,16 @@ impl Transaction for TxCreate {
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberCreate)?;
 
-        if schema.get_user_by_pubkey(pubkey).is_none() {
-            Err(CommonError::UserNotFound)?;
-        }
         if schema.get_user(&self.user_id).is_none() {
             Err(CommonError::UserNotFound)?;
         }
 
-        if schema.get_company_member(&self.company_id, &self.user_id).is_some() {
+        if schema.get_company_member_by_company_id_user_id(&self.company_id, &self.user_id).is_some() {
             Err(TransactionError::MemberExists)?
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_create(&self.company_id, &self.user_id, &self.roles, &self.occupation, &self.created, &hash);
+            schema.companies_members_create(&self.id, &self.company_id, &self.user_id, &self.roles, &self.occupation, &self.created, &hash);
             Ok(())
         }
     }
@@ -97,8 +102,7 @@ impl Transaction for TxCreate {
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxUpdate")]
     pub struct TxUpdate {
-        pub company_id: String,
-        pub user_id: String,
+        pub id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
         pub memo: String,
@@ -113,36 +117,34 @@ impl Transaction for TxUpdate {
 
         let mut schema = Schema::new(context.fork());
 
-        if schema.get_company(&self.company_id).is_none() {
+        let member = match schema.get_company_member(&self.id) {
+            Some(x) => x,
+            None => Err(TransactionError::MemberNotFound)?,
+        };
+
+        if schema.get_company(&member.company_id).is_none() {
             Err(TransactionError::CompanyNotFound)?;
         }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
-        company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberSetRoles)?;
+        company::check(&mut schema, &member.company_id, pubkey, CompanyPermission::MemberSetRoles)?;
 
-        if is_only_owner(&mut schema, &self.company_id, &self.user_id) {
+        if schema.get_user(&member.user_id).is_none() {
+            Err(CommonError::UserNotFound)?;
+        }
+
+        if is_only_owner(&mut schema, &member.company_id, &member.user_id) {
             if !&self.roles.contains(&CompanyRole::Owner) {
                 Err(TransactionError::MustHaveOwner)?;
             }
         }
 
-        if schema.get_user_by_pubkey(pubkey).is_none() {
-            Err(CommonError::UserNotFound)?;
-        }
-        if schema.get_user(&self.user_id).is_none() {
-            Err(CommonError::UserNotFound)?;
-        }
-
-        let member = match schema.get_company_member(&self.company_id, &self.user_id) {
-            Some(x) => x,
-            None => Err(TransactionError::MemberNotFound)?,
-        };
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?
         } else {
             let roles = empty_opt(&self.roles);
             let occupation = empty_opt(&self.occupation).map(|x| x.as_str());
-            schema.companies_members_update(&self.company_id, member, roles, occupation, &self.updated, &hash);
+            schema.companies_members_update(member, roles, occupation, &self.updated, &hash);
             Ok(())
         }
     }
@@ -151,8 +153,7 @@ impl Transaction for TxUpdate {
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxDelete")]
     pub struct TxDelete {
-        pub company_id: String,
-        pub user_id: String,
+        pub id: String,
         pub memo: String,
         pub deleted: DateTime<Utc>,
     }
@@ -164,30 +165,26 @@ impl Transaction for TxDelete {
 
         let mut schema = Schema::new(context.fork());
 
-        if schema.get_company(&self.company_id).is_none() {
+        let member = match schema.get_company_member(&self.id) {
+            Some(x) => x,
+            None => Err(TransactionError::MemberNotFound)?,
+        };
+
+        if schema.get_company(&member.company_id).is_none() {
             Err(TransactionError::CompanyNotFound)?;
         }
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
-        company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberDelete)?;
+        company::check(&mut schema, &member.company_id, pubkey, CompanyPermission::MemberDelete)?;
 
-        if is_only_owner(&mut schema, &self.company_id, &self.user_id) {
+        if is_only_owner(&mut schema, &member.company_id, &member.user_id) {
             Err(TransactionError::MustHaveOwner)?;
         }
 
-        if schema.get_user_by_pubkey(pubkey).is_none() {
-            Err(CommonError::UserNotFound)?;
-        }
-        if schema.get_user(&self.user_id).is_none() {
-            Err(CommonError::UserNotFound)?;
-        }
-
-        if schema.get_company_member(&self.company_id, &self.user_id).is_none() {
-            Err(TransactionError::MemberNotFound)?;
-        } else if !util::time::is_current(&self.deleted) {
+        if !util::time::is_current(&self.deleted) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.companies_members_delete(&self.company_id, &self.user_id);
+        schema.companies_members_delete(member);
         Ok(())
     }
 }

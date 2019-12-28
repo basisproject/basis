@@ -15,12 +15,14 @@ describe('products', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 	const jerry_user_id = uuid();
+	const jerry_member_id = uuid();
 	const {publicKey: jerry_pubkey, secretKey: jerry_seckey} = Exonum.keyPair();
 	const jerry_email = 'jerry@thatscool.net';
 	const jerry_email_new = 'jerry2@jerrythejerjer.net';
 
 	// today, sandra owns the company. jerry is her assistant
 	const sandra_user_id = uuid();
+	const sandra_member_id = uuid();
 	const {publicKey: sandra_pubkey, secretKey: sandra_seckey} = Exonum.keyPair();
 	const sandra_email = 'sandra@thatscool.net';
 
@@ -72,6 +74,8 @@ describe('products', function() {
 			id: company_id,
 			email: company_email,
 			name: 'SANDRA\'s (NOT Jerry\'s) WIDGETS',
+			founder_member_id: sandra_member_id,
+			founder_occupation: 'Widget builder',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -102,6 +106,7 @@ describe('products', function() {
 		expect(res.description).toMatch(/insufficient priv/i);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxCreate, {
+			id: jerry_member_id,
 			company_id: company_id,
 			user_id: jerry_user_id,
 			roles: ['ProductAdmin'],

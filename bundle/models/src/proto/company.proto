@@ -34,8 +34,9 @@ message TxCreatePrivate {
 	string id = 1;
 	string email = 2;
 	string name = 3;
-	string founder_occupation = 4;
-	google.protobuf.Timestamp created = 5;
+	string founder_member_id = 4;
+	string founder_occupation = 5;
+	google.protobuf.Timestamp created = 6;
 }
 
 message TxUpdate {

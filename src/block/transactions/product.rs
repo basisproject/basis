@@ -27,9 +27,6 @@ pub enum TransactionError {
     #[fail(display = "Company not found")]
     CompanyNotFound = 2,
 
-    #[fail(display = "ID already exists")]
-    IDExists = 3,
-
     #[fail(display = "Product already deleted")]
     AlreadyDeleted = 4,
 }
@@ -63,7 +60,7 @@ impl Transaction for TxCreate {
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::ProductCreate)?;
 
         if schema.get_product(&self.id).is_some() {
-            Err(TransactionError::IDExists)?;
+            Err(CommonError::IDExists)?;
         }
         if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?;
@@ -174,10 +171,12 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_user]);
 
         let co_id = gen_uuid();
+        let co_founder_id = gen_uuid();
         let tx_co = transactions::company::TxCreatePrivate::sign(
             &co_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
+            &co_founder_id,
             &String::from("Widgets, Builder of"),
             &util::time::now(),
             &root_pub,

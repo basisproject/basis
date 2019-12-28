@@ -26,8 +26,7 @@ pub struct CompaniesMembersQuery {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompanyMemberQuery {
-    pub company_id: Option<String>,
-    pub user_id: Option<String>,
+    pub id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -46,14 +45,16 @@ impl CompanyMemberApi {
 
         let per_page = query.per_page.unwrap_or(10);
         let (from, skip) = if let Some(after) = query.after.as_ref() {
-            (crypto::hash(after.as_bytes()), 1)
+            (after.as_str(), 1)
         } else {
-            (Hash::default(), 0)
+            ("", 0)
         };
-        let members = schema.companies_members(&company_id).iter_from(&from)
+        let members = schema.companies_members_idx_company_id(&company_id).iter_from(from)
             .skip(skip)
             .take(per_page)
-            .map(|x| x.1)
+            .map(|(_, member_id)| schema.get_company_member(&member_id))
+            .filter(|m| m.is_some())
+            .map(|m| m.unwrap())
             .collect::<Vec<_>>();
         Ok(ListResult {
             items: members,
@@ -64,24 +65,27 @@ impl CompanyMemberApi {
         let snapshot = state.snapshot();
         let system_schema = blockchain::Schema::new(&snapshot);
         let schema = Schema::new(&snapshot);
-        if query.company_id.is_none() || query.user_id.is_none() {
+        let member = if query.id.is_some() {
+            schema.get_company_member(query.id.as_ref().unwrap())
+        } else {
             let err: failure::Error = From::from(ApiError::BadQuery);
             Err(err)?
-        }
-        let company_id = query.company_id.as_ref().unwrap().clone();
-        let user_id = query.user_id.as_ref().unwrap().clone();
-        let member = schema.get_company_member(&company_id, &user_id);
+        };
+        let member_id = match member.as_ref() {
+            Some(u) => u.id.clone(),
+            None => String::from(""),
+        };
         let max_height = system_schema.block_hashes_by_height().len() - 1;
         let block_proof = system_schema.block_and_precommits(Height(max_height));
         let table_proof: MapProof<Hash, Hash> = system_schema.get_proof_to_service_table(SERVICE_ID, 0);
-        let member_proof: MapProof<Hash, models::company_member::CompanyMember> = schema.companies_members(&company_id).get_proof(crypto::hash(user_id.as_bytes()));
+        let member_proof: MapProof<Hash, models::company_member::CompanyMember> = schema.companies_members().get_proof(crypto::hash(member_id.as_bytes()));
         let object_proof = ObjectProof {
             table: table_proof,
             object: member_proof,
         };
         let explorer = BlockchainExplorer::new(state.blockchain());
         let member_history = member.as_ref().map(|_| {
-            let history = schema.companies_members_history(&company_id, &user_id);
+            let history = schema.companies_members_history(&member_id);
             let proof = history.get_range_proof(0..history.len());
 
             let transactions = history

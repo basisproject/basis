@@ -14,12 +14,14 @@ describe('company members', function() {
 	jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
 	const jerry_user_id = uuid();
+	const jerry_member_id = uuid();
 	const {publicKey: jerry_pubkey, secretKey: jerry_seckey} = Exonum.keyPair();
 	const jerry_email = 'jerry@thatscool.net';
 	const jerry_email_new = 'jerry2@jerrythejerjer.net';
 
 	// a sidekick for jerjer
 	const sandra_user_id = uuid();
+	const sandra_member_id = uuid();
 	const {publicKey: sandra_pubkey, secretKey: sandra_seckey} = Exonum.keyPair();
 	const sandra_email = 'sandra@thatscool.net';
 
@@ -67,12 +69,14 @@ describe('company members', function() {
 			id: company_id,
 			email: company_email,
 			name: 'jerry\'s WIDGETS',
+			founder_member_id: jerry_member_id,
 			founder_occupation: 'Widget builder',
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
 
 		var res = await trans.send_as('jerry', tx.company_member.TxCreate, {
+			id: sandra_member_id,
 			company_id: company_id,
 			user_id: sandra_user_id,
 			roles: ['ProductAdmin'],
@@ -82,7 +86,7 @@ describe('company members', function() {
 		});
 		expect(res.success).toBe(true);
 
-		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		var sandra = await Members.get({id: sandra_member_id});
 		expect(sandra.user_id).toBe(sandra_user_id);
 		expect(sandra.roles).toEqual(['ProductAdmin']);
 		expect(sandra.occupation).toBe('Apprentice Widget Builder');
@@ -98,8 +102,7 @@ describe('company members', function() {
 		expect(res.description).toMatch(/insufficient priv/i);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxDelete, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			memo: 'wen i think about u i delete myself',
 			deleted: new Date().toISOString(),
 		});
@@ -107,8 +110,7 @@ describe('company members', function() {
 		expect(res.description).toMatch(/insufficient priv/i);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			roles: ['Owner'],
 			occupation: 'Master Widget Builder',
 			memo: 'WhOoOoPs!! ;)',
@@ -118,33 +120,30 @@ describe('company members', function() {
 		expect(res.description).toMatch(/insufficient priv/i);
 
 		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			roles: ['MemberAdmin'],
 			occupation: 'Widget Builder',
 			memo: 'be careful, sandra',
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
-		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		var sandra = await Members.get({id: sandra_member_id});
 		expect(sandra.roles).toEqual(['MemberAdmin']);
 		expect(sandra.occupation).toBe('Widget Builder');
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			roles: ['ProductAdmin'],
 			memo: 'wait does this work?',
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
-		var sandra = await Members.get({company_id: company_id, user_id: sandra_user_id});
+		var sandra = await Members.get({id: sandra_member_id});
 		expect(sandra.roles).toEqual(['ProductAdmin']);
 		expect(sandra.occupation).toBe('Widget Builder');
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: jerry_member_id,
 			roles: ['MemberAdmin'],
 			memo: 'hahaha bye jerry',
 			updated: new Date().toISOString(),
@@ -155,8 +154,7 @@ describe('company members', function() {
 
 	it('enforces at least one owner', async () => {
 		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: jerry_user_id,
+			id: jerry_member_id,
 			roles: ['MemberAdmin'],
 			memo: 'too much responsibility',
 			updated: new Date().toISOString(),
@@ -165,8 +163,7 @@ describe('company members', function() {
 		expect(res.description).toMatch(/company must have at least one owner/i);
 
 		var res = await trans.send_as('jerry', tx.company_member.TxDelete, {
-			company_id: company_id,
-			user_id: jerry_user_id,
+			id: jerry_member_id,
 			memo: 'i quit',
 			deleted: new Date().toISOString(),
 		});
@@ -174,8 +171,7 @@ describe('company members', function() {
 		expect(res.description).toMatch(/company must have at least one owner/i);
 
 		var res = await trans.send_as('jerry', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			roles: ['Owner'],
 			memo: 'giving sandra full control',
 			updated: new Date().toISOString(),
@@ -183,8 +179,7 @@ describe('company members', function() {
 		expect(res.success).toBe(true);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			roles: ['Admin'],
 			memo: 'wait how do i use this??',
 			updated: new Date().toISOString(),
@@ -192,8 +187,7 @@ describe('company members', function() {
 		expect(res.success).toBe(true);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
-			company_id: company_id,
-			user_id: jerry_user_id,
+			id: jerry_member_id,
 			roles: ['Admin'],
 			memo: 'can i be owner?',
 			updated: new Date().toISOString(),
@@ -204,8 +198,7 @@ describe('company members', function() {
 
 	it('can be destroyed', async () => {
 		var res = await trans.send_as('jerry', tx.company_member.TxDelete, {
-			company_id: company_id,
-			user_id: sandra_user_id,
+			id: sandra_member_id,
 			memo: 'going to have to let you go, sandra',
 			deleted: new Date().toISOString(),
 		});

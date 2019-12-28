@@ -25,9 +25,6 @@ pub enum TransactionError {
 
     #[fail(display = "User not found")]
     UserNotFound = 3,
-
-    #[fail(display = "ID already exists")]
-    IDExists = 4,
 }
 define_exec_error!(TransactionError);
 
@@ -50,7 +47,7 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::CompanyClockIn)?;
 
-        let member = match schema.get_company_member(&self.company_id, &self.user_id) {
+        let member = match schema.get_company_member_by_company_id_user_id(&self.company_id, &self.user_id) {
             Some(m) => m,
             None => Err(TransactionError::UserNotFound)?,
         };
@@ -70,7 +67,7 @@ impl Transaction for TxCreate {
         }
 
         if let Some(_) = schema.get_labor(&self.id) {
-            Err(TransactionError::IDExists)?;
+            Err(CommonError::IDExists)?;
         }
 
         if !util::time::is_current(&self.created) {
@@ -159,10 +156,12 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_user]);
 
         let co1_id = gen_uuid();
+        let co1_founder_id = gen_uuid();
         let tx_co1 = transactions::company::TxCreatePrivate::sign(
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
+            &co1_founder_id,
             &String::from("Master widget builder"),
             &util::time::now(),
             &root_pub,

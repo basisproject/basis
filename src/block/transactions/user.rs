@@ -31,9 +31,6 @@ pub enum TransactionError {
     #[fail(display = "Invalid email")]
     InvalidEmail = 2,
 
-    #[fail(display = "ID already exists")]
-    IDExists = 3,
-
     #[fail(display = "Pubkey already exists")]
     PubkeyExists = 4,
 
@@ -71,7 +68,7 @@ impl Transaction for TxCreate {
         }
 
         if schema.get_user(self.id.as_str()).is_some() {
-            Err(TransactionError::IDExists)?
+            Err(CommonError::IDExists)?
         } else if schema.get_user_by_pubkey(&self.pubkey).is_some() {
             Err(TransactionError::PubkeyExists)?
         } else if schema.get_user_by_email(&self.email).is_some() {

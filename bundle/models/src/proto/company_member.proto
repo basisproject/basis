@@ -4,37 +4,38 @@ import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 
 message CompanyMember {
-	string user_id = 1;
-	repeated string roles = 2;
-	string occupation = 3;
-	google.protobuf.Timestamp created = 4;
-	google.protobuf.Timestamp updated = 5;
+	string id = 1;
+	string company_id = 2;
+	string user_id = 3;
+	repeated string roles = 4;
+	string occupation = 5;
+	google.protobuf.Timestamp created = 6;
+	google.protobuf.Timestamp updated = 7;
 	uint64 history_len = 8;
 	exonum.Hash history_hash = 9;
 }
 
 message TxCreate {
-	string company_id = 1;
-	string user_id = 2;
-	repeated string roles = 3;
-	string occupation = 4;
-	string memo = 5;
-	google.protobuf.Timestamp created = 6;
+	string id = 1;
+	string company_id = 2;
+	string user_id = 3;
+	repeated string roles = 4;
+	string occupation = 5;
+	string memo = 6;
+	google.protobuf.Timestamp created = 7;
 }
 
 message TxUpdate {
-	string company_id = 1;
-	string user_id = 2;
-	repeated string roles = 3;
-	string occupation = 4;
-	string memo = 5;
-	google.protobuf.Timestamp updated = 6;
+	string id = 1;
+	repeated string roles = 2;
+	string occupation = 3;
+	string memo = 4;
+	google.protobuf.Timestamp updated = 5;
 }
 
 message TxDelete {
-	string company_id = 1;
-	string user_id = 2;
-	string memo = 3;
-	google.protobuf.Timestamp deleted = 4;
+	string id = 1;
+	string memo = 2;
+	google.protobuf.Timestamp deleted = 3;
 }
 
