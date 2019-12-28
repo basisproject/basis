@@ -200,19 +200,44 @@ pub mod tests {
             &root_pub,
             &root_sec
         );
-        testkit.create_block_with_transactions(txvec![tx_labor1, tx_labor2, tx_labor3]);
+        // NOTE: !! we do NOT save labor2/labor3 !!
+        testkit.create_block_with_transactions(txvec![tx_labor1]);
 
         let snapshot = testkit.snapshot();
-        let idx = Schema::new(&snapshot).labor_idx_company_id_rolling(&co1_id);
-        assert_eq!(idx.keys().count(), 0);
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        // rolling index contains even unfinalized items. tallies are in the
+        // aggregates so this should def be 2, because the third labor record
+        // above rotates out the first
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 1);
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        match tally_map.map_ref().get("hours") {
+            Some(_) => panic!("labor.v1 tally map does not contain `hours` key"),
+            None => {},
+        }
 
-        let labor1_date: DateTime<Utc> = "2018-01-01T04:00:00Z".parse().unwrap();
-        let labor2_date: DateTime<Utc> = "2018-07-01T08:00:00Z".parse().unwrap();
-        let labor3_date: DateTime<Utc> = "2019-03-01T06:00:00Z".parse().unwrap();
+        testkit.create_block_with_transactions(txvec![tx_labor2]);
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        // rolling index contains even unfinalized items. tallies are in the
+        // aggregates so this should def be 2, because the third labor record
+        // above rotates out the first
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        match tally_map.map_ref().get("hours") {
+            Some(_) => panic!("labor.v1 tally map does not contain `hours` key"),
+            None => {},
+        }
+
+        let labor1_enddate: DateTime<Utc> = "2018-01-01T04:00:00Z".parse().unwrap();
+        let labor2_enddate: DateTime<Utc> = "2018-07-01T08:00:00Z".parse().unwrap();
+        let labor3_enddate: DateTime<Utc> = "2019-03-01T06:00:00Z".parse().unwrap();
+
         let tx_labor1 = transactions::labor::TxSetTime::sign(
             &labor1_id,
             &util::time::default_time(),
-            &labor1_date,
+            &labor1_enddate,
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -222,15 +247,16 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let schema = Schema::new(&snapshot);
         let idx = schema.labor_idx_company_id_rolling(&co1_id);
-        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
-        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
-        assert_eq!(idx.keys().count(), 1);
-        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", 4.0));
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let tally = tally_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(tally.len(), 1);
+        assert_eq!(tally.total(), Costs::new_with_labor("Master widget builder", 4.0));
 
         let tx_labor2 = transactions::labor::TxSetTime::sign(
             &labor2_id,
             &util::time::default_time(),
-            &labor2_date,
+            &labor2_enddate,
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -240,15 +266,25 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let schema = Schema::new(&snapshot);
         let idx = schema.labor_idx_company_id_rolling(&co1_id);
-        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
-        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
-        assert_eq!(idx.keys().count(), 2);
-        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", 4.0 + 8.0));
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let tally = tally_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(tally.len(), 2);
+        assert_eq!(tally.total(), Costs::new_with_labor("Master widget builder", 4.0 + 8.0));
+
+        testkit.create_block_with_transactions(txvec![tx_labor3]);
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let idx = schema.labor_idx_company_id_rolling(&co1_id);
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let tally = tally_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(tally.total(), Costs::new_with_labor("Master widget builder", (4.0 + 8.0) - 4.0));
 
         let tx_labor3 = transactions::labor::TxSetTime::sign(
             &labor3_id,
             &util::time::default_time(),
-            &labor3_date,
+            &labor3_enddate,
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -258,10 +294,11 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let schema = Schema::new(&snapshot);
         let idx = schema.labor_idx_company_id_rolling(&co1_id);
-        let cost_agg_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
-        let labor = cost_agg_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
-        assert_eq!(idx.keys().count(), 2);
-        assert_eq!(labor.total(), Costs::new_with_labor("Master widget builder", (4.0 + 8.0 + 6.0) - 4.0));
+        let tally_map = schema.costs_aggregate(&co1_id).get("labor.v1").expect("labor.v1 cost map doesn't exist");
+        let tally = tally_map.map_ref().get("hours").expect("hours key in labor costs map doesn't exist");
+        assert_eq!(idx.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(tally.len(), 2);
+        assert_eq!(tally.total(), Costs::new_with_labor("Master widget builder", (4.0 + 8.0 + 6.0) - 4.0));
     }
 }
 

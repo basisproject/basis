@@ -28,6 +28,9 @@ pub enum ApiError {
 
     #[fail(display = "Not found")]
     NotFound = 1,
+
+    #[fail(display = "Internal Error")]
+    InternalError = 2,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

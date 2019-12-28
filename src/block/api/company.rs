@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use exonum::{
     api::{self, ServiceApiBuilder, ServiceApiState},
     blockchain,
@@ -15,6 +16,7 @@ use crate::block::{
     ProofResult,
     schema::Schema,
     SERVICE_ID,
+    transactions::costs,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,6 +28,14 @@ pub struct CompaniesQuery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompanyQuery {
     pub id: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CompanyCosts {
+    pub raw: HashMap<String, models::costs::Costs>,
+    pub raw_len: usize,
+    pub agg: HashMap<String, models::costs::Costs>,
+    pub agg_len: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -97,10 +107,47 @@ impl CompanyApi {
         })
     }
 
+    pub fn get_company_costs(state: &ServiceApiState, query: CompanyQuery) -> api::Result<CompanyCosts> {
+        let snapshot = state.snapshot();
+        let mut schema = Schema::new(&snapshot);
+        let company_id = match query.id {
+            Some(id) => id,
+            None => {
+                let err: failure::Error = From::from(ApiError::BadQuery);
+                Err(err)?
+            }
+        };
+        let (raw, raw_len) = match costs::calculate_product_costs_with_raw(&mut schema, &company_id) {
+            Ok(x) => x,
+            Err(e) => {
+                error!("Company::get_company_costs() -- raw: {:?}", e);
+                let err: failure::Error = From::from(ApiError::InternalError);
+                Err(err)?
+            }
+        };
+        let (agg, agg_len) = match costs::calculate_product_costs_with_aggregate(&mut schema, &company_id) {
+            Ok(x) => x,
+            Err(e) => {
+                error!("Company::get_company_costs() -- agg: {:?}", e);
+                let err: failure::Error = From::from(ApiError::InternalError);
+                Err(err)?
+            }
+        };
+
+        let costs = CompanyCosts {
+            raw,
+            raw_len,
+            agg,
+            agg_len,
+        };
+        Ok(costs)
+    }
+
     pub fn wire(builder: &mut ServiceApiBuilder) {
         builder.public_scope()
             .endpoint("v1/companies", Self::get_companies)
-            .endpoint("v1/companies/info", Self::get_company);
+            .endpoint("v1/companies/info", Self::get_company)
+            .endpoint("v1/companies/costs", Self::get_company_costs);
     }
 }
 

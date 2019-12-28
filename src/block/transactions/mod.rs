@@ -29,6 +29,9 @@ pub enum CommonError {
 
     #[fail(display = "Cannot calculate costs")]
     CostError = 3,
+
+    #[fail(display = "Bad cost category")]
+    BadCostCategory = 4,
 }
 define_exec_error!(CommonError);
 

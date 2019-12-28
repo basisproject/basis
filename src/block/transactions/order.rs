@@ -416,8 +416,8 @@ pub mod tests {
         let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
         assert_eq!(num_orders, 4);
-        assert_eq!(idx_from.keys().count(), 2);
-        assert_eq!(idx_to.keys().count(), 2);
+        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
 
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
         let costs_inputs_map = schema.costs_aggregate(&co2_id).get("costs_inputs.v1").expect("costs_inputs.v1 cost map doesn't exist");
@@ -446,9 +446,13 @@ pub mod tests {
         let num_orders = schema.orders().keys().count();
         let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
+        let prod_costs = schema.get_product_costs(&prod_widget_id).expect("missing widget product costs");
         assert_eq!(num_orders, 4);
-        assert_eq!(idx_from.keys().count(), 2);
-        assert_eq!(idx_to.keys().count(), 2);
+        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(prod_costs.get(&prod_coal_id), 8.823529411764707);
+        assert_eq!(prod_costs.get_labor("Widget builder"), 0.47058823529411764);
+        assert_eq!(prod_costs.get_labor("Coal miner"), 0.23529411764705882);
 
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
         let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
@@ -499,8 +503,8 @@ pub mod tests {
         let schema = Schema::new(&snapshot);
         let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().count(), 2);
-        assert_eq!(idx_to.keys().count(), 2);
+        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
         let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
         let op_costs = op_costs_bucket.total();

@@ -22,7 +22,7 @@ use models::{
     product::{Product, Unit, Dimensions, Input, Effort},
     resource_tag::ResourceTag,
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
-    costs::{Costs, CostsBucketMap},
+    costs::{Costs, CostsTallyMap},
 };
 
 #[derive(Debug)]
@@ -48,6 +48,15 @@ fn key_to_datetime(key: &str) -> DateTime<Utc> {
         None => util::time::default_time(),
     }
 }
+
+/// Given a rotational index key, return the id of the object
+fn key_to_id(key: &str) -> String {
+    match key.find(":") {
+        Some(x) => String::from(&key[(x + 1)..]),
+        None => key.to_owned()
+    }
+}
+
 /// Given a time-rotated index, test if the given timestamp is obsolete (as in,
 /// is older than the oldest record in the index, signifying that it has been
 /// rotated out and no longer belongs in the index).
@@ -67,13 +76,18 @@ fn index_and_rotate_mapindex<T, F>(idx: &mut MapIndex<T, String, String>, timest
     where T: IndexAccess,
           F: FnMut(String, bool),
 {
-    fn key_to_id(key: &str) -> String {
-        match key.find(":") {
-            Some(x) => String::from(&key[(x + 1)..]),
-            None => key.to_owned()
-        }
-    }
     let key = format!("{}:{}", timestamp, item_id);
+
+    // saves the latest key so we can calculate total time (accurately) of our
+    // spread of orders
+    match idx.get("__latest") {
+        Some(x) => {
+            if key_to_datetime(&x).timestamp() < timestamp {
+                idx.put(&String::from("__latest"), key.clone());
+            }
+        }
+        None => idx.put(&String::from("__latest"), key.clone()),
+    }
 
     op_cb(item_id.to_owned(), false);
     idx.put(&key, item_id.to_owned());
@@ -111,6 +125,28 @@ impl<T> Schema<T>
             self.resource_tags().object_hash(),
             self.orders().object_hash(),
         ]
+    }
+
+    pub fn rolling_timeline(&self, company_id: &str) -> f64 {
+        let idx_orders_from = self.orders_idx_company_id_from_rolling(company_id);
+        let idx_orders_to = self.orders_idx_company_id_to_rolling(company_id);
+        let idx_labor = self.labor_idx_company_id_rolling(company_id);
+        let now = util::time::now();
+        let mut start_vals = vec![
+            idx_orders_from.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+            idx_orders_to.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+            idx_labor.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+        ];
+        start_vals.sort();
+        let mut end_vals = vec![
+            idx_orders_from.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+            idx_orders_to.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+            idx_labor.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
+        ];
+        end_vals.sort();
+        let start = start_vals[0];
+        let end = end_vals[end_vals.len() - 1];
+        ((end - start).num_seconds() as f64) / 3600.0
     }
 
     // -------------------------------------------------------------------------
@@ -370,13 +406,14 @@ impl<T> Schema<T>
         let mut cost_agg = self.costs_aggregate(&labor.company_id);
         let mut bucket_map_labor = match cost_agg.get("labor.v1") {
             Some(x) => x,
-            None => CostsBucketMap::new(),
+            None => CostsTallyMap::new(),
         };
 
         let mut op_cb_impl = |labor: Labor, is_remove: bool| {
             if !labor.is_finalized() {
                 return;
             }
+            info!("labor::rolling::agg::{} -- company {}", if is_remove { "remove" } else { "add" }, labor.company_id);
             if is_remove {
                 bucket_map_labor.subtract("hours", &Costs::new_with_labor(&labor.occupation, labor.hours()));
             } else {
@@ -552,7 +589,7 @@ impl<T> Schema<T>
         MapIndex::new("basis.product_costs.table", self.access.clone())
     }
 
-    pub fn costs_aggregate(&self, company_id: &str) -> MapIndex<T, String, CostsBucketMap> {
+    pub fn costs_aggregate(&self, company_id: &str) -> MapIndex<T, String, CostsTallyMap> {
         MapIndex::new_in_family("basis.costs_aggregate.table", &crypto::hash(company_id.as_bytes()), self.access.clone())
     }
 
@@ -678,16 +715,17 @@ impl<T> Schema<T>
         let mut cost_agg = self.costs_aggregate(&order.company_id_from);
         let mut bucket_map_costs = match cost_agg.get("costs.v1") {
             Some(x) => x,
-            None => CostsBucketMap::new(),
+            None => CostsTallyMap::new(),
         };
         let mut bucket_map_costs_inputs = match cost_agg.get("costs_inputs.v1") {
             Some(x) => x,
-            None => CostsBucketMap::new(),
+            None => CostsTallyMap::new(),
         };
         let mut op_cb_impl = |order: Order, is_remove: bool| {
             if order.process_status != ProcessStatus::Finalized {
                 return;
             }
+            info!("orders::rolling::agg::{} -- company {}", if is_remove { "remove" } else { "add" }, order.company_id_from);
             let mut costs: HashMap<String, Costs> = HashMap::new();
             let mut costs_inputs: HashMap<String, Costs> = HashMap::new();
             for entry in &order.products {
@@ -732,7 +770,7 @@ impl<T> Schema<T>
         let mut cost_agg = self.costs_aggregate(&order.company_id_to);
         let mut bucket_map_outputs = match cost_agg.get("product_outputs.v1") {
             Some(x) => x,
-            None => CostsBucketMap::new(),
+            None => CostsTallyMap::new(),
         };
         // one year cutoff, hardcoded for now
         let cutoff = util::time::from_timestamp(order.created.timestamp() - (3600 * 24 * 365));
@@ -740,6 +778,7 @@ impl<T> Schema<T>
             if order.process_status != ProcessStatus::Finalized {
                 return;
             }
+            info!("orders::rolling::agg::{} -- company {}", if is_remove { "remove" } else { "add" }, order.company_id_from);
             let mut outputs = Costs::new();
             for entry in &order.products {
                 outputs.track(&entry.product_id, entry.quantity);
