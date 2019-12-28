@@ -33,6 +33,7 @@ pub fn setup_logger() -> BResult<()> {
         })
         .level(level)
         .level_for("exonum::node::consensus", log::LevelFilter::Warn)
+        .level_for("actix_web::pipeline", log::LevelFilter::Error)
         .chain(std::io::stdout());
     match config.apply() {
         Ok(_) => {}
