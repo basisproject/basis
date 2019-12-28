@@ -8,12 +8,12 @@ message Costs {
 	map<string, double> labor = 2;
 }
 
-message CostsBucket {
+message CostsTally {
 	Costs costs = 1;
 	uint64 count = 2;
 }
 
-message CostsBucketMap {
-	map<string, CostsBucket> map = 1;
+message CostsTallyMap {
+	map<string, CostsTally> map = 1;
 }
 

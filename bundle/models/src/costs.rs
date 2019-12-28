@@ -224,13 +224,13 @@ impl Div<f64> for Costs {
 }
 
 #[derive(Clone, Debug, Default, ProtobufConvert)]
-#[exonum(pb = "proto::costs::CostsBucket", serde_pb_convert)]
-pub struct CostsBucket {
+#[exonum(pb = "proto::costs::CostsTally", serde_pb_convert)]
+pub struct CostsTally {
     pub costs: Costs,
     pub count: u64,
 }
 
-impl CostsBucket {
+impl CostsTally {
     pub fn new() -> Self {
         Self {
             costs: Costs::new(),
@@ -276,12 +276,12 @@ impl CostsBucket {
 }
 
 #[derive(Clone, Debug, Default, ProtobufConvert)]
-#[exonum(pb = "proto::costs::CostsBucketMap", serde_pb_convert)]
-pub struct CostsBucketMap {
-    map: HashMap<String, CostsBucket>,
+#[exonum(pb = "proto::costs::CostsTallyMap", serde_pb_convert)]
+pub struct CostsTallyMap {
+    map: HashMap<String, CostsTally>,
 }
 
-impl CostsBucketMap {
+impl CostsTallyMap {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -289,12 +289,12 @@ impl CostsBucketMap {
     }
 
     pub fn add(&mut self, key: &str, costs: &Costs) {
-        let entry = self.map.entry(key.to_owned()).or_insert(CostsBucket::new());
+        let entry = self.map.entry(key.to_owned()).or_insert(CostsTally::new());
         entry.add(costs);
     }
 
     pub fn subtract(&mut self, key: &str, costs: &Costs) {
-        let entry = self.map.entry(key.to_owned()).or_insert(CostsBucket::new());
+        let entry = self.map.entry(key.to_owned()).or_insert(CostsTally::new());
         entry.subtract(costs);
     }
 
@@ -310,12 +310,16 @@ impl CostsBucketMap {
         }
     }
 
-    pub fn map_ref<'a>(&'a self) -> &'a HashMap<String, CostsBucket> {
+    pub fn get(&self, key: &str) -> CostsTally {
+        self.map.get(key).map(|x| x.clone()).unwrap_or(CostsTally::new())
+    }
+
+    pub fn map_ref<'a>(&'a self) -> &'a HashMap<String, CostsTally> {
         &self.map
     }
 
-    pub fn into_map(self) -> HashMap<String, CostsBucket> {
-        let CostsBucketMap { map } = self;
+    pub fn into_map(self) -> HashMap<String, CostsTally> {
+        let CostsTallyMap { map } = self;
         map
     }
 }
@@ -477,7 +481,7 @@ mod tests {
 
     #[test]
     fn cost_buckets() {
-        let mut bucket = CostsBucket::new();
+        let mut bucket = CostsTally::new();
         assert_eq!(bucket.costs, Costs::new());
         assert_eq!(bucket.count, 0);
 
@@ -502,7 +506,7 @@ mod tests {
         assert_eq!(bucket.total().get("widget"), 42.0);
         assert_eq!(bucket.len(), 1);
 
-        let mut single_bucket = CostsBucket::new();
+        let mut single_bucket = CostsTally::new();
         single_bucket.add_single(64.5);
         single_bucket.add_single(12.0);
 
@@ -514,7 +518,7 @@ mod tests {
         assert_eq!(single_bucket.total_single(), 12.0);
         assert_eq!(single_bucket.len(), 1);
 
-        let mut bucketmap = CostsBucketMap::new();
+        let mut bucketmap = CostsTallyMap::new();
         bucketmap.add("inventory", &Costs::new_with_product("UNOBTAINIUM", 244.0));
         bucketmap.add("inventory", &Costs::new_with_product("UNOBTAINIUM", 198.0));
         bucketmap.add("operating", &Costs::new_with_product("BULLDOZER", 20.0));
@@ -528,7 +532,7 @@ mod tests {
         assert_eq!(op.total(), Costs::new_with_product("BULLDOZER", 20.0 + 2.0));
         assert_eq!(op.len(), 2);
 
-        let mut bucketmap = CostsBucketMap::new();
+        let mut bucketmap = CostsTallyMap::new();
         let mut map = HashMap::new();
         {
             let inv = map.entry("inventory".to_owned()).or_insert(Costs::new());
