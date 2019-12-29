@@ -253,13 +253,13 @@ describe('orders', function() {
 			created: new Date().toISOString(),
 		};
 		// bad dates
-		var ord = Object.assign({}, order, {company_id_to: company1_id+'z'});
+		var ord = Object.assign({}, order, {company_id_to: company1_id.replace(/[a-f0-9]/gi, '3')});
 		var res = await trans.send_as('jerry', tx.order.TxCreate, ord);
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/company not found/i);
 
 		// bad dates
-		var ord = Object.assign({}, order, {company_id_from: company2_id+'zex'});
+		var ord = Object.assign({}, order, {company_id_from: company2_id.replace(/[a-f0-9]/gi, '0')});
 		var res = await trans.send_as('jerry', tx.order.TxCreate, ord);
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/insufficient priv/i);

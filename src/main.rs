@@ -3,9 +3,11 @@
 
 #[macro_use] extern crate exonum_derive;
 #[macro_use] extern crate failure;
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate util;
+#[macro_use] extern crate validator_derive;
 #[cfg(test)] #[macro_use] extern crate exonum_testkit;
 
 mod logger;

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
@@ -31,15 +32,20 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::labor::TxCreate")]
     pub struct TxCreate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_uuid")]
         pub company_id: String,
+        #[validate(custom = "super::validate_uuid")]
         pub user_id: String,
+        #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -87,9 +93,11 @@ impl Transaction for TxCreate {
 deftransaction! {
     #[exonum(pb = "proto::labor::TxSetTime")]
     pub struct TxSetTime {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub start: DateTime<Utc>,
         pub end: DateTime<Utc>,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }

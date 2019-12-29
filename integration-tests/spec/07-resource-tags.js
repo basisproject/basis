@@ -81,7 +81,7 @@ describe('resource tags', function() {
 
 		var res = await trans.send_as('root', tx.resource_tag.TxCreate, {
 			id: tag_id,
-			product_id: product_id+'z',
+			product_id: product_id.replace(/[a-f0-9]/gi, '0'),
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(false);
@@ -103,7 +103,7 @@ describe('resource tags', function() {
 		expect(res.description).toMatch(/already deleted/i);
 
 		var res = await trans.send_as('root', tx.resource_tag.TxDelete, {
-			id: tag_id+'z',
+			id: tag_id.replace(/[a-f0-9]/gi, '0'),
 			deleted: new Date().toISOString(),
 		});
 		expect(res.success).toBe(false);

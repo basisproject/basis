@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use hex::FromHex;
+use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey},
@@ -22,14 +23,8 @@ use super::CommonError;
 #[derive(Debug, Fail)]
 #[repr(u8)]
 pub enum TransactionError {
-    #[fail(display = "Invalid ID")]
-    InvalidID = 0,
-
     #[fail(display = "Invalid pubkey")]
     InvalidPubkey = 1,
-
-    #[fail(display = "Invalid email")]
-    InvalidEmail = 2,
 
     #[fail(display = "Pubkey already exists")]
     PubkeyExists = 4,
@@ -45,18 +40,22 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::user::TxCreate")]
     pub struct TxCreate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub pubkey: PublicKey,
         pub roles: Vec<Role>,
+        #[validate(email(code = "email"))]
         pub email: String,
         pub name: String,
         pub meta: String,
+        #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -75,8 +74,6 @@ impl Transaction for TxCreate {
             Err(TransactionError::EmailExists)?
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
-        } else if !self.email.contains("@") {
-            Err(TransactionError::InvalidEmail)?
         } else {
             schema.users_create(&self.id, &self.pubkey, &self.roles, &self.email, &self.name, &self.meta, &self.created, &hash);
             Ok(())
@@ -87,16 +84,19 @@ impl Transaction for TxCreate {
 deftransaction! {
     #[exonum(pb = "proto::user::TxUpdate")]
     pub struct TxUpdate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub email: String,
         pub name: String,
         pub meta: String,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxUpdate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -138,7 +138,7 @@ impl Transaction for TxUpdate {
                 }
             }
             if !email.contains("@") {
-                Err(TransactionError::InvalidEmail)?
+                Err(CommonError::InvalidEmail)?
             }
         }
         if !util::time::is_current(&self.updated) {
@@ -153,15 +153,18 @@ impl Transaction for TxUpdate {
 deftransaction! {
     #[exonum(pb = "proto::user::TxSetPubkey")]
     pub struct TxSetPubkey {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub pubkey: PublicKey,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxSetPubkey {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -193,15 +196,18 @@ impl Transaction for TxSetPubkey {
 deftransaction! {
     #[exonum(pb = "proto::user::TxSetRoles")]
     pub struct TxSetRoles {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub roles: Vec<Role>,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxSetRoles {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -225,14 +231,17 @@ impl Transaction for TxSetRoles {
 deftransaction! {
     #[exonum(pb = "proto::user::TxDelete")]
     pub struct TxDelete {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub deleted: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxDelete {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

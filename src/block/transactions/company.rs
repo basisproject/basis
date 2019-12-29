@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
     crypto::{PublicKey},
@@ -55,17 +56,22 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::company::TxCreatePrivate")]
     pub struct TxCreatePrivate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(email(code = "email"))]
         pub email: String,
         pub name: String,
+        #[validate(custom = "super::validate_uuid")]
         pub founder_member_id: String,
         pub founder_occupation: String,
+        #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxCreatePrivate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -98,15 +104,18 @@ impl Transaction for TxCreatePrivate {
 deftransaction! {
     #[exonum(pb = "proto::company::TxUpdate")]
     pub struct TxUpdate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub email: String,
         pub name: String,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxUpdate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -142,14 +151,18 @@ impl Transaction for TxUpdate {
 deftransaction! {
     #[exonum(pb = "proto::company::TxSetType")]
     pub struct TxSetType {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_enum")]
         pub ty: CompanyType,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxSetType {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -174,14 +187,17 @@ impl Transaction for TxSetType {
 deftransaction! {
     #[exonum(pb = "proto::company::TxDelete")]
     pub struct TxDelete {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub deleted: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxDelete {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

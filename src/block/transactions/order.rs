@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
@@ -41,17 +42,23 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::order::TxCreate")]
     pub struct TxCreate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_uuid")]
         pub company_id_from: String,
+        #[validate(custom = "super::validate_uuid")]
         pub company_id_to: String,
+        #[validate(custom = "super::validate_enum")]
         pub cost_category: CostCategory,
         pub products: Vec<ProductEntry>,
+        #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -109,14 +116,18 @@ impl Transaction for TxCreate {
 deftransaction!{
     #[exonum(pb = "proto::order::TxUpdateStatus")]
     pub struct TxUpdateStatus {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_enum")]
         pub process_status: ProcessStatus,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxUpdateStatus {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -154,14 +165,18 @@ impl Transaction for TxUpdateStatus {
 deftransaction! {
     #[exonum(pb = "proto::order::TxUpdateCostCategory")]
     pub struct TxUpdateCostCategory {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_enum")]
         pub cost_category: CostCategory,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxUpdateCostCategory {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 

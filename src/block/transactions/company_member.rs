@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
@@ -56,18 +57,23 @@ define_exec_error!(TransactionError);
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxCreate")]
     pub struct TxCreate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
+        #[validate(custom = "super::validate_uuid")]
         pub company_id: String,
+        #[validate(custom = "super::validate_uuid")]
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxCreate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -102,16 +108,19 @@ impl Transaction for TxCreate {
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxUpdate")]
     pub struct TxUpdate {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxUpdate {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
         let hash = context.tx_hash();
 
@@ -153,14 +162,17 @@ impl Transaction for TxUpdate {
 deftransaction! {
     #[exonum(pb = "proto::company_member::TxDelete")]
     pub struct TxDelete {
+        #[validate(custom = "super::validate_uuid")]
         pub id: String,
         pub memo: String,
+        #[validate(custom = "super::validate_date")]
         pub deleted: DateTime<Utc>,
     }
 }
 
 impl Transaction for TxDelete {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        validate_transaction!(self);
         let pubkey = &context.author();
 
         let mut schema = Schema::new(context.fork());

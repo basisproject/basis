@@ -114,7 +114,7 @@ describe('company members', function() {
 			roles: ['Owner'],
 			occupation: 'Master Widget Builder',
 			memo: 'WhOoOoPs!! ;)',
-			deleted: new Date().toISOString(),
+			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(false);
 		expect(res.description).toMatch(/insufficient priv/i);

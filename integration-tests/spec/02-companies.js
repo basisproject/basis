@@ -158,10 +158,11 @@ describe('companies', function() {
 			ty: 'MY CUSTOM TYPE',
 			updated: new Date().toISOString(),
 		});
-		expect(res.success).toBe(true);
+		expect(res.success).toBe(false);
+		expect(res.description).toMatch(/invalid enum val/i);
 
 		var company = await Companies.get({id: company_id});
-		expect(company.ty).toBe('UNKNOWN');
+		expect(company.ty).toBe('PRIVATE');
 
 		var res = await trans.send_as('root', tx.company.TxSetType, {
 			id: company_id,
