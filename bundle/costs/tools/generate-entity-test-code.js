@@ -126,8 +126,8 @@ async function grab_orders(company_id) {
 }
 
 async function grab_labor(company_id) {
-	var res = await rp({url: `${api_endpoint}/services/basis/v1/labor`, qs: {company_id: company_id}, json: true});
-	return res.items;
+	var res = await rp({url: `${api_endpoint}/services/basis/v1/labor/company-current`, qs: {company_id: company_id}, json: true});
+	return res;
 }
 
 async function grab_products(company_id) {
