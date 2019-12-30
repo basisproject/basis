@@ -25,6 +25,12 @@ pub struct LaborListQuery {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct LaborCurrentQuery {
+    pub company_id: Option<String>,
+    pub filter: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LaborQuery {
     pub id: Option<String>,
 }
@@ -56,6 +62,28 @@ impl LaborApi {
         Ok(ListResult {
             items: labor,
         })
+    }
+
+    pub fn get_labor_current(state: &ServiceApiState, query: LaborCurrentQuery) -> api::Result<Vec<models::labor::Labor>> {
+        let snapshot = state.snapshot();
+        let schema = Schema::new(&snapshot);
+
+        let _filter = match query.filter.unwrap_or(String::from("finalized")).as_str() {
+            _ => "finalized",
+        };
+        let company = if query.company_id.is_some() {
+            schema.get_company(query.company_id.as_ref().unwrap())
+        } else {
+            let err: failure::Error = From::from(ApiError::BadQuery);
+            Err(err)?
+        };
+        let company_id = match company.as_ref() {
+            Some(u) => u.id.clone(),
+            None => String::from(""),
+        };
+
+        let labor = schema.get_labor_recent(&company_id);
+        Ok(labor)
     }
 
     pub fn get_labor(state: &ServiceApiState, query: LaborQuery) -> api::Result<ProofResult<models::labor::Labor>> {
@@ -106,6 +134,7 @@ impl LaborApi {
     pub fn wire(builder: &mut ServiceApiBuilder) {
         builder.public_scope()
             .endpoint("v1/labor", Self::get_labor_list)
+            .endpoint("v1/labor/company-current", Self::get_labor_current)
             .endpoint("v1/labor/info", Self::get_labor);
     }
 }

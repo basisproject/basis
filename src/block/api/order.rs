@@ -26,6 +26,7 @@ pub struct OrdersQuery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrdersCurrentQuery {
     pub company_id: Option<String>,
+    pub filter: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,6 +69,10 @@ impl OrderApi {
         let snapshot = state.snapshot();
         let schema = Schema::new(&snapshot);
 
+        let filter = match query.filter.unwrap_or(String::from("finalized")).as_str() {
+            "all" => "all",
+            _ => "finalized",
+        };
         let company = if query.company_id.is_some() {
             schema.get_company(query.company_id.as_ref().unwrap())
         } else {
@@ -79,8 +84,14 @@ impl OrderApi {
             None => String::from(""),
         };
 
-        let incoming = schema.get_orders_incoming_recent(&company_id);
-        let outgoing = schema.get_orders_outgoing_recent(&company_id);
+        let incoming = schema.get_orders_incoming_recent(&company_id)
+            .into_iter()
+            .filter(|o| if filter == "all" { true } else { o.process_status == models::order::ProcessStatus::Finalized })
+            .collect::<Vec<_>>();
+        let outgoing = schema.get_orders_outgoing_recent(&company_id)
+            .into_iter()
+            .filter(|o| if filter == "all" { true } else { o.process_status == models::order::ProcessStatus::Finalized })
+            .collect::<Vec<_>>();
         Ok(OrdersCurrentResult {
             incoming,
             outgoing,
