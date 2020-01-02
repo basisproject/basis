@@ -28,10 +28,12 @@ pub enum Permission {
     MemberDelete,
 
     LaborSetClock,
+    LaborTagCost,
 
     ProductCreate,
     ProductUpdate,
     ProductDelete,
+    ProductTagCost,
 
     OrderCreate,
     OrderUpdateProcessStatus,
@@ -39,6 +41,11 @@ pub enum Permission {
     OrderUpdateShipping,
     OrderUpdateShippingDates,
     OrderCancel,
+    OrderTagCost,
+
+    CostTagCreate,
+    CostTagUpdate,
+    CostTagDelete,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -48,6 +55,11 @@ pub enum Role {
     MemberAdmin,
     LaborAdmin,
     ProductAdmin,
+    CostTagAdmin,
+    CostTaggerAdmin,
+    CostTaggerLabor,
+    CostTaggerProduct,
+    CostTaggerOrder,
     Purchaser,
     Supplier,
 }
@@ -80,6 +92,35 @@ impl Role {
                     Permission::ProductCreate,
                     Permission::ProductUpdate,
                     Permission::ProductDelete,
+                ]
+            }
+            Role::CostTagAdmin => {
+                vec![
+                    Permission::CostTagCreate,
+                    Permission::CostTagUpdate,
+                    Permission::CostTagDelete,
+                ]
+            }
+            Role::CostTaggerAdmin => {
+                vec![
+                    Permission::LaborTagCost,
+                    Permission::ProductTagCost,
+                    Permission::OrderTagCost,
+                ]
+            }
+            Role::CostTaggerLabor => {
+                vec![
+                    Permission::LaborTagCost,
+                ]
+            }
+            Role::CostTaggerProduct => {
+                vec![
+                    Permission::ProductTagCost,
+                ]
+            }
+            Role::CostTaggerOrder => {
+                vec![
+                    Permission::OrderTagCost,
                 ]
             }
             Role::Purchaser => {

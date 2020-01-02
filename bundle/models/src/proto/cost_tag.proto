@@ -1,0 +1,44 @@
+syntax = "proto3";
+package basis.cost_tag;
+import "helpers.proto";
+import "google/protobuf/timestamp.proto";
+
+message CostTag {
+	string id = 1;
+	string company_id = 2;
+	string name = 3;
+	bool active = 4;
+	string meta = 5;
+	google.protobuf.Timestamp created = 6;
+	google.protobuf.Timestamp updated = 7;
+	google.protobuf.Timestamp deleted = 8;
+	uint64 history_len = 9;
+	exonum.Hash history_hash = 10;
+}
+
+message TxCreate {
+	string id = 1;
+	string company_id = 2;
+	string name = 3;
+	bool active = 4;
+	string meta = 5;
+	string memo = 6;
+	google.protobuf.Timestamp created = 7;
+}
+
+message TxUpdate {
+	string id = 1;
+	string name = 2;
+	bool active = 3;
+	string meta = 4;
+	string memo = 5;
+	google.protobuf.Timestamp updated = 6;
+}
+
+message TxDelete {
+	string id = 1;
+	string memo = 2;
+	google.protobuf.Timestamp deleted = 3;
+}
+
+
