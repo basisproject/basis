@@ -118,7 +118,7 @@ impl Transaction for TxUpdate {
         let inputs = empty_opt(&self.inputs);
         let effort = empty_opt(&self.effort);
         let active = Some(self.active);
-        let meta = empty_opt(&self.name).map(|x| x.as_str());
+        let meta = empty_opt(&self.meta).map(|x| x.as_str());
 
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?;
