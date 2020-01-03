@@ -23,6 +23,7 @@ use models::{
     resource_tag::ResourceTag,
     order::{Order, CostCategory, ProcessStatus, ProductEntry},
     costs::{Costs, CostsTallyMap},
+    cost_tag::{CostTag},
 };
 
 #[derive(Debug)]
@@ -572,12 +573,8 @@ impl<T> Schema<T>
     }
 
     pub fn get_resource_tag_by_product_id(&self, product_id: &str) -> Option<ResourceTag> {
-        match self.resource_tags_idx_product_id().get(product_id) {
-            Some(tag_id) => {
-                self.get_resource_tag(&tag_id)
-            }
-            None => None,
-        }
+        self.resource_tags_idx_product_id().get(product_id)
+            .and_then(|tag_id| self.get_resource_tag(&tag_id))
     }
 
     pub fn resource_tags_create(&mut self, id: &str, product_id: &str, created: &DateTime<Utc>, transaction: &Hash) {
@@ -825,6 +822,61 @@ impl<T> Schema<T>
         };
         index_and_rotate_mapindex(&mut idx_to, order.created.timestamp(), &order.id, &cutoff, op_cb);
         cost_agg.put(&String::from("product_outputs.v1"), bucket_map_outputs);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cost tags
+    // -------------------------------------------------------------------------
+    pub fn cost_tags(&self) -> ProofMapIndex<T, Hash, CostTag> {
+        ProofMapIndex::new("basis.cost_tags.table", self.access.clone())
+    }
+
+    pub fn cost_tags_history(&self, id: &str) -> ProofListIndex<T, Hash> {
+        ProofListIndex::new_in_family("basis.cost_tags.history", &crypto::hash(id.as_bytes()), self.access.clone())
+    }
+
+    pub fn cost_tags_idx_company_id(&self, company_id: &str) -> KeySetIndex<T, String> {
+        KeySetIndex::new_in_family("basis.cost_tags.idx_company_id", &crypto::hash(company_id.as_bytes()), self.access.clone())
+    }
+
+    pub fn get_cost_tag(&self, id: &str) -> Option<CostTag> {
+        self.cost_tags().get(&crypto::hash(id.as_bytes()))
+    }
+
+    pub fn cost_tags_create(&mut self, id: &str, company_id: &str, name: &str, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
+        let cost_tag = {
+            let mut history = self.cost_tags_history(id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            CostTag::new(id, company_id, name, active, meta, created, created, None, history.len(), &history_hash)
+        };
+        let company_id = cost_tag.company_id.clone();
+        self.cost_tags().put(&crypto::hash(id.as_bytes()), cost_tag);
+        self.cost_tags_idx_company_id(&company_id).insert(id.to_owned());
+    }
+
+    pub fn cost_tags_update(&mut self, cost_tag: CostTag, name: Option<&str>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = cost_tag.id.clone();
+        let cost_tag = {
+            let mut history = self.cost_tags_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            cost_tag.update(name, active, meta, updated, &history_hash)
+        };
+        self.cost_tags().put(&crypto::hash(id.as_bytes()), cost_tag);
+    }
+
+    pub fn cost_tags_delete(&mut self, cost_tag: CostTag, deleted: &DateTime<Utc>, transaction: &Hash) {
+        let id = cost_tag.id.clone();
+        let company_id = cost_tag.company_id.clone();
+        let cost_tag = {
+            let mut history = self.cost_tags_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            cost_tag.delete(deleted, &history_hash)
+        };
+        self.cost_tags().put(&crypto::hash(id.as_bytes()), cost_tag);
+        self.cost_tags_idx_company_id(&company_id).remove(&id);
     }
 }
 

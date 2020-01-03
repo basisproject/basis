@@ -150,6 +150,7 @@ pub mod labor;
 pub mod product;
 pub mod resource_tag;
 pub mod order;
+pub mod cost_tag;
 
 #[derive(Serialize, Deserialize, Clone, Debug, TransactionSet)]
 pub enum TransactionGroup {
@@ -181,5 +182,9 @@ pub enum TransactionGroup {
     OrderCreate(order::TxCreate),
     OrderUpdateStatus(order::TxUpdateStatus),
     OrderUpdateCostCategory(order::TxUpdateCostCategory),
+
+    CostTagCreate(cost_tag::TxCreate),
+    CostTagUpdate(cost_tag::TxUpdate),
+    CostTagDelete(cost_tag::TxDelete),
 }
 

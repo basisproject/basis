@@ -112,7 +112,7 @@ pub mod tests {
             Some("ongoing labor expenses"),
             Some(false),
             Some(r#"{"description":"NORTH KOREA CHECKMATE LEFTISTS"}"#),
-            &date2, 
+            &date2,
             &hash2
         );
         assert_eq!(tag2.company_id, tag.company_id);

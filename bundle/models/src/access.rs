@@ -35,6 +35,10 @@ pub enum Permission {
     ProductAdminUpdate,
     ProductAdminDelete,
 
+    CostTagCreate,
+    CostTagUpdate,
+    CostTagDelete,
+
     ResourceTagCreate,
     ResourceTagDelete,
 
@@ -119,6 +123,9 @@ impl Role {
                     Permission::ProductCreate,
                     Permission::ProductUpdate,
                     Permission::ProductDelete,
+                    Permission::CostTagCreate,
+                    Permission::CostTagUpdate,
+                    Permission::CostTagDelete,
                     Permission::OrderCreate,
                     Permission::OrderUpdate,
                 ]
