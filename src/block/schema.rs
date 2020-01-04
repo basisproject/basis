@@ -843,6 +843,15 @@ impl<T> Schema<T>
         self.cost_tags().get(&crypto::hash(id.as_bytes()))
     }
 
+    pub fn get_cost_tags_by_company_id(&self, company_id: &str) -> Vec<CostTag> {
+        self.cost_tags_idx_company_id(company_id)
+            .iter()
+            .map(|id| self.get_cost_tag(&id))
+            .filter(|ct| ct.is_some())
+            .map(|ct| ct.unwrap())
+            .collect::<Vec<_>>()
+    }
+
     pub fn cost_tags_create(&mut self, id: &str, company_id: &str, name: &str, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let cost_tag = {
             let mut history = self.cost_tags_history(id);

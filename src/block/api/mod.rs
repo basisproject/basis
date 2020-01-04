@@ -5,4 +5,5 @@ pub mod labor;
 pub mod product;
 pub mod resource_tag;
 pub mod order;
+pub mod cost_tag;
 
