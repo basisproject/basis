@@ -2,7 +2,10 @@ use exonum::proto::ProtobufConvert;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
 use serde_json::{self, Value};
-use crate::proto;
+use crate::{
+    proto,
+    cost_tag::CostTagEntry,
+};
 use error::BError;
 
 proto_enum! {
@@ -37,7 +40,7 @@ pub enum Permission {
 
     OrderCreate,
     OrderUpdateProcessStatus,
-    OrderUpdateCostCategory,
+    OrderUpdateCostTags,
     OrderUpdateShipping,
     OrderUpdateShippingDates,
     OrderCancel,
@@ -126,7 +129,7 @@ impl Role {
             Role::Purchaser => {
                 vec![
                     Permission::OrderCreate,
-                    Permission::OrderUpdateCostCategory,
+                    Permission::OrderUpdateCostTags,
                     Permission::OrderCancel,
                 ]
             }
@@ -175,6 +178,42 @@ impl ProtobufConvert for Role {
     fn from_pb(pb: Self::ProtoStruct) -> Result<Self, failure::Error> {
         serde_json::from_value::<Role>(Value::String(pb))
             .map_err(|_| From::from(BError::InvalidRole))
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, ProtobufConvert)]
+#[exonum(pb = "proto::company::TxCreatePrivate_CostTag", serde_pb_convert)]
+pub struct TxCreatePrivateCostTag {
+    pub id: String,
+    pub name: String,
+    pub meta: String,
+}
+
+impl TxCreatePrivateCostTag {
+    pub fn new(id: &str, name: &str, meta: &str) -> Self {
+        Self {
+            id: id.to_owned(),
+            name: name.to_owned(),
+            meta: meta.to_owned(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, ProtobufConvert)]
+#[exonum(pb = "proto::company::TxCreatePrivate_Founder", serde_pb_convert)]
+pub struct TxCreatePrivateFounder {
+    pub member_id: String,
+    pub occupation: String,
+    pub default_cost_tags: Vec<CostTagEntry>,
+}
+
+impl TxCreatePrivateFounder {
+    pub fn new(member_id: &str, occupation: &str, default_cost_tags: &Vec<CostTagEntry>) -> Self {
+        Self {
+            member_id: member_id.to_owned(),
+            occupation: occupation.to_owned(),
+            default_cost_tags: default_cost_tags.clone(),
+        }
     }
 }
 
@@ -263,7 +302,7 @@ pub mod tests {
         assert!(owner.can(&Permission::ProductDelete));
         assert!(owner.can(&Permission::OrderCreate));
         assert!(owner.can(&Permission::OrderUpdateProcessStatus));
-        assert!(owner.can(&Permission::OrderUpdateCostCategory));
+        assert!(owner.can(&Permission::OrderUpdateCostTags));
         assert!(owner.can(&Permission::OrderCancel));
 
         let admin = Role::Admin;
@@ -277,7 +316,7 @@ pub mod tests {
         assert!(admin.can(&Permission::ProductDelete));
         assert!(admin.can(&Permission::OrderCreate));
         assert!(admin.can(&Permission::OrderUpdateProcessStatus));
-        assert!(admin.can(&Permission::OrderUpdateCostCategory));
+        assert!(admin.can(&Permission::OrderUpdateCostTags));
         assert!(admin.can(&Permission::OrderCancel));
 
         let member_admin = Role::MemberAdmin;
@@ -291,7 +330,7 @@ pub mod tests {
         assert!(!member_admin.can(&Permission::ProductDelete));
         assert!(!member_admin.can(&Permission::OrderCreate));
         assert!(!member_admin.can(&Permission::OrderUpdateProcessStatus));
-        assert!(!member_admin.can(&Permission::OrderUpdateCostCategory));
+        assert!(!member_admin.can(&Permission::OrderUpdateCostTags));
         assert!(!member_admin.can(&Permission::OrderCancel));
     }
 

@@ -3,10 +3,12 @@ use validator::Validate;
 use exonum::{
     blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext},
 };
+use exonum_merkledb::IndexAccess;
 use models::{
     proto,
     company::{Permission as CompanyPermission},
     access::Permission,
+    cost_tag::CostTagEntry,
 };
 use util::{
     self,
@@ -34,6 +36,19 @@ pub enum TransactionError {
     AlreadyDeleted = 3,
 }
 define_exec_error!(TransactionError);
+
+pub fn validate_cost_tags<T>(schema: &mut Schema<T>, company_id: &str, cost_tags: &Vec<CostTagEntry>) -> Vec<CostTagEntry>
+    where T: IndexAccess
+{
+    cost_tags.clone().into_iter()
+        .filter(|entry| {
+            match schema.get_cost_tag(&entry.id) {
+                Some(tag) => tag.company_id == company_id,
+                None => false,
+            }
+        })
+        .collect::<Vec<_>>()
+}
 
 deftransaction! {
     #[exonum(pb = "proto::cost_tag::TxCreate")]

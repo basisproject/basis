@@ -36,9 +36,6 @@ pub enum CommonError {
     #[fail(display = "Cannot calculate costs")]
     CostError = 3,
 
-    #[fail(display = "Bad cost category")]
-    BadCostCategory = 4,
-
     #[fail(display = "ID already exists")]
     IDExists = 5,
 
@@ -170,7 +167,7 @@ pub enum TransactionGroup {
     CompanyMemberDelete(company_member::TxDelete),
 
     LaborCreate(labor::TxCreate),
-    LaborSetTime(labor::TxSetTime),
+    LaborSetTime(labor::TxUpdate),
 
     ProductCreate(product::TxCreate),
     ProductUpdate(product::TxUpdate),
@@ -181,7 +178,7 @@ pub enum TransactionGroup {
 
     OrderCreate(order::TxCreate),
     OrderUpdateStatus(order::TxUpdateStatus),
-    OrderUpdateCostCategory(order::TxUpdateCostCategory),
+    OrderUpdateCostTags(order::TxUpdateCostTags),
 
     CostTagCreate(cost_tag::TxCreate),
     CostTagUpdate(cost_tag::TxUpdate),

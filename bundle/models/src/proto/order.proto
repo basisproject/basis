@@ -3,6 +3,7 @@ package basis.order;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
 import "costs.proto";
+import "cost_tag.proto";
 
 message Order {
 	enum ProcessStatus {
@@ -15,11 +16,6 @@ message Order {
 		FINALIZED = 6;
 		CANCELED = 7;
 	}
-	enum CostCategory {
-		UNKNOWNCATEGORY = 0;
-		INVENTORY = 1;
-		OPERATING = 2;
-	}
 	message ProductEntry {
 		string product_id = 1;
 		double quantity = 2;
@@ -30,7 +26,7 @@ message Order {
 	string id = 1;
 	string company_id_from = 2;
 	string company_id_to = 3;
-	CostCategory cost_category = 4;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 4;
 	repeated ProductEntry products = 5;
 	ProcessStatus process_status = 7;
 	google.protobuf.Timestamp created = 8;
@@ -43,7 +39,7 @@ message TxCreate {
 	string id = 1;
 	string company_id_from = 2;
 	string company_id_to = 3;
-	Order.CostCategory cost_category = 4;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 4;
 	repeated Order.ProductEntry products = 5;
 	google.protobuf.Timestamp created = 6;
 }
@@ -54,9 +50,9 @@ message TxUpdateStatus {
 	google.protobuf.Timestamp updated = 3;
 }
 
-message TxUpdateCostCategory {
+message TxUpdateCostTags {
 	string id = 1;
-	Order.CostCategory cost_category = 2;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 2;
 	google.protobuf.Timestamp updated = 3;
 }
 

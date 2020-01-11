@@ -16,6 +16,11 @@ message CostTag {
 	exonum.Hash history_hash = 10;
 }
 
+message CostTagEntry {
+	string id = 1;
+	uint64 weight = 2;
+}
+
 message TxCreate {
 	string id = 1;
 	string company_id = 2;

@@ -7,7 +7,7 @@ use crate::block::schema::Schema;
 use super::CommonError;
 use models::{
     product::Product,
-    order::{CostCategory, ProcessStatus},
+    order::{ProcessStatus},
     costs::{Costs, CostsTallyMap},
 };
 
@@ -86,7 +86,10 @@ pub fn calculate_product_costs_with_raw<T>(schema: &mut Schema<T>, company_id: &
     // calculate our costs
     let costs = match costs::calculate_costs(&orders_incoming, &orders_outgoing, &labor, &amortization, &products) {
         Ok(x) => x,
-        Err(_) => Err(CommonError::CostError)?,
+        Err(e) => {
+            warn!("transactions::costs::calculate_product_costs_with_raw() -- {}", e);
+            Err(CommonError::CostError)?
+        }
     };
     Ok((costs, orders_incoming.len()))
 
@@ -118,41 +121,38 @@ pub fn calculate_product_costs_with_aggregate<T>(schema: &mut Schema<T>, company
     for k in output_tally_total.products().keys() {
         product_ids.push(k.clone());
     }
+    // get the products
     let products = get_products(schema, &product_ids);
-    let sum_hours = schema.rolling_timeline(company_id);
+
+    // sum our costs
+    let mut sum_costs = HashMap::new();
     let costs_tally = match cost_agg.get("costs.v1") {
         Some(x) => x,
         None => CostsTallyMap::new(),
     };
-    let costs_inputs_tally = match cost_agg.get("costs_inputs.v1") {
-        Some(x) => x,
-        None => CostsTallyMap::new(),
-    };
-    let mut sum_costs = HashMap::new();
+    for (cost_tag_id, costs) in costs_tally.map_ref() {
+        let entry = sum_costs.entry(cost_tag_id.clone()).or_insert(Costs::new());
+        *entry = entry.clone() + costs.total();
+    }
     let labor_tally = match cost_agg.get("labor.v1") {
         Some(x) => x,
         None => CostsTallyMap::new(),
     };
-    let labor_costs = labor_tally.get("hours").total();
-    for (cost_cat_str, costs) in costs_tally.map_ref() {
-        let cat = match CostCategory::set_from_str(cost_cat_str) {
-            Some(x) => x,
-            None => Err(CommonError::BadCostCategory)?,
-        };
-        sum_costs.insert(cat, costs.total());
+    for (cost_tag_id, costs) in labor_tally.map_ref() {
+        let entry = sum_costs.entry(cost_tag_id.clone()).or_insert(Costs::new());
+        *entry = entry.clone() + costs.total();
     }
-    let op_costs = sum_costs.entry(CostCategory::Operating).or_insert(Costs::new());
-    *op_costs = op_costs.clone() + labor_costs;
+
+    // grab our production numbers
     let sum_produced = output_tally_total.products();
-    let mut avg_input_costs = HashMap::new();
-    for (prod_id, tally) in costs_inputs_tally.map_ref() {
-        let avg_cost = tally.total() / (tally.len() as f64);
-        avg_input_costs.insert(prod_id.clone(), avg_cost);
-    }
+
     // calculate our costs
-    let costs = match costs::calculate_costs_with_aggregates(&products, sum_hours, &sum_costs, sum_produced, &avg_input_costs) {
+    let costs = match costs::calculate_costs_with_aggregates(&products, &sum_costs, sum_produced) {
         Ok(x) => x,
-        Err(_) => Err(CommonError::CostError)?,
+        Err(e) => {
+            warn!("transactions::costs::calculate_product_costs_with_aggregate() -- {}", e);
+            Err(CommonError::CostError)?
+        }
     };
     Ok((costs, num_incoming_orders as usize))
 }
@@ -177,7 +177,11 @@ pub fn calculate_product_costs<T>(schema: &mut Schema<T>, company_id: &str) -> R
 #[cfg(test)]
 pub mod tests {
     use chrono::Duration;
-    use models;
+    use models::{
+        self,
+        cost_tag::CostTagEntry,
+        company,
+    };
     use util;
     use crate::block::{transactions, schema::Schema};
     use crate::test::{self, gen_uuid};
@@ -192,6 +196,9 @@ pub mod tests {
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
         let co3_id = gen_uuid();
+        let ctag1_op_id = gen_uuid();
+        let ctag2_op_id = gen_uuid();
+        let ctag3_op_id = gen_uuid();
         let co1_founder_id = gen_uuid();
         let co2_founder_id = gen_uuid();
         let co3_founder_id = gen_uuid();
@@ -199,8 +206,8 @@ pub mod tests {
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
-            &co1_founder_id,
-            &String::from("Widget builder"),
+            &vec![company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", "")],
+            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -209,8 +216,8 @@ pub mod tests {
             &co2_id,
             &String::from("company2@basis.org"),
             &String::from("Widget Distributors Inc"),
-            &co2_founder_id,
-            &String::from("Widget distributor"),
+            &vec![company::TxCreatePrivateCostTag::new(&ctag2_op_id, "operating", "")],
+            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget distributor", &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -219,8 +226,8 @@ pub mod tests {
             &co3_id,
             &String::from("company3lol@basis.org"),
             &String::from("Widget BLOWOUT EMPORIUM!!!1"),
-            &co3_founder_id,
-            &String::from("Widget distributor"),
+            &vec![company::TxCreatePrivateCostTag::new(&ctag3_op_id, "operating", "")],
+            &company::TxCreatePrivateFounder::new(&co3_founder_id, "Widget distributor", &vec![CostTagEntry::new(&ctag3_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -235,8 +242,7 @@ pub mod tests {
             &models::product::Unit::Millimeter,
             &3.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
-            &Vec::new(),
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
+            &vec![CostTagEntry::new("operating", 10)],
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -250,6 +256,7 @@ pub mod tests {
             &labor_id,
             &co1_id,
             &uid,
+            &vec![],
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -258,8 +265,9 @@ pub mod tests {
 
         let now = util::time::now();
         let then = now - Duration::hours(8);
-        let tx_labor2 = transactions::labor::TxSetTime::sign(
+        let tx_labor2 = transactions::labor::TxUpdate::sign(
             &labor_id,
+            &vec![],
             &then,
             &now,
             &now,
@@ -273,7 +281,7 @@ pub mod tests {
             &ord1_id,
             &co2_id,
             &co1_id,
-            &models::order::CostCategory::Operating,
+            &vec![CostTagEntry::new("operating", 5)],
             &vec![models::order::ProductEntry::new(&prod_id, 20334.0, &models::costs::Costs::new(), false)],
             &util::time::now(),
             &root_pub,
@@ -284,7 +292,7 @@ pub mod tests {
             &ord2_id,
             &co3_id,
             &co1_id,
-            &models::order::CostCategory::Operating,
+            &vec![CostTagEntry::new("operating", 10)],
             &vec![models::order::ProductEntry::new(&prod_id, 10000.0, &models::costs::Costs::new(), false)],
             &util::time::now(),
             &root_pub,

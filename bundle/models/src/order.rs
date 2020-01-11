@@ -3,6 +3,7 @@ use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
 use crate::{
     costs::Costs,
+    cost_tag::{CostTagEntry, Costable},
     proto,
 };
 
@@ -18,15 +19,6 @@ proto_enum! {
 		Canceled = 7,
     };
     proto::order::Order_ProcessStatus
-}
-
-proto_enum! {
-    enum CostCategory {
-        UnknownCategory = 0,
-        Inventory = 1,
-        Operating = 2,
-    };
-    proto::order::Order_CostCategory
 }
 
 #[derive(Clone, Debug, ProtobufConvert)]
@@ -59,7 +51,7 @@ pub struct Order {
     pub id: String,
     pub company_id_from: String,
     pub company_id_to: String,
-    pub cost_category: CostCategory,
+    pub cost_tags: Vec<CostTagEntry>,
     pub products: Vec<ProductEntry>,
     pub process_status: ProcessStatus,
     pub created: DateTime<Utc>,
@@ -69,12 +61,12 @@ pub struct Order {
 }
 
 impl Order {
-    pub fn new(id: &str, company_id_from: &str, company_id_to: &str, cost_category: &CostCategory, products: &Vec<ProductEntry>, process_status: &ProcessStatus, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
+    pub fn new(id: &str, company_id_from: &str, company_id_to: &str, cost_tags: &Vec<CostTagEntry>, products: &Vec<ProductEntry>, process_status: &ProcessStatus, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, &history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             company_id_from: company_id_from.to_owned(),
             company_id_to: company_id_to.to_owned(),
-            cost_category: cost_category.clone(),
+            cost_tags: cost_tags.clone(),
             products: products.clone(),
             process_status: process_status.clone(),
             created: created.clone(),
@@ -89,7 +81,7 @@ impl Order {
             &self.id,
             &self.company_id_from,
             &self.company_id_to,
-            &self.cost_category,
+            &self.cost_tags,
             &self.products,
             process_status,
             &self.created,
@@ -99,12 +91,12 @@ impl Order {
         )
     }
 
-    pub fn update_cost_category(&self, cost_category: &CostCategory, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+    pub fn update_cost_tags(&self, cost_tags: &Vec<CostTagEntry>, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
         Self::new(
             &self.id,
             &self.company_id_from,
             &self.company_id_to,
-            cost_category,
+            cost_tags,
             &self.products,
             &self.process_status,
             &self.created,
@@ -112,6 +104,24 @@ impl Order {
             self.history_len + 1,
             history_hash
         )
+    }
+}
+
+impl Costable for Order {
+    fn get_costs(&self) -> Costs {
+        let mut order_costs: Costs = Costs::new();
+        for entry in &self.products {
+            let mut prod_costs = entry.costs.clone() * entry.quantity;
+            if entry.is_resource() {
+                prod_costs = prod_costs + Costs::new_with_product(&entry.product_id, entry.quantity);
+            }
+            order_costs = order_costs + prod_costs;
+        }
+        order_costs
+    }
+
+    fn get_cost_tags(&self) -> Vec<CostTagEntry> {
+        self.cost_tags.clone()
     }
 }
 
@@ -145,7 +155,7 @@ pub mod tests {
             "a3c7a63d-e4de-49e3-889d-78853a2169e6",
             "87dc6845-6617-467a-88a3-5aff66ec87a0",
             "20bdec28-e49d-4fc2-be7d-d39eda4ba9f4",
-            &CostCategory::Operating,
+            &vec![CostTagEntry::new("6969", 123)],
             &products,
             &ProcessStatus::New,
             &now,
@@ -165,7 +175,7 @@ pub mod tests {
         assert_eq!(order.id, order2.id);
         assert_eq!(order.company_id_from, order2.company_id_from);
         assert_eq!(order.company_id_to, order2.company_id_to);
-        assert_eq!(order.cost_category, order2.cost_category);
+        assert_eq!(order.cost_tags, order2.cost_tags);
         assert_eq!(order.products.len(), order2.products.len());
         assert_eq!(order.process_status, ProcessStatus::New);
         assert_eq!(order2.process_status, ProcessStatus::Accepted);
@@ -180,12 +190,13 @@ pub mod tests {
         util::sleep(100);
         let date2 = make_date();
         let hash2 = Hash::new([1, 28, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
-        let order2 = order.clone().update_cost_category(&CostCategory::Inventory, &date2, &hash2);
+        let cost_tags = vec![CostTagEntry::new("1212", 42)];
+        let order2 = order.clone().update_cost_tags(&cost_tags, &date2, &hash2);
         assert_eq!(order.id, order2.id);
         assert_eq!(order.company_id_from, order2.company_id_from);
         assert_eq!(order.company_id_to, order2.company_id_to);
-        assert_eq!(order.cost_category, CostCategory::Operating);
-        assert_eq!(order2.cost_category, CostCategory::Inventory);
+        assert_eq!(order.cost_tags[0].id, "6969");
+        assert_eq!(order2.cost_tags[0].id, "1212");
         assert_eq!(order.products.len(), order2.products.len());
         assert_eq!(order.process_status, order2.process_status);
         assert_eq!(order.created, order2.created);

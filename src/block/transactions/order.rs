@@ -7,11 +7,12 @@ use models::{
     proto,
     company::{Permission as CompanyPermission},
     access::Permission,
-    order::{ProductEntry, ProcessStatus, CostCategory},
+    order::{ProductEntry, ProcessStatus},
+    cost_tag::CostTagEntry,
 };
 use crate::block::{
     schema::Schema,
-    transactions::{company, access, costs},
+    transactions::{company, access, costs, cost_tag},
 };
 use util;
 use super::CommonError;
@@ -48,8 +49,7 @@ deftransaction! {
         pub company_id_from: String,
         #[validate(custom = "super::validate_uuid")]
         pub company_id_to: String,
-        #[validate(custom = "super::validate_enum")]
-        pub cost_category: CostCategory,
+        pub cost_tags: Vec<CostTagEntry>,
         pub products: Vec<ProductEntry>,
         #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
@@ -106,7 +106,8 @@ impl Transaction for TxCreate {
                 }
             }
         }
-        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &self.cost_category, &products, &self.created, &hash);
+        let cost_tags = cost_tag::validate_cost_tags(&mut schema, &self.company_id_from, &self.cost_tags);
+        schema.orders_create(&self.id, &self.company_id_from, &self.company_id_to, &cost_tags, &products, &self.created, &hash);
         costs::calculate_product_costs(&mut schema, &self.company_id_from)?;
         costs::calculate_product_costs(&mut schema, &self.company_id_to)?;
         Ok(())
@@ -163,18 +164,18 @@ impl Transaction for TxUpdateStatus {
 }
 
 deftransaction! {
-    #[exonum(pb = "proto::order::TxUpdateCostCategory")]
-    pub struct TxUpdateCostCategory {
+    #[exonum(pb = "proto::order::TxUpdateCostTags")]
+    pub struct TxUpdateCostTags {
         #[validate(custom = "super::validate_uuid")]
         pub id: String,
         #[validate(custom = "super::validate_enum")]
-        pub cost_category: CostCategory,
+        pub cost_tags: Vec<CostTagEntry>,
         #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
     }
 }
 
-impl Transaction for TxUpdateCostCategory {
+impl Transaction for TxUpdateCostTags {
     fn execute(&self, context: TransactionContext) -> ExecutionResult {
         validate_transaction!(self);
         let pubkey = &context.author();
@@ -189,7 +190,7 @@ impl Transaction for TxUpdateCostCategory {
         let order = ord.unwrap();
 
         access::check(&mut schema, pubkey, Permission::OrderUpdate)?;
-        company::check(&mut schema, &order.company_id_from, pubkey, CompanyPermission::OrderUpdateCostCategory)?;
+        company::check(&mut schema, &order.company_id_from, pubkey, CompanyPermission::OrderUpdateCostTags)?;
 
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?;
@@ -197,7 +198,8 @@ impl Transaction for TxUpdateCostCategory {
 
         let company_id_from = order.company_id_from.clone();
         let company_id_to = order.company_id_to.clone();
-        schema.orders_update_cost_category(order, &self.cost_category, &self.updated, &hash);
+        let cost_tags = cost_tag::validate_cost_tags(&mut schema, &company_id_from, &self.cost_tags);
+        schema.orders_update_cost_tags(order, &cost_tags, &self.updated, &hash);
         costs::calculate_product_costs(&mut schema, &company_id_from)?;
         costs::calculate_product_costs(&mut schema, &company_id_to)?;
         Ok(())
@@ -208,7 +210,11 @@ impl Transaction for TxUpdateCostCategory {
 pub mod tests {
     use super::*;
     use chrono::{DateTime, Utc, Duration};
-    use models;
+    use models::{
+        self,
+        cost_tag::CostTagEntry,
+        company,
+    };
     use util;
     use crate::block::{transactions, schema::Schema};
     use crate::test::{self, gen_uuid};
@@ -221,18 +227,39 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_user]);
 
         // create our STINKIN COMPANIES
+        let co0_id = gen_uuid();
         let co1_id = gen_uuid();
         let co2_id = gen_uuid();
-        let co3_id = gen_uuid();
+        let ctag0_op_id = gen_uuid();
+        let ctag1_op_id = gen_uuid();
+        let ctag1_inv_id = gen_uuid();
+        let ctag2_op_id = gen_uuid();
+        let ctag2_inv_id = gen_uuid();
+        let co0_founder_id = gen_uuid();
         let co1_founder_id = gen_uuid();
         let co2_founder_id = gen_uuid();
-        let co3_founder_id = gen_uuid();
+
+        let tx_co0 = transactions::company::TxCreatePrivate::sign(
+            &co0_id,
+            &String::from("company0@basis.org"),
+            &String::from("CARL'S COAL. YOU WANT COAL, WE GOT COAL. MAKES A GREAT GIFT. CHRISTMAS SPECIALS YEAR ROUND."),
+            &vec![
+                company::TxCreatePrivateCostTag::new(&ctag0_op_id, "operating", ""),
+            ],
+            &company::TxCreatePrivateFounder::new(&co0_founder_id, "Coal miner", &vec![CostTagEntry::new(&ctag0_op_id, 1)]),
+            &util::time::now(),
+            &root_pub,
+            &root_sec
+        );
         let tx_co1 = transactions::company::TxCreatePrivate::sign(
             &co1_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
-            &co1_founder_id,
-            &String::from("Widget builder"),
+            &vec![
+                company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", ""),
+                company::TxCreatePrivateCostTag::new(&ctag1_inv_id, "inventory", ""),
+            ],
+            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -241,35 +268,29 @@ pub mod tests {
             &co2_id,
             &String::from("company2@basis.org"),
             &String::from("Widget Distributors Inc"),
-            &co2_founder_id,
-            &String::from("Widget builder"),
+            &vec![
+                company::TxCreatePrivateCostTag::new(&ctag2_op_id, "operating", ""),
+                company::TxCreatePrivateCostTag::new(&ctag2_inv_id, "inventory", ""),
+            ],
+            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
         );
-        let tx_co3 = transactions::company::TxCreatePrivate::sign(
-            &co3_id,
-            &String::from("company3@basis.org"),
-            &String::from("Miner 49er"),
-            &co3_founder_id,
-            &String::from("Coal miner"),
-            &util::time::now(),
-            &root_pub,
-            &root_sec
-        );
-        testkit.create_block_with_transactions(txvec![tx_co1, tx_co2, tx_co3]);
+        testkit.create_block_with_transactions(txvec![tx_co0, tx_co1, tx_co2]);
 
         // create our coal product
         let prod_coal_id = gen_uuid();
         let tx_prod = transactions::product::TxCreate::sign(
             &prod_coal_id,
-            &co3_id,
+            &co0_id,
             &String::from("Coal"),
             &models::product::Unit::Millimeter,
             &1.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
-            &Vec::new(),
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 3),
+            &vec![
+                CostTagEntry::new(&ctag0_op_id, 1),
+            ],
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -298,8 +319,10 @@ pub mod tests {
             &models::product::Unit::Millimeter,
             &3.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
-            &vec![models::product::Input::new(&prod_coal_id, 6.0)],
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 7),
+            &vec![
+                CostTagEntry::new(&ctag1_op_id, 1),
+                CostTagEntry::new(&ctag1_inv_id, 1),
+            ],
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -315,14 +338,16 @@ pub mod tests {
             &labor1_id,
             &co1_id,
             &uid,
+            &Default::default(),
             &util::time::now(),
             &root_pub,
             &root_sec
         );
         let tx_labor2 = transactions::labor::TxCreate::sign(
             &labor2_id,
-            &co3_id,
+            &co0_id,
             &uid,
+            &Default::default(),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -331,16 +356,18 @@ pub mod tests {
 
         let now = util::time::now();
         let then = now - Duration::hours(8);
-        let tx_labor_fin1 = transactions::labor::TxSetTime::sign(
+        let tx_labor_fin1 = transactions::labor::TxUpdate::sign(
             &labor1_id,
+            &Default::default(),
             &then,
             &now,
             &now,
             &root_pub,
             &root_sec
         );
-        let tx_labor_fin2 = transactions::labor::TxSetTime::sign(
+        let tx_labor_fin2 = transactions::labor::TxUpdate::sign(
             &labor2_id,
+            &Default::default(),
             &then,
             &now,
             &now,
@@ -357,8 +384,8 @@ pub mod tests {
         let tx_ord1 = transactions::order::TxCreate::sign(
             &ord1_id,
             &co1_id,
-            &co3_id,
-            &models::order::CostCategory::Operating,
+            &co0_id,
+            &vec![CostTagEntry::new(&ctag1_op_id, 10)],
             &vec![models::order::ProductEntry::new(&prod_coal_id, 100.0, &costs, false)],
             &ord1_date,
             &root_pub,
@@ -381,8 +408,8 @@ pub mod tests {
         let tx_ord1_1 = transactions::order::TxCreate::sign(
             &ord1_1_id,
             &co1_id,
-            &co3_id,
-            &models::order::CostCategory::Operating,
+            &co0_id,
+            &vec![CostTagEntry::new(&ctag1_op_id, 10)],
             &vec![models::order::ProductEntry::new(&prod_coal_id, 50.0, &costs, false)],
             &ord1_1_date,
             &root_pub,
@@ -399,6 +426,17 @@ pub mod tests {
         );
         testkit.create_block_with_transactions(txvec![tx_ord1_1_stat]);
 
+        let snapshot = testkit.snapshot();
+        let schema = Schema::new(&snapshot);
+        let num_orders = schema.orders().keys().count();
+        let idx_from = schema.orders_idx_company_id_from_rolling(&co1_id);
+        let idx_to = schema.orders_idx_company_id_to_rolling(&co0_id);
+        assert_eq!(num_orders, 2);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
+        let coal_costs = schema.get_product_costs(&prod_coal_id).expect("missing coal product costs");
+        assert!(coal_costs.get_labor("Coal miner") - 0.05333333333333334 < 0.000000001);
+
         // widget distributor orders widgets
         let ord2_id = gen_uuid();
         let ord3_id = gen_uuid();
@@ -409,7 +447,10 @@ pub mod tests {
             &ord2_id,
             &co2_id,
             &co1_id,
-            &models::order::CostCategory::Operating,
+            &vec![
+                CostTagEntry::new(&ctag2_op_id, 3),
+                //CostTagEntry::new(&ctag2_inv_id, 2),
+            ],
             &vec![models::order::ProductEntry::new(&prod_widget_id, 12.0, &costs, false)],
             &ord2_date,
             &root_pub,
@@ -420,7 +461,10 @@ pub mod tests {
             &ord3_id,
             &co2_id,
             &co1_id,
-            &models::order::CostCategory::Operating,
+            &vec![
+                CostTagEntry::new(&ctag2_op_id, 1),
+                //CostTagEntry::new(&ctag2_inv_id, 1),
+            ],
             &vec![models::order::ProductEntry::new(&prod_widget_id, 5.0, &costs, false)],
             &ord3_date,
             &root_pub,
@@ -434,13 +478,11 @@ pub mod tests {
         let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
         assert_eq!(num_orders, 4);
-        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
-        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
 
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
-        let costs_inputs_map = schema.costs_aggregate(&co2_id).get("costs_inputs.v1").expect("costs_inputs.v1 cost map doesn't exist");
         assert_eq!(costs_map.map_ref().is_empty(), true);
-        assert_eq!(costs_inputs_map.map_ref().is_empty(), true);
 
         // finalize our widget orders, we should start seeing tracking now
         let tx_ord2_stat = transactions::order::TxUpdateStatus::sign(
@@ -466,14 +508,14 @@ pub mod tests {
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
         let prod_costs = schema.get_product_costs(&prod_widget_id).expect("missing widget product costs");
         assert_eq!(num_orders, 4);
-        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
-        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
         assert_eq!(prod_costs.get(&prod_coal_id), 8.823529411764707);
         assert_eq!(prod_costs.get_labor("Widget builder"), 0.47058823529411764);
         assert_eq!(prod_costs.get_labor("Coal miner"), 0.23529411764705882);
 
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
-        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs_bucket = costs_map.map_ref().get(&ctag2_op_id).expect("costs.v1 cost map does not contain `Operating` costs");
         let op_costs = op_costs_bucket.total();
         assert_eq!(op_costs_bucket.len(), 2);
         assert_eq!(op_costs.get(&prod_coal_id), 62.5);
@@ -487,7 +529,7 @@ pub mod tests {
             &ord4_id,
             &co2_id,
             &co1_id,
-            &models::order::CostCategory::Operating,
+            &vec![CostTagEntry::new(&ctag2_op_id, 1)],
             &vec![models::order::ProductEntry::new(&prod_widget_id, 3.0, &costs, false)],
             &ord4_date,
             &root_pub,
@@ -498,7 +540,7 @@ pub mod tests {
         let snapshot = testkit.snapshot();
         let schema = Schema::new(&snapshot);
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
-        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs_bucket = costs_map.map_ref().get(&ctag2_op_id).expect("costs.v1 cost map does not contain `Operating` costs");
         let op_costs = op_costs_bucket.total();
         assert_eq!(op_costs_bucket.len(), 1);
         assert_eq!(op_costs.get(&prod_coal_id), 62.5);
@@ -521,10 +563,10 @@ pub mod tests {
         let schema = Schema::new(&snapshot);
         let idx_from = schema.orders_idx_company_id_from_rolling(&co2_id);
         let idx_to = schema.orders_idx_company_id_to_rolling(&co1_id);
-        assert_eq!(idx_from.keys().filter(|x| !x.starts_with("_")).count(), 2);
-        assert_eq!(idx_to.keys().filter(|x| !x.starts_with("_")).count(), 2);
+        assert_eq!(idx_from.keys().count(), 2);
+        assert_eq!(idx_to.keys().count(), 2);
         let costs_map = schema.costs_aggregate(&co2_id).get("costs.v1").expect("costs.v1 cost map doesn't exist");
-        let op_costs_bucket = costs_map.map_ref().get("Operating").expect("costs.v1 cost map does not contain `Operating` costs");
+        let op_costs_bucket = costs_map.map_ref().get(&ctag2_op_id).expect("costs.v1 cost map does not contain `Operating` costs");
         let op_costs = op_costs_bucket.total();
         assert_eq!(op_costs_bucket.len(), 2);
         assert_eq!(op_costs.get(&prod_coal_id), 88.97058823529412);

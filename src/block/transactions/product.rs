@@ -7,11 +7,12 @@ use models::{
     proto,
     company::{Permission as CompanyPermission},
     access::Permission,
-    product::{Unit, Dimensions, Input, Effort},
+    product::{Unit, Dimensions},
+    cost_tag::CostTagEntry,
 };
 use crate::block::{
     schema::Schema,
-    transactions::{company, access},
+    transactions::{company, access, cost_tag},
 };
 use util::{self, protobuf::empty_opt};
 use super::CommonError;
@@ -45,8 +46,7 @@ deftransaction! {
         pub unit: Unit,
         pub mass_mg: f64,
         pub dimensions: Dimensions,
-        pub inputs: Vec<Input>,
-        pub effort: Effort,
+        pub cost_tags: Vec<CostTagEntry>,
         pub active: bool,
         pub meta: String,
         #[validate(custom = "super::validate_date")]
@@ -64,6 +64,11 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::ProductCreate)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::ProductCreate)?;
+        let cost_tags = match company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::ProductTagCost) {
+            Ok(_) => self.cost_tags.clone(),
+            Err(_) => vec![],
+        };
+        let cost_tags = cost_tag::validate_cost_tags(&mut schema, &self.company_id, &cost_tags);
 
         if schema.get_product(&self.id).is_some() {
             Err(CommonError::IDExists)?;
@@ -71,7 +76,7 @@ impl Transaction for TxCreate {
         if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.products_create(&self.id, &self.company_id, &self.name, &self.unit, self.mass_mg, &self.dimensions, &self.inputs, &self.effort, self.active, &self.meta, &self.created, &hash);
+        schema.products_create(&self.id, &self.company_id, &self.name, &self.unit, self.mass_mg, &self.dimensions, &cost_tags, self.active, &self.meta, &self.created, &hash);
         Ok(())
     }
 }
@@ -85,8 +90,7 @@ deftransaction! {
         pub unit: Unit,
         pub mass_mg: f64,
         pub dimensions: Dimensions,
-        pub inputs: Vec<Input>,
-        pub effort: Effort,
+        pub cost_tags: Vec<CostTagEntry>,
         pub active: bool,
         pub meta: String,
         #[validate(custom = "super::validate_date")]
@@ -110,20 +114,25 @@ impl Transaction for TxUpdate {
         let product = prod.unwrap();
         access::check(&mut schema, pubkey, Permission::ProductUpdate)?;
         company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductUpdate)?;
+        let can_edit_cost_tags = company::check(&mut schema, &product.company_id, pubkey, CompanyPermission::ProductTagCost).is_ok();
 
         let name = empty_opt(&self.name).map(|x| x.as_str());
         let unit = empty_opt(&self.unit);
         let mass_mg = empty_opt(&self.mass_mg).map(|x| x.clone());
         let dimensions = empty_opt(&self.dimensions);
-        let inputs = empty_opt(&self.inputs);
-        let effort = empty_opt(&self.effort);
+        let cost_tags = if can_edit_cost_tags {
+            empty_opt(&self.cost_tags)
+                .map(|cost_tags| cost_tag::validate_cost_tags(&mut schema, &product.company_id, cost_tags))
+        } else {
+            None
+        };
         let active = Some(self.active);
         let meta = empty_opt(&self.meta).map(|x| x.as_str());
 
         if !util::time::is_current(&self.updated) {
             Err(CommonError::InvalidTime)?;
         }
-        schema.products_update(product, name, unit, mass_mg, dimensions, inputs, effort, active, meta, &self.updated, &hash);
+        schema.products_update(product, name, unit, mass_mg, dimensions, cost_tags.as_ref(), active, meta, &self.updated, &hash);
         Ok(())
     }
 }
@@ -170,7 +179,11 @@ impl Transaction for TxDelete {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use models;
+    use models::{
+        self,
+        cost_tag::CostTagEntry,
+        company,
+    };
     use util;
     use crate::block::{transactions, schema::Schema};
     use crate::test::{self, gen_uuid};
@@ -183,13 +196,14 @@ pub mod tests {
         testkit.create_block_with_transactions(txvec![tx_user]);
 
         let co_id = gen_uuid();
+        let ctag1_op_id = gen_uuid();
         let co_founder_id = gen_uuid();
         let tx_co = transactions::company::TxCreatePrivate::sign(
             &co_id,
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
-            &co_founder_id,
-            &String::from("Widgets, Builder of"),
+            &vec![company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", "")],
+            &company::TxCreatePrivateFounder::new(&co_founder_id, "Widgets, Builder of", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -204,8 +218,7 @@ pub mod tests {
             &models::product::Unit::Millimeter,
             &3.0,
             &models::product::Dimensions::new(100.0, 100.0, 100.0),
-            &Vec::new(),
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 6),
+            &vec![CostTagEntry::new("operating", 10)],
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -220,8 +233,7 @@ pub mod tests {
             &models::product::Unit::Millimeter,
             &3.7,
             &models::product::Dimensions::new(140.0, 200.0, 1000.0),
-            &Vec::new(),
-            &models::product::Effort::new(&models::product::EffortTime::Minutes, 6),
+            &vec![CostTagEntry::new("operating", 10)],
             &true,
             &String::from("{}"),
             &util::time::now(),
@@ -236,7 +248,6 @@ pub mod tests {
 
         let tx_update = transactions::product::TxUpdate::sign(
             &prod1_id,
-            &Default::default(),
             &Default::default(),
             &Default::default(),
             &Default::default(),
@@ -262,7 +273,6 @@ pub mod tests {
             &Default::default(),
             &Default::default(),
             &Default::default(),
-            &Default::default(),
             &false,
             &Default::default(),
             &util::time::now(),
@@ -282,7 +292,6 @@ pub mod tests {
             &Default::default(),
             &Default::default(),
             &Default::default(),
-            &Default::default(),
             &true,
             &Default::default(),
             &util::time::now(),
@@ -291,7 +300,6 @@ pub mod tests {
         );
         let tx_update2 = transactions::product::TxUpdate::sign(
             &prod2_id,
-            &Default::default(),
             &Default::default(),
             &Default::default(),
             &Default::default(),

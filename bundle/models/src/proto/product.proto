@@ -2,6 +2,7 @@ syntax = "proto3";
 package basis.product;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
+import "cost_tag.proto";
 
 message Product {
 	// how this product is measured
@@ -10,6 +11,9 @@ message Product {
 		MILLIMETER = 1;
 		MILLILITER = 2;
 		WATTHOUR = 3;
+		// "each" is a special measure meaning that one unit of the product is
+		// self-referential. for instance, you might measure apples as "each"
+		// such that "apple" is the unit of measure for apples.
 		EACH = 4;
 	}
 	// physical dimensions, if applicable
@@ -17,37 +21,6 @@ message Product {
 		double width = 1;
 		double height = 2;
 		double length = 3;
-	}
-	// defines an input to this product. for instance, steel might have iron ore
-	// as an input. quantity is in units of the input product
-	message Input {
-		string product_id = 1;
-		double quantity = 2;
-	}
-	// how much time this product takes to build. note this doesn't strictly
-	// have to correspond to the time it takes to build, but can rather be a
-	// comparative measure that a company can use to create a ratio between all
-	// its products. in other words, how "hard" is it to make something when
-	// compared to another thing the company makes. generally, time is a good
-	// measure.
-	//
-	// generally, this should account for scale/concurrency: if my company can
-	// produce 500 widgets an hour when all capacity is devoted to that widget,
-	// then effort for that widget should be 7200ms.
-	message Effort {
-		enum Time {
-			UNKNOWN = 0;
-			NANOSECONDS = 1;
-			MILLISECONDS = 2;
-			SECONDS = 3;
-			MINUTES = 4;
-			HOURS = 5;
-			DAYS = 6;
-			WEEKS = 7;
-			YEARS = 8;
-		}
-		Time time = 1;
-		uint64 quantity = 2;
 	}
 
 	string id = 1;
@@ -59,8 +32,7 @@ message Product {
 	// physical units.
 	double mass_mg = 5;
 	Dimensions dimensions = 6;
-	repeated Input inputs = 7;
-	Effort effort = 8;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 7;
 	bool active = 9;
 	string meta = 10;
 	google.protobuf.Timestamp created = 11;
@@ -77,8 +49,7 @@ message TxCreate {
 	Product.Unit unit = 4;
 	double mass_mg = 5;
 	Product.Dimensions dimensions = 6;
-	repeated Product.Input inputs = 7;
-	Product.Effort effort = 8;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 7;
 	bool active = 9;
 	string meta = 10;
 	google.protobuf.Timestamp created = 11;
@@ -90,8 +61,7 @@ message TxUpdate {
 	Product.Unit unit = 3;
 	double mass_mg = 4;
 	Product.Dimensions dimensions = 5;
-	repeated Product.Input inputs = 6;
-	Product.Effort effort = 7;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 7;
 	bool active = 8;
 	string meta = 9;
 	google.protobuf.Timestamp updated = 10;

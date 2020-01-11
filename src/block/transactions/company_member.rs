@@ -8,6 +8,7 @@ use models::{
     proto,
     company::{Permission as CompanyPermission, Role as CompanyRole},
     access::Permission,
+    cost_tag::CostTagEntry,
 };
 use util::{
     self,
@@ -15,7 +16,7 @@ use util::{
 };
 use crate::block::{
     schema::Schema,
-    transactions::{company, access},
+    transactions::{company, access, cost_tag},
 };
 use super::CommonError;
 
@@ -65,6 +66,7 @@ deftransaction! {
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
+        pub default_cost_tags: Vec<CostTagEntry>,
         pub memo: String,
         #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
@@ -89,6 +91,10 @@ impl Transaction for TxCreate {
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::MemberCreate)?;
+        let default_cost_tags = match company::check(&mut schema, &self.company_id, pubkey, CompanyPermission::LaborTagCost) {
+            Ok(_) => cost_tag::validate_cost_tags(&mut schema, &self.company_id, &self.default_cost_tags),
+            Err(_) => vec![],
+        };
 
         if schema.get_user(&self.user_id).is_none() {
             Err(CommonError::UserNotFound)?;
@@ -99,7 +105,7 @@ impl Transaction for TxCreate {
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_create(&self.id, &self.company_id, &self.user_id, &self.roles, &self.occupation, &self.created, &hash);
+            schema.companies_members_create(&self.id, &self.company_id, &self.user_id, &self.roles, &self.occupation, &default_cost_tags, &self.created, &hash);
             Ok(())
         }
     }
@@ -112,6 +118,7 @@ deftransaction! {
         pub id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
+        pub default_cost_tags: Vec<CostTagEntry>,
         pub memo: String,
         #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
@@ -137,6 +144,7 @@ impl Transaction for TxUpdate {
 
         access::check(&mut schema, pubkey, Permission::CompanyUpdateMembers)?;
         company::check(&mut schema, &member.company_id, pubkey, CompanyPermission::MemberSetRoles)?;
+        let can_edit_cost_tags = company::check(&mut schema, &member.company_id, pubkey, CompanyPermission::LaborTagCost).is_ok();
 
         if schema.get_user(&member.user_id).is_none() {
             Err(CommonError::UserNotFound)?;
@@ -153,7 +161,13 @@ impl Transaction for TxUpdate {
         } else {
             let roles = empty_opt(&self.roles);
             let occupation = empty_opt(&self.occupation).map(|x| x.as_str());
-            schema.companies_members_update(member, roles, occupation, &self.updated, &hash);
+            let default_cost_tags = if can_edit_cost_tags {
+                empty_opt(&self.default_cost_tags)
+                    .map(|cost_tags| cost_tag::validate_cost_tags(&mut schema, &member.company_id, cost_tags))
+            } else {
+                None
+            };
+            schema.companies_members_update(member, roles, occupation, default_cost_tags.as_ref(), &self.updated, &hash);
             Ok(())
         }
     }

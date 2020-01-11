@@ -2,6 +2,7 @@ syntax = "proto3";
 package basis.company;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
+import "cost_tag.proto";
 
 enum CompanyType {
 	UNKNOWN = 0;
@@ -22,20 +23,22 @@ message Company {
 	exonum.Hash history_hash = 10;
 }
 
-message TxCreateSyndicate {
-	string id = 1;
-	string region_id = 2;
-	string email = 3;
-	string name = 4;
-	google.protobuf.Timestamp created = 5;
-}
-
 message TxCreatePrivate {
+	message CostTag {
+		string id = 1;
+		string name = 2;
+		string meta = 3;
+	}
+	message Founder {
+		string member_id = 1;
+		string occupation = 2;
+		repeated basis.cost_tag.CostTagEntry default_cost_tags = 3;
+	}
 	string id = 1;
 	string email = 2;
 	string name = 3;
-	string founder_member_id = 4;
-	string founder_occupation = 5;
+	repeated CostTag cost_tags = 4;
+	Founder founder = 5;
 	google.protobuf.Timestamp created = 6;
 }
 

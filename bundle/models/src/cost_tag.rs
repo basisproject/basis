@@ -1,6 +1,10 @@
+use std::collections::HashMap;
 use exonum::crypto::Hash;
 use chrono::{DateTime, Utc};
-use crate::proto;
+use crate::{
+    costs::Costs,
+    proto,
+};
 use util;
 
 #[derive(Clone, Debug, ProtobufConvert)]
@@ -70,6 +74,55 @@ impl CostTag {
 
     pub fn is_deleted(&self) -> bool {
         self.deleted != util::time::default_time()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, ProtobufConvert)]
+#[exonum(pb = "proto::cost_tag::CostTagEntry", serde_pb_convert)]
+pub struct CostTagEntry {
+    pub id: String,
+    pub weight: u64,
+}
+
+impl CostTagEntry {
+    pub fn new(id: &str, weight: u64) -> Self {
+        Self {
+            id: id.to_owned(),
+            weight,
+        }
+    }
+}
+
+pub trait Costable {
+    /// Get the costs for this object
+    fn get_costs(&self) -> Costs;
+
+    /// Get the cost tags for this object
+    fn get_cost_tags(&self) -> Vec<CostTagEntry>;
+
+    /// Add this object's tagged costs to an existing hash (that contains tagged
+    /// costs)
+    fn tally_tagged_costs(&self, cost_collection: &mut HashMap<String, Costs>) {
+        let object_costs = self.get_costs();
+        let object_cost_tags = self.get_cost_tags();
+        let cost_tags = if object_cost_tags.len() > 0 {
+            object_cost_tags
+        } else {
+            vec![CostTagEntry::new("_uncategorized", 1)]
+        };
+        let cost_tag_sum = cost_tags.iter().fold(0, |acc, x| acc + x.weight) as f64;
+        for cost_tag in &cost_tags {
+            let ratio = (cost_tag.weight as f64) / cost_tag_sum;
+            let current = cost_collection.entry(cost_tag.id.clone()).or_insert(Default::default());
+            *current = current.clone() + (object_costs.clone() * ratio);
+        }
+    }
+
+    /// Create a new hash that contains the tagged costs of this object
+    fn get_tagged_costs(&self) -> HashMap<String, Costs> {
+        let mut final_costs = HashMap::new();
+        self.tally_tagged_costs(&mut final_costs);
+        final_costs
     }
 }
 

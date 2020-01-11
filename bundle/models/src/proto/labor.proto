@@ -2,31 +2,35 @@ syntax = "proto3";
 package basis.labor;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
+import "cost_tag.proto";
 
 message Labor {
 	string id = 1;
 	string company_id = 2;
 	string user_id = 3;
 	string occupation = 4;
-	google.protobuf.Timestamp start = 5;
-	google.protobuf.Timestamp end = 6;
-	google.protobuf.Timestamp created = 7;
-	google.protobuf.Timestamp updated = 8;
-	uint64 history_len = 9;
-	exonum.Hash history_hash = 10;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 5;
+	google.protobuf.Timestamp start = 6;
+	google.protobuf.Timestamp end = 7;
+	google.protobuf.Timestamp created = 8;
+	google.protobuf.Timestamp updated = 9;
+	uint64 history_len = 10;
+	exonum.Hash history_hash = 11;
 }
 
 message TxCreate {
 	string id = 1;
 	string company_id = 2;
 	string user_id = 3;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 4;
 	google.protobuf.Timestamp created = 5;
 }
 
-message TxSetTime {
+message TxUpdate {
 	string id = 1;
-	google.protobuf.Timestamp start = 2;
-	google.protobuf.Timestamp end = 3;
-	google.protobuf.Timestamp updated = 4;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 2;
+	google.protobuf.Timestamp start = 3;
+	google.protobuf.Timestamp end = 4;
+	google.protobuf.Timestamp updated = 5;
 }
 

@@ -2,6 +2,7 @@ syntax = "proto3";
 package basis.company_member;
 import "helpers.proto";
 import "google/protobuf/timestamp.proto";
+import "cost_tag.proto";
 
 message CompanyMember {
 	string id = 1;
@@ -9,10 +10,11 @@ message CompanyMember {
 	string user_id = 3;
 	repeated string roles = 4;
 	string occupation = 5;
-	google.protobuf.Timestamp created = 6;
-	google.protobuf.Timestamp updated = 7;
-	uint64 history_len = 8;
-	exonum.Hash history_hash = 9;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 6;
+	google.protobuf.Timestamp created = 7;
+	google.protobuf.Timestamp updated = 8;
+	uint64 history_len = 9;
+	exonum.Hash history_hash = 10;
 }
 
 message TxCreate {
@@ -21,16 +23,18 @@ message TxCreate {
 	string user_id = 3;
 	repeated string roles = 4;
 	string occupation = 5;
-	string memo = 6;
-	google.protobuf.Timestamp created = 7;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 6;
+	string memo = 7;
+	google.protobuf.Timestamp created = 8;
 }
 
 message TxUpdate {
 	string id = 1;
 	repeated string roles = 2;
 	string occupation = 3;
-	string memo = 4;
-	google.protobuf.Timestamp updated = 5;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 4;
+	string memo = 5;
+	google.protobuf.Timestamp updated = 6;
 }
 
 message TxDelete {

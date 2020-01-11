@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use exonum::{
     crypto::{self, Hash, PublicKey},
@@ -19,11 +18,11 @@ use models::{
     company::{Company, CompanyType, Role as CompanyRole},
     company_member::CompanyMember,
     labor::Labor,
-    product::{Product, Unit, Dimensions, Input, Effort},
+    product::{Product, Unit, Dimensions},
     resource_tag::ResourceTag,
-    order::{Order, CostCategory, ProcessStatus, ProductEntry},
+    order::{Order, ProcessStatus, ProductEntry},
     costs::{Costs, CostsTallyMap},
-    cost_tag::{CostTag},
+    cost_tag::{CostTag, CostTagEntry, Costable},
 };
 
 #[derive(Debug)]
@@ -79,17 +78,6 @@ fn index_and_rotate_mapindex<T, F>(idx: &mut MapIndex<T, String, String>, timest
 {
     let key = format!("{}:{}", timestamp, item_id);
 
-    // saves the latest key so we can calculate total time (accurately) of our
-    // spread of orders
-    match idx.get("__latest") {
-        Some(x) => {
-            if key_to_datetime(&x).timestamp() < timestamp {
-                idx.put(&String::from("__latest"), key.clone());
-            }
-        }
-        None => idx.put(&String::from("__latest"), key.clone()),
-    }
-
     op_cb(item_id.to_owned(), false);
     idx.put(&key, item_id.to_owned());
     let mut remove_keys = Vec::new();
@@ -125,28 +113,6 @@ impl<T> Schema<T>
             self.resource_tags().object_hash(),
             self.orders().object_hash(),
         ]
-    }
-
-    pub fn rolling_timeline(&self, company_id: &str) -> f64 {
-        let idx_orders_from = self.orders_idx_company_id_from_rolling(company_id);
-        let idx_orders_to = self.orders_idx_company_id_to_rolling(company_id);
-        let idx_labor = self.labor_idx_company_id_rolling(company_id);
-        let now = util::time::now();
-        let mut start_vals = vec![
-            idx_orders_from.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-            idx_orders_to.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-            idx_labor.keys().next().map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-        ];
-        start_vals.sort();
-        let mut end_vals = vec![
-            idx_orders_from.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-            idx_orders_to.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-            idx_labor.get("__latest").map(|x| key_to_datetime(&x)).unwrap_or(now.clone()),
-        ];
-        end_vals.sort();
-        let start = start_vals[0];
-        let end = end_vals[end_vals.len() - 1];
-        ((end - start).num_seconds() as f64) / 3600.0
     }
 
     // -------------------------------------------------------------------------
@@ -321,23 +287,23 @@ impl<T> Schema<T>
             .and_then(|member_id| { self.get_company_member(&member_id) })
     }
 
-    pub fn companies_members_create(&mut self, id: &str, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_create(&mut self, id: &str, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, default_cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            CompanyMember::new(id, company_id, user_id, roles, occupation, created, created, history.len(), &history_hash)
+            CompanyMember::new(id, company_id, user_id, roles, occupation, default_cost_tags, created, created, history.len(), &history_hash)
         };
         self.companies_members().put(&crypto::hash(id.as_bytes()), member);
         self.companies_members_idx_company_id(company_id).put(&user_id.to_owned(), id.to_owned());
     }
 
-    pub fn companies_members_update(&mut self, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_update(&mut self, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, default_cost_tags: Option<&Vec<CostTagEntry>>, updated: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(&member.id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            member.update(roles, occupation, updated, &history_hash)
+            member.update(roles, occupation, default_cost_tags, updated, &history_hash)
         };
         self.companies_members().put(&crypto::hash(member.id.as_bytes()), member);
     }
@@ -355,7 +321,7 @@ impl<T> Schema<T>
             members.push((user_id, member_id));
         }
         for (user_id, member_id) in members {
-            let tmp_member = CompanyMember::new(&member_id, company_id, &user_id, &vec![], "tmp", &util::time::now(), &util::time::now(), 0, &Default::default());
+            let tmp_member = CompanyMember::new(&member_id, company_id, &user_id, &vec![], "tmp", &vec![], &util::time::now(), &util::time::now(), 0, &Default::default());
             self.companies_members_delete(tmp_member);
         }
         self.companies_members_idx_company_id(company_id).clear();
@@ -394,26 +360,26 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, occupation: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, occupation: &str, cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let labor = {
             let mut history = self.labor_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Labor::new(id, company_id, user_id, occupation, Some(created), None, created, created, history.len(), &history_hash)
+            Labor::new(id, company_id, user_id, occupation, cost_tags, Some(created), None, created, created, history.len(), &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
         self.labor_idx_company_id(company_id).push(id.to_owned());
         self.labor_update_rolling_index(&labor, None);
     }
 
-    pub fn labor_set_time(&mut self, labor: Labor, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn labor_update(&mut self, labor: Labor, cost_tags: Option<&Vec<CostTagEntry>>, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = labor.id.clone();
         let labor_original = labor.clone();
         let labor = {
             let mut history = self.labor_history(&id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            labor.set_time(start, end, updated, &history_hash)
+            labor.update(cost_tags, start, end, updated, &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
         self.labor_update_rolling_index(&labor, Some(&labor_original));
@@ -438,10 +404,11 @@ impl<T> Schema<T>
                 return;
             }
             info!("labor::rolling::agg::{} -- company {}", if is_remove { "remove" } else { "add" }, labor.company_id);
+            let tagged_costs = labor.get_tagged_costs();
             if is_remove {
-                bucket_map_labor.subtract("hours", &Costs::new_with_labor(&labor.occupation, labor.hours()));
+                bucket_map_labor.subtract_map(&tagged_costs);
             } else {
-                bucket_map_labor.add("hours", &Costs::new_with_labor(&labor.occupation, labor.hours()));
+                bucket_map_labor.add_map(&tagged_costs);
             }
         };
         original.map(|x| op_cb_impl(x.clone(), true));
@@ -506,12 +473,12 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, unit: &Unit, mass_mg: f64, dimensions: &Dimensions, inputs: &Vec<Input>, effort: &Effort, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn products_create(&mut self, id: &str, company_id: &str, name: &str, unit: &Unit, mass_mg: f64, dimensions: &Dimensions, cost_tags: &Vec<CostTagEntry>, active: bool, meta: &str, created: &DateTime<Utc>, transaction: &Hash) {
         let product = {
             let mut history = self.products_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Product::new(id, company_id, name, unit, mass_mg, dimensions, inputs, effort, active, meta, created, created, None, history.len(), &history_hash)
+            Product::new(id, company_id, name, unit, mass_mg, dimensions, cost_tags, active, meta, created, created, None, history.len(), &history_hash)
         };
         let active = product.active;
         self.products().put(&crypto::hash(id.as_bytes()), product);
@@ -521,13 +488,13 @@ impl<T> Schema<T>
         }
     }
 
-    pub fn products_update(&mut self, product: Product, name: Option<&str>, unit: Option<&Unit>, mass_mg: Option<f64>, dimensions: Option<&Dimensions>, inputs: Option<&Vec<Input>>, effort: Option<&Effort>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn products_update(&mut self, product: Product, name: Option<&str>, unit: Option<&Unit>, mass_mg: Option<f64>, dimensions: Option<&Dimensions>, cost_tags: Option<&Vec<CostTagEntry>>, active: Option<bool>, meta: Option<&str>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = product.id.clone();
         let product = {
             let mut history = self.products_history(&id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            product.update(name, unit, mass_mg, dimensions, inputs, effort, active, meta, updated, &history_hash)
+            product.update(name, unit, mass_mg, dimensions, cost_tags, active, meta, updated, &history_hash)
         };
         let active = product.active;
         let company_id = product.company_id.clone();
@@ -680,12 +647,12 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, category: &CostCategory, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn orders_create(&self, id: &str, company_id_from: &str, company_id_to: &str, cost_tags: &Vec<CostTagEntry>, products: &Vec<ProductEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let order = {
             let mut history = self.orders_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Order::new(id, company_id_from, company_id_to, category, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
+            Order::new(id, company_id_from, company_id_to, cost_tags, products, &ProcessStatus::New, &created, &created, history.len(), &history_hash)
         };
         let id = order.id.clone();
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
@@ -707,14 +674,14 @@ impl<T> Schema<T>
         self.orders_update_rolling_index(&order, Some(&order_original));
     }
 
-    pub fn orders_update_cost_category(&self, order: Order, category: &CostCategory, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn orders_update_cost_tags(&self, order: Order, cost_tags: &Vec<CostTagEntry>, updated: &DateTime<Utc>, transaction: &Hash) {
         let id = order.id.clone();
         let order_original = order.clone();
         let order = {
             let mut history = self.orders_history(&id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            order.update_cost_category(category, updated, &history_hash)
+            order.update_cost_tags(cost_tags, updated, &history_hash)
         };
         self.orders().put(&crypto::hash(id.as_bytes()), order.clone());
         self.orders_update_rolling_index(&order, Some(&order_original));
@@ -737,40 +704,16 @@ impl<T> Schema<T>
             Some(x) => x,
             None => CostsTallyMap::new(),
         };
-        let mut bucket_map_costs_inputs = match cost_agg.get("costs_inputs.v1") {
-            Some(x) => x,
-            None => CostsTallyMap::new(),
-        };
         let mut op_cb_impl = |order: Order, is_remove: bool| {
             if order.process_status != ProcessStatus::Finalized {
                 return;
             }
             info!("orders::rolling::agg::{} -- company {}", if is_remove { "remove" } else { "add" }, order.company_id_from);
-            let mut costs: HashMap<String, Costs> = HashMap::new();
-            let mut costs_inputs: HashMap<String, Costs> = HashMap::new();
-            for entry in &order.products {
-                let cat = order.cost_category.clone();
-                let cat_string = cat.as_str().to_owned();
-                let current = costs.entry(cat_string).or_insert(Default::default());
-                let mut prod_costs = entry.costs.clone() * entry.quantity;
-                if entry.is_resource() {
-                    let mut tmp_costs = Costs::new();
-                    tmp_costs.track(&entry.product_id, entry.quantity);
-                    prod_costs = prod_costs + tmp_costs;
-                }
-                *current = current.clone() + prod_costs.clone();
-                if cat == CostCategory::Inventory {
-                    let prod_inp_costs = costs_inputs.entry(entry.product_id.clone()).or_insert(Costs::new());
-                    *prod_inp_costs = prod_inp_costs.clone() + prod_costs;
-                }
-            }
-
+            let tagged_costs = order.get_tagged_costs();
             if is_remove {
-                bucket_map_costs.subtract_map(&costs);
-                bucket_map_costs_inputs.subtract_map(&costs_inputs);
+                bucket_map_costs.subtract_map(&tagged_costs);
             } else {
-                bucket_map_costs.add_map(&costs);
-                bucket_map_costs_inputs.add_map(&costs_inputs);
+                bucket_map_costs.add_map(&tagged_costs);
             }
         };
         original.map(|x| op_cb_impl(x.clone(), true));
@@ -783,7 +726,6 @@ impl<T> Schema<T>
         };
         index_and_rotate_mapindex(&mut idx_from, order.created.timestamp(), &order.id, &cutoff, op_cb);
         cost_agg.put(&String::from("costs.v1"), bucket_map_costs);
-        cost_agg.put(&String::from("costs_inputs.v1"), bucket_map_costs_inputs);
 
         // company to (the receiver) is going to track this order as product
         // output(s)

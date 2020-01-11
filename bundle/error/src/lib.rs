@@ -16,6 +16,9 @@ pub enum BError {
 
     #[fail(display = "Missing product in costing data")]
     CostMissingProduct,
+
+    #[fail(display = "Missing tag in costing data")]
+    CostMissingTag,
 }
 
 pub type BResult<T> = Result<T, BError>;

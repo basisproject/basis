@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use validator::Validate;
 use exonum::{
@@ -7,7 +8,13 @@ use exonum::{
 use exonum_merkledb::IndexAccess;
 use models::{
     proto,
-    company::{CompanyType, Permission as CompanyPermission, Role as CompanyRole},
+    company::{
+        TxCreatePrivateCostTag,
+        TxCreatePrivateFounder,
+        CompanyType,
+        Permission as CompanyPermission,
+        Role as CompanyRole,
+    },
     access::Permission,
 };
 use crate::block::{
@@ -61,9 +68,8 @@ deftransaction! {
         #[validate(email(code = "email"))]
         pub email: String,
         pub name: String,
-        #[validate(custom = "super::validate_uuid")]
-        pub founder_member_id: String,
-        pub founder_occupation: String,
+        pub cost_tags: Vec<TxCreatePrivateCostTag>,
+        pub founder: TxCreatePrivateFounder,
         #[validate(custom = "super::validate_date")]
         pub created: DateTime<Utc>,
     }
@@ -83,7 +89,7 @@ impl Transaction for TxCreatePrivate {
             None => Err(CommonError::UserNotFound)?,
         };
 
-        if schema.get_company_member(&self.founder_member_id).is_some() {
+        if schema.get_company_member(&self.founder.member_id).is_some() {
             Err(CommonError::IDExists)?;
         }
 
@@ -95,7 +101,22 @@ impl Transaction for TxCreatePrivate {
             Err(TransactionError::InvalidEmail)?
         } else {
             schema.companies_create(&self.id, &CompanyType::Private, None, &self.email, &self.name, &self.created, &hash);
-            schema.companies_members_create(&self.founder_member_id, &self.id, &user.id, &vec![CompanyRole::Owner], &self.founder_occupation, &self.created, &hash);
+            // this map tracks the ids of our cost tags
+            let mut cost_tag_id_map = HashMap::new();
+            for cost_tag in &self.cost_tags {
+                if schema.get_cost_tag(&cost_tag.id).is_some() {
+                    Err(CommonError::IDExists)?;
+                }
+                schema.cost_tags_create(&cost_tag.id, &self.id, &cost_tag.name, true, &cost_tag.meta, &self.created, &hash);
+                // track this cost tag id as existing
+                cost_tag_id_map.insert(cost_tag.id.clone(), true);
+            }
+            // only allow default cost tags for the founder if we know they
+            // exist (because we just created them above)
+            let default_cost_tag_entries = self.founder.default_cost_tags.clone().into_iter()
+                .filter(|entry| cost_tag_id_map.contains_key(&entry.id))
+                .collect::<Vec<_>>();
+            schema.companies_members_create(&self.founder.member_id, &self.id, &user.id, &vec![CompanyRole::Owner], &self.founder.occupation, &default_cost_tag_entries, &self.created, &hash);
             Ok(())
         }
     }
