@@ -40,12 +40,6 @@ pub fn calculate_costs(orders_incoming: &Vec<Order>, orders_outgoing: &Vec<Order
         }
     }
 
-    // if we haven't made anything, just assume we've made one of each
-    if sum_produced.len() == 0 {
-        for prod in products.values() {
-            sum_produced.insert(prod.id.clone(), 1.0);
-        }
-    }
     calculate_costs_with_aggregates(products, &sum_costs, &sum_produced)
 }
 
@@ -56,7 +50,11 @@ pub fn calculate_costs_with_aggregates(products: &HashMap<String, Product>, sum_
     let mut products = products.clone();
 
     // track which cost tags are present in the products
-    for (_prod_id, product) in products.iter() {
+    for (prod_id, product) in products.iter() {
+        if sum_produced.get(prod_id).unwrap_or(&0.0) == &0.0 {
+            // products that were not ordered/produced won't get costs
+            continue;
+        }
         for tag in &product.cost_tags {
             if tag.weight == 0 {
                 continue;
@@ -95,15 +93,22 @@ pub fn calculate_costs_with_aggregates(products: &HashMap<String, Product>, sum_
     // this gives a per-unit cost to each product based on the flow of costs
     // through the cost tags.
     for (prod_id, product) in products.iter() {
-        let mut prod_cost_sum = Costs::new();
-        for tag in &product.cost_tags {
-            let total: f64 = product_tag_totals.get(&tag.id).ok_or_else(|| BError::CostMissingTag)?.clone() as f64;
-            let tag_ratio: f64 = tag.weight as f64 / total;
-            let tag_costs = sum_costs.get(&tag.id).map(|x| x.clone()).unwrap_or(Costs::new());
-            prod_cost_sum = prod_cost_sum + (tag_costs * tag_ratio);
+        let num_produced: f64 = sum_produced.get(prod_id).unwrap_or(&0.0).clone();
+        if num_produced == 0.0 {
+            // products that were not produced have no cost (and will not have
+            // their cost tags tallied in the totals, meaning they will not
+            // "steal" costs from products that were actively produced)
+            final_costs.insert(prod_id.clone(), Costs::new());
+        } else {
+            let mut prod_cost_sum = Costs::new();
+            for tag in &product.cost_tags {
+                let total: f64 = product_tag_totals.get(&tag.id).ok_or_else(|| BError::CostMissingTag)?.clone() as f64;
+                let tag_ratio: f64 = tag.weight as f64 / total;
+                let tag_costs = sum_costs.get(&tag.id).map(|x| x.clone()).unwrap_or(Costs::new());
+                prod_cost_sum = prod_cost_sum + (tag_costs * tag_ratio);
+            }
+            final_costs.insert(prod_id.clone(), prod_cost_sum / num_produced);
         }
-        let num_produced: f64 = sum_produced.get(prod_id).ok_or_else(|| BError::CostMissingProduct)?.clone();
-        final_costs.insert(prod_id.clone(), prod_cost_sum / num_produced);
     }
     Ok(final_costs)
 }
