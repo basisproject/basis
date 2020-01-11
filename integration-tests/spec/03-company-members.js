@@ -69,8 +69,10 @@ describe('company members', function() {
 			id: company_id,
 			email: company_email,
 			name: 'jerry\'s WIDGETS',
-			founder_member_id: jerry_member_id,
-			founder_occupation: 'Widget builder',
+			founder: {
+				member_id: jerry_member_id,
+				occupation: 'Widget builder',
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);

@@ -33,6 +33,11 @@ describe('orders', function() {
 	const company2_id = uuid();
 	const company2_email = 'info@jerryswidgetco.com';
 
+	const ctag1_op_id = uuid();
+	const ctag1_inv_id = uuid();
+	const ctag2_op_id = uuid();
+	const ctag2_inv_id = uuid();
+
 	const company_shipping_id = uuid();
 
 	const product1_id = uuid();
@@ -79,8 +84,15 @@ describe('orders', function() {
 			id: company1_id,
 			email: company1_email,
 			name: 'SANDRA\'s (NOT Jerry\'s) WIDGETS',
-			founder_member_id: sandra_member_id,
-			founder_occupation: 'Widget builder',
+			cost_tags: [
+				{id: ctag1_op_id, name: 'operating'},
+				{id: ctag1_inv_id, name: 'inventory'},
+			],
+			founder: {
+				member_id: sandra_member_id,
+				occupation: 'Widget builder',
+				default_cost_tags: [{id: ctag1_op_id, weight: 1}],
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -88,8 +100,15 @@ describe('orders', function() {
 			id: company2_id,
 			email: company2_email,
 			name: 'jerry\'s resold widgets',
-			founder_member_id: jerry_member_id,
-			founder_occupation: 'Widget seller',
+			cost_tags: [
+				{id: ctag2_op_id, name: 'operating'},
+				{id: ctag2_inv_id, name: 'inventory'},
+			],
+			founder: {
+				member_id: jerry_member_id,
+				occupation: 'Widget seller',
+				default_cost_tags: [{id: ctag2_op_id, weight: 1}],
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -115,11 +134,7 @@ describe('orders', function() {
 				height: 1000,
 				length: 1000,
 			},
-			inputs: [],
-			effort: {
-				time: proto.types.Time.gen('MINUTES'),
-				quantity: 6,
-			},
+
 			active: true,
 			meta: '',
 			created: new Date().toISOString(),
@@ -137,11 +152,10 @@ describe('orders', function() {
 				height: 100,
 				length: 100,
 			},
-			inputs: [],
-			effort: {
-				time: proto.types.Time.gen('MINUTES'),
-				quantity: 2,
-			},
+			cost_tags: [
+				{id: ctag1_op_id, weight: 5},
+				{id: ctag1_inv_id, weight: 2},
+			],
 			active: true,
 			meta: '{}',
 			created: new Date().toISOString(),
@@ -158,7 +172,7 @@ describe('orders', function() {
 		expect(res.success).toBe(true);
 
 		var now = new Date().getTime();
-		var res = await trans.send_as('root', tx.labor.TxSetTime, {
+		var res = await trans.send_as('root', tx.labor.TxUpdate, {
 			id: labor_id,
 			start: new Date(now - (3600 * 7.4 * 1000)).toISOString(),
 			end: new Date(now).toISOString(),
@@ -173,7 +187,11 @@ describe('orders', function() {
 			id: order_id,
 			company_id_from: company2_id,
 			company_id_to: company1_id,
-			cost_category: 'OPERATING',
+			cost_tags: [
+				{id: ctag2_op_id, weight: 10},
+				{id: ctag2_inv_id, weight: 3},
+				{id: ctag1_op_id, weight: 81},
+			],
 			products: [{
 				product_id: product1_id,
 				quantity: 3,
@@ -194,14 +212,17 @@ describe('orders', function() {
 		expect(res.description).toBeFalsy();
 
 		var ord = await Orders.get({id: order_id});
+		var cost_tags = ord.cost_tags.sort((a, b) => a.weight - b.weight);
 		expect(ord.company_id_from).toBe(company2_id);
 		expect(ord.company_id_to).toBe(company1_id);
-		expect(ord.cost_category).toBe('OPERATING');
 		expect(ord.products[0].product_id).toBe(product1_id);
 		expect(ord.products[0].quantity).toBe(3);
 		expect(ord.products[1].product_id).toBe(product2_id);
 		expect(ord.products[1].quantity).toBe(6);
 		expect(ord.process_status).toBe('NEW');
+		expect(cost_tags.length).toBe(2);
+		expect(cost_tags[0]).toEqual({id: ctag2_inv_id, weight: 3});
+		expect(cost_tags[1]).toEqual({id: ctag2_op_id, weight: 10});
 	});
 
 	it('can update status', async () => {
@@ -224,16 +245,18 @@ describe('orders', function() {
 		expect(ord.process_status).toBe('FINALIZED');
 	});
 
-	it('can update category', async () => {
-		var res = await trans.send_as('jerry', tx.order.TxUpdateCostCategory, {
+	it('can update cost tags', async () => {
+		var res = await trans.send_as('jerry', tx.order.TxUpdateCostTags, {
 			id: order_id,
-			cost_category: 'INVENTORY',
+			cost_tags: [
+				{id: ctag2_inv_id, weight: 37},
+			],
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
 		expect(res.description).toBeFalsy();
 		var ord = await Orders.get({id: order_id});
-		expect(ord.cost_category).toBe('INVENTORY');
+		expect(ord.cost_tags).toEqual([{id: ctag2_inv_id, weight: 37}]);
 	});
 
 	it('will fail when it\'s supposed to', async () => {

@@ -34,8 +34,10 @@ describe('resource tags', function() {
 			id: company_id,
 			email: 'wedonthaveanykids@gmail.com',
 			name: 'LEONARD\'S IRON MINE',
-			founder_member_id: member_id,
-			founder_occupation: 'Miner 49er',
+			founder: {
+				member_id: member_id,
+				occupation: 'Miner 49er',
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -50,11 +52,6 @@ describe('resource tags', function() {
 				width: 1000,
 				height: 1000,
 				length: 1000,
-			},
-			inputs: [],
-			effort: {
-				time: proto.types.Time.gen('MINUTES'),
-				quantity: 6,
 			},
 			active: true,
 			meta: '',

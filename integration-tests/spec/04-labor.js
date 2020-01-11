@@ -25,6 +25,7 @@ describe('labor', function() {
 
 	const labor1_id = uuid();
 	const labor2_id = uuid();
+	const ctag_op_id = uuid();
 
 	beforeAll((done) => {
 		trans.clear_users();
@@ -54,8 +55,19 @@ describe('labor', function() {
 			id: company_id,
 			email: company_email,
 			name: 'jerry\'s WIDGETS',
-			founder_member_id: jerry_member_id,
-			founder_occupation: 'Widget builder',
+			cost_tags: [
+				{id: ctag_op_id, name: "operating"},
+			],
+			founder: {
+				member_id: jerry_member_id,
+				occupation: 'Widget builder',
+				default_cost_tags: [
+					// real tag
+					{id: ctag_op_id, weight: 5},
+					// fake tag (should be silently filtered out)
+					{id: '1234', weight: 2},
+				],
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -72,6 +84,8 @@ describe('labor', function() {
 		expect(res.success).toBe(true);
 
 		var labor = await Labor.get({id: labor1_id});
+		expect(labor.cost_tags[0]).toEqual({id: ctag_op_id, weight: 5});
+		expect(labor.cost_tags.length).toBe(1);
 		expect(Timestamp.from(labor.created).toISOString()).toBe(now1);
 		expect(Timestamp.from(labor.start).toISOString()).toBe(now1);
 		expect(Timestamp.from(labor.end).getTime()).toBe(0);
@@ -93,7 +107,7 @@ describe('labor', function() {
 
 	it('can clock out', async () => {
 		var now1 = new Date().toISOString();
-		var res = await trans.send_as('jerry', tx.labor.TxSetTime, {
+		var res = await trans.send_as('jerry', tx.labor.TxUpdate, {
 			id: labor1_id,
 			start: new Date(0).toISOString(),
 			end: now1,
@@ -108,7 +122,7 @@ describe('labor', function() {
 		var now2 = new Date(new Date().getTime() - (3600 * 6 * 1000)).toISOString();
 		var now3 = new Date().toISOString();
 
-		var res = await trans.send_as('jerry', tx.labor.TxSetTime, {
+		var res = await trans.send_as('jerry', tx.labor.TxUpdate, {
 			id: labor2_id,
 			start: now2,
 			end: now3,

@@ -29,6 +29,9 @@ describe('products', function() {
 	const company_id = uuid();
 	const company_email = 'info@SANDRASwidgets.com';
 
+	const ctag_op_id = uuid();
+	const ctag_inv_id = uuid();
+
 	const product_id = uuid();
 	const product_name = 'Whiffle Widget';
 	const product_name2 = 'Serious Widget';
@@ -74,8 +77,15 @@ describe('products', function() {
 			id: company_id,
 			email: company_email,
 			name: 'SANDRA\'s (NOT Jerry\'s) WIDGETS',
-			founder_member_id: sandra_member_id,
-			founder_occupation: 'Widget builder',
+			cost_tags: [
+				{id: ctag_op_id, name: "operating"},
+				{id: ctag_inv_id, name: "inventory"},
+			],
+			founder: {
+				member_id: sandra_member_id,
+				occupation: 'Widget builder',
+				default_cost_tags: [{id: ctag_op_id, weight: 10}],
+			},
 			created: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -93,11 +103,10 @@ describe('products', function() {
 				height: 100,
 				length: 100,
 			},
-			inputs: [],
-			effort: {
-				time: proto.types.Time.gen('hours'),
-				quantity: 37,
-			},
+			cost_tags: [
+				{id: ctag_op_id, weight: 1},
+				{id: ctag_inv_id, weight: 4},
+			],
 			active: true,
 			meta: '',
 			created: new Date().toISOString(),
@@ -109,7 +118,8 @@ describe('products', function() {
 			id: jerry_member_id,
 			company_id: company_id,
 			user_id: jerry_user_id,
-			roles: ['ProductAdmin'],
+			roles: ['ProductAdmin', 'CostTaggerProduct'],
+			default_cost_tags: [{id: ctag_op_id, weight: 10}],
 			memo: 'GET TO WORK, JERRY',
 			created: new Date().toISOString(),
 		});
@@ -126,11 +136,11 @@ describe('products', function() {
 				height: 100,
 				length: 100,
 			},
-			inputs: [],
-			effort: {
-				time: proto.types.Time.map.HOURS,
-				quantity: 37,
-			},
+			cost_tags: [
+				{id: ctag_op_id, weight: 3},
+				{id: ctag_inv_id, weight: 5},
+				{id: 'fake tag. SAD!', weight: 69},
+			],
 			active: false,
 			meta: '',
 			created: new Date().toISOString(),
@@ -142,6 +152,10 @@ describe('products', function() {
 		expect(product.company_id).toBe(company_id);
 		expect(product.name).toBe(product_name);
 		expect(product.active).toBe(false);
+		var cost_tags = product.cost_tags.sort((a, b) => a.weight - b.weight);
+		expect(cost_tags.length).toBe(2);
+		expect(cost_tags[0]).toEqual({id: ctag_op_id, weight: 3});
+		expect(cost_tags[1]).toEqual({id: ctag_inv_id, weight: 5});
 	});
 
 	it('can be updated', async () => {
@@ -149,6 +163,9 @@ describe('products', function() {
 			id: product_id,
 			name: product_name2,
 			active: true,
+			cost_tags: [
+				{id: ctag_inv_id, weight: 42},
+			],
 			updated: new Date().toISOString(),
 		});
 		expect(res.success).toBe(true);
@@ -159,14 +176,11 @@ describe('products', function() {
 		expect(product.name).toBe(product_name2);
 		expect(product.active).toBe(true);
 		expect(product.mass_mg).toBe(42);
-		expect(product.inputs).toEqual([]);
+		expect(product.cost_tags).toEqual([{id: ctag_inv_id, weight: 42}]);
 
 		var input_id = uuid();
 		var res = await trans.send_as('sandra', tx.product.TxUpdate, {
 			id: product_id,
-			inputs: [
-				{product_id: input_id, quantity: 69},
-			],
 			active: true,
 			updated: new Date().toISOString(),
 		});
@@ -178,7 +192,6 @@ describe('products', function() {
 		expect(product.name).toBe(product_name2);
 		expect(product.active).toBe(true);
 		expect(product.mass_mg).toBe(42);
-		expect(product.inputs).toEqual([{product_id: input_id, quantity: 69}]);
 	});
 
 	it('can be destroyed', async () => {
