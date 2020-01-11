@@ -168,7 +168,6 @@ deftransaction! {
     pub struct TxUpdateCostTags {
         #[validate(custom = "super::validate_uuid")]
         pub id: String,
-        #[validate(custom = "super::validate_enum")]
         pub cost_tags: Vec<CostTagEntry>,
         #[validate(custom = "super::validate_date")]
         pub updated: DateTime<Utc>,
@@ -183,11 +182,7 @@ impl Transaction for TxUpdateCostTags {
 
         let mut schema = Schema::new(context.fork());
 
-        let ord = schema.get_order(&self.id);
-        if ord.is_none() {
-            Err(TransactionError::OrderNotFound)?;
-        }
-        let order = ord.unwrap();
+        let order = schema.get_order(&self.id).ok_or_else(|| TransactionError::OrderNotFound)?;
 
         access::check(&mut schema, pubkey, Permission::OrderUpdate)?;
         company::check(&mut schema, &order.company_id_from, pubkey, CompanyPermission::OrderUpdateCostTags)?;
