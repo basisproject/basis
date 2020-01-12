@@ -49,7 +49,7 @@ A User in Basis is essentially an ID, a public key, and a set of roles. Users ar
 
 A company is a basic object consisting of an ID, email, and name. Although company objects don't store much data, they are central to the rest of the system. Companies are the owners of [company members](#members) (workers), [products](#products), [labor](#labor), and [cost tags](#cost-tags).
 
-Companies are the object that most of the economic and tracking data attaches to, and act as a sort of container for costs. Companies also have a specific set of per-member permissions that control who can do what Basis-realted tasks (such as handling orders, managing labor tracking, tagging costs, etc). A company object in Basis would be the same as a company in the market economy (like "Amazon" or "Safeway").
+Companies are the object that most of the economic and tracking data attaches to, and act as a sort of container for costs. Companies also have a specific set of per-member permissions that control who can do what Basis-related tasks (such as handling orders, managing labor tracking, tagging costs, etc). A company object in Basis would be the same as a company in the market economy (like "Amazon" or "Safeway").
 
 ## Members
 
@@ -99,7 +99,56 @@ Cost tags can be attached to labor records, orders, products, and services, and 
 
 # Costs
 
-# Running
+So we've been rambling on and on about cost tracking, but how does it actually work? Essentially, there are two types of costs a company can incur. One is labor costs, and the other is outgoing orders ("purchases").
+
+On the other side, companies have outputs, such as products. If a company has 50 hours of labor costs, and 20kg of lumber costs, and they make 500 chairs, then each chair costs `0.1` labor hours and `0.04kg` lumber. Essentially, we take the costs and divide by the outputs. This is how Basis works.
+
+What about when we have multiple products, some needing much more inventory/inputs and/or labor than others? We can't just divide costs by outputs across the board. This is where [cost tags](#cost-tags) come in! For each labor record and each outgoing order, a company can add cost tags to it that, over time, create different buckets of costs. Then, each product can also have a set of cost tags (matching the ones assigned to labor/orders) that divvy the costs between each of the products proportionally. Let's do an example.
+
+Let's say we have the products "Basic widget" and "Advanced widget" and we also have the cost tags "Operating" and "Inventory". All of the company's labor goes into "Operating" expenses, and all of our outgoing orders are "Inventory" expenses. Our widgets are made from iron bars. Each iron bar consists of 1 labor hour and 4g iron.
+
+Let's say it takes 1 hour and 2 iron bars to build a Basic widget, and 3 hours and 5 iron bars to build an advanced widget. We might set our cost tags like so:
+
+- Basic widget
+  - `Operating` - 1
+  - `Inventory` - 2
+- Advanced widget
+  - `Operating` - 3
+  - `Inventory` - 5
+
+If we get an order for 150 Basic widgets and 40 Advanced widgets, the costs of production break down as such:
+
+- Basic widget:
+  - `1 hour * 150` = 150 hours
+  - `2 iron bars * 4g iron * 150` = 1200g iron
+- Advanced widget:
+  - `3 hours * 40` = 120 hours
+  - `5 iron bars * 4g iron * 40` = 800g iron
+
+So we order 500 iron bars (exactly enough to build our widgets) and our "Inventory" costs bucket would now have 10000g iron and 500 labor hours, and after we build our widgets, the "Operating" costs bucket will have 270 hours of labor.
+
+Now the fun. Cost buckets:
+
+- `Operating`
+  - 270 labor
+- `Inventory`
+  - 500 labor
+  - 2000g iron
+
+Now, when deriving the costs, the cost tags are proportional *across each product*. So if product 1 has a cost tag of `Operating 1` and product 2 has a cost tag of `Operating 3`, then the divider for the Operating costs between our two products is `1 + 3` (4), of which product 1 gets 1x the divided amount, and product 2 gets 3x the divided amount:
+
+- Basic widget
+  - `((Cost(Operating) * (1 / (1 + 3))) + (Cost(Inventory) * (2 / (2 + 5)))) / 150`
+  - `((67.5 labor) + (142.8571 labor + 571.428571429 iron)) / 150`
+  - Price per widget: `1.402380667 labor, 3.80952381 iron`
+- Advanced widget
+  - `((Cost(Operating) * (3 / (1 + 3))) + (Cost(Inventory) * (5 / (2 + 5)))) / 40`
+  - `((202.5 labor) + (357.142857143 labor + 1428.571428571 iron)) / 40`
+  - Price per widget: `13.991071429 labor, 35.714285714 iron`
+
+You can see how cost tags are essentially proportional control mechanisms for costs.
+
+# Running Basis
 
 ## Building
 
