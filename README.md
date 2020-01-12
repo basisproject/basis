@@ -125,7 +125,7 @@ If we get an order for 150 Basic widgets and 40 Advanced widgets, the costs of p
   - `3 hours * 40` = 120 hours
   - `5 iron bars * 4g iron * 40` = 800g iron
 
-So we order 500 iron bars (exactly enough to build our widgets) and our "Inventory" costs bucket would now have 10000g iron and 500 labor hours, and after we build our widgets, the "Operating" costs bucket will have 270 hours of labor.
+So we order 500 iron bars (exactly enough to build our widgets) and our "Inventory" costs bucket would now have 2000g iron and 500 labor hours, and after we build our widgets, the "Operating" costs bucket will have 270 hours of labor.
 
 Now the fun. Cost buckets:
 
