@@ -1,6 +1,6 @@
 # Basis
 
-This is a blockchain implementation of the system described in the [basis paper](https://gitlab.com/basis-/paper). The system's processes and decisions will not be described here as the paper will do a better job. Here you will find technical information on using/running the project.
+This is a blockchain implementation of the system described in the [basis paper](https://gitlab.com/basisproject/paper). The system's processes and decisions will not be described here as the paper will do a better job. Here you will find technical information on using/running the project.
 
 ## What is Basis?
 
@@ -63,7 +63,7 @@ Products are building blocks of the cost tracking system. They have costs attach
 
 ## Services
 
-TODO (see [tracker/#20](https://gitlab.com/basis-/tracker/issues/20)).
+TODO (see [tracker/#20](https://gitlab.com/basisproject/tracker/issues/20)).
 
 ## Labor
 
@@ -83,7 +83,7 @@ It's important to note that in the market system, orders generally require some 
 
 ## Amortization
 
-TODO (see [tracker/#21](https://gitlab.com/basis-/tracker/issues/21)).
+TODO (see [tracker/#21](https://gitlab.com/basisproject/tracker/issues/21)).
 
 ## Resource tags
 
