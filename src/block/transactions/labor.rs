@@ -95,7 +95,7 @@ impl Transaction for TxCreate {
             }
         }
 
-        schema.labor_create(&self.id, &self.company_id, &self.user_id, &member.occupation, &cost_tags, &self.created, &hash);
+        schema.labor_create(&self.id, &self.company_id, &self.user_id, &member.occupation, member.wage, &cost_tags, &self.created, &hash);
         Ok(())
     }
 }
@@ -162,6 +162,46 @@ impl Transaction for TxUpdate {
     }
 }
 
+deftransaction! {
+    #[exonum(pb = "proto::labor::TxSetWage")]
+    pub struct TxSetWage {
+        #[validate(custom = "super::validate_uuid")]
+        pub id: String,
+        #[validate(range(min = 0))]
+        pub wage: f64,
+        #[validate(custom = "super::validate_date")]
+        pub updated: DateTime<Utc>,
+    }
+}
+
+impl Transaction for TxSetWage {
+    fn execute(&self, context: TransactionContext) -> ExecutionResult {
+        let pubkey = &context.author();
+        let hash = context.tx_hash();
+
+        let mut schema = Schema::new(context.fork());
+
+        let labor = schema.get_labor(&self.id)
+            .ok_or_else(|| TransactionError::LaborNotFound)?;
+
+        access::check(&mut schema, pubkey, Permission::CompanySetLaborWage)?;
+        company::check(&mut schema, &labor.company_id, pubkey, CompanyPermission::LaborSetWage)?;
+
+        let end = if labor.end == util::time::default_time() { None } else { Some(&labor.end) };
+
+        if !util::time::is_current(&self.updated) {
+            Err(CommonError::InvalidTime)?;
+        }
+        let has_end = end.is_some();
+        let company_id = labor.company_id.clone();
+        schema.labor_set_wage(labor, self.wage, &self.updated, &hash);
+        if has_end {
+            costs::calculate_product_costs(&mut schema, &company_id)?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -189,7 +229,7 @@ pub mod tests {
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
             &vec![company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", "")],
-            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Master widget builder", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Master widget builder", 1.0, &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec

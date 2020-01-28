@@ -9,28 +9,35 @@ message Labor {
 	string company_id = 2;
 	string user_id = 3;
 	string occupation = 4;
-	repeated basis.cost_tag.CostTagEntry cost_tags = 5;
-	google.protobuf.Timestamp start = 6;
-	google.protobuf.Timestamp end = 7;
-	google.protobuf.Timestamp created = 8;
-	google.protobuf.Timestamp updated = 9;
-	uint64 history_len = 10;
-	exonum.Hash history_hash = 11;
+	double wage = 5;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 6;
+	google.protobuf.Timestamp start = 7;
+	google.protobuf.Timestamp end = 8;
+	google.protobuf.Timestamp created = 9;
+	google.protobuf.Timestamp updated = 10;
+	uint64 history_len = 11;
+	exonum.Hash history_hash = 12;
 }
 
 message TxCreate {
 	string id = 1;
 	string company_id = 2;
 	string user_id = 3;
-	repeated basis.cost_tag.CostTagEntry cost_tags = 4;
-	google.protobuf.Timestamp created = 5;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 5;
+	google.protobuf.Timestamp created = 6;
 }
 
 message TxUpdate {
 	string id = 1;
-	repeated basis.cost_tag.CostTagEntry cost_tags = 2;
-	google.protobuf.Timestamp start = 3;
-	google.protobuf.Timestamp end = 4;
-	google.protobuf.Timestamp updated = 5;
+	repeated basis.cost_tag.CostTagEntry cost_tags = 3;
+	google.protobuf.Timestamp start = 4;
+	google.protobuf.Timestamp end = 5;
+	google.protobuf.Timestamp updated = 6;
+}
+
+message TxSetWage {
+	string id = 1;
+	double wage = 2;
+	google.protobuf.Timestamp updated = 6;
 }
 

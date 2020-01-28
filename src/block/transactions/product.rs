@@ -203,7 +203,7 @@ pub mod tests {
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
             &vec![company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", "")],
-            &company::TxCreatePrivateFounder::new(&co_founder_id, "Widgets, Builder of", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co_founder_id, "Widgets, Builder of", 1.0, &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec

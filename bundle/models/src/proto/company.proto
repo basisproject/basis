@@ -32,7 +32,8 @@ message TxCreatePrivate {
 	message Founder {
 		string member_id = 1;
 		string occupation = 2;
-		repeated basis.cost_tag.CostTagEntry default_cost_tags = 3;
+		double wage = 3;
+		repeated basis.cost_tag.CostTagEntry default_cost_tags = 4;
 	}
 	string id = 1;
 	string email = 2;

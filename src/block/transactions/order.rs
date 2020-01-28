@@ -241,7 +241,7 @@ pub mod tests {
             &vec![
                 company::TxCreatePrivateCostTag::new(&ctag0_op_id, "operating", ""),
             ],
-            &company::TxCreatePrivateFounder::new(&co0_founder_id, "Coal miner", &vec![CostTagEntry::new(&ctag0_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co0_founder_id, "Coal miner", 1.0, &vec![CostTagEntry::new(&ctag0_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -254,7 +254,7 @@ pub mod tests {
                 company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", ""),
                 company::TxCreatePrivateCostTag::new(&ctag1_inv_id, "inventory", ""),
             ],
-            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", 1.0, &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -267,7 +267,7 @@ pub mod tests {
                 company::TxCreatePrivateCostTag::new(&ctag2_op_id, "operating", ""),
                 company::TxCreatePrivateCostTag::new(&ctag2_inv_id, "inventory", ""),
             ],
-            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget builder", 1.0, &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec

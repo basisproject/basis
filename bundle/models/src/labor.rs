@@ -13,6 +13,7 @@ pub struct Labor {
     pub company_id: String,
     pub user_id: String,
     pub occupation: String,
+    pub wage: f64,
     pub cost_tags: Vec<CostTagEntry>,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
@@ -23,12 +24,13 @@ pub struct Labor {
 }
 
 impl Labor {
-    pub fn new(id: &str, company_id: &str, user_id: &str, occupation: &str, cost_tags: &Vec<CostTagEntry>, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, history_hash: &Hash) -> Self {
+    pub fn new(id: &str, company_id: &str, user_id: &str, occupation: &str, wage: f64, cost_tags: &Vec<CostTagEntry>, start: Option<&DateTime<Utc>>, end: Option<&DateTime<Utc>>, created: &DateTime<Utc>, updated: &DateTime<Utc>, history_len: u64, history_hash: &Hash) -> Self {
         Self {
             id: id.to_owned(),
             company_id: company_id.to_owned(),
             user_id: user_id.to_owned(),
             occupation: occupation.to_owned(),
+            wage,
             cost_tags: cost_tags.clone(),
             start: start.unwrap_or(&util::time::default_time()).clone(),
             end: end.unwrap_or(&util::time::default_time()).clone(),
@@ -45,9 +47,27 @@ impl Labor {
             &self.company_id,
             &self.user_id,
             &self.occupation,
+            self.wage,
             cost_tags.unwrap_or(&self.cost_tags),
             Some(start.unwrap_or(&self.start)),
             Some(end.unwrap_or(&self.end)),
+            &self.created,
+            updated,
+            self.history_len + 1,
+            history_hash
+        )
+    }
+
+    pub fn set_wage(&self, wage: f64, updated: &DateTime<Utc>, history_hash: &Hash) -> Self {
+        Self::new(
+            &self.id,
+            &self.company_id,
+            &self.user_id,
+            &self.occupation,
+            wage,
+            &self.cost_tags,
+            Some(&self.start),
+            Some(&self.end),
             &self.created,
             updated,
             self.history_len + 1,
@@ -66,11 +86,16 @@ impl Labor {
         let duration = self.end - self.start;
         duration.num_milliseconds() as f64 / (60.0 * 60.0 * 1000.0)
     }
+
+    /// Gets the adjusted hours (by wage) for this labor record
+    pub fn wage_hours(&self) -> f64 {
+        self.hours() * self.wage
+    }
 }
 
 impl Costable for Labor {
     fn get_costs(&self) -> Costs {
-        Costs::new_with_labor(&self.occupation, self.hours())
+        Costs::new_with_labor(&self.occupation, self.wage_hours())
     }
 
     fn get_cost_tags(&self) -> Vec<CostTagEntry> {
@@ -95,6 +120,7 @@ pub mod tests {
             "df874abc-5583-4740-9f4e-3236530bcc1e",
             "7de177ba-d589-4f7b-94e0-96d2b0752460",
             "tremendous president. the best president. everyone says so.",
+            1000.0, // a good wage. tremendous wage.
             &vec![CostTagEntry::new("113", 4)],
             Some(&date),
             None,
@@ -116,6 +142,7 @@ pub mod tests {
         assert_eq!(labor.company_id, labor2.company_id);
         assert_eq!(labor.user_id, labor2.user_id);
         assert_eq!(labor.occupation, labor2.occupation);
+        assert_eq!(labor.wage, labor2.wage);
         assert_eq!(labor.cost_tags, labor2.cost_tags);
         assert!(labor.start != labor2.start);
         assert_eq!(labor2.start, date2);
@@ -134,6 +161,7 @@ pub mod tests {
         assert_eq!(labor2.company_id, labor3.company_id);
         assert_eq!(labor2.user_id, labor3.user_id);
         assert_eq!(labor2.occupation, labor3.occupation);
+        assert_eq!(labor2.wage, labor3.wage);
         assert_eq!(labor2.cost_tags[0].id, "113");
         assert_eq!(labor3.cost_tags[0].id, "4242");
         assert_eq!(labor2.start, labor3.start);
@@ -147,6 +175,16 @@ pub mod tests {
     }
 
     #[test]
+    fn set_wage() {
+        let labor = make_labor();
+        let date2 = util::time::now();
+        let hash2 = Hash::new([1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 233, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4, 1, 27, 6, 4]);
+        // terrible wage. unpresidented.
+        let labor2 = labor.set_wage(0.00001, &date2, &hash2);
+        assert!(labor.wage != labor2.wage);
+    }
+
+    #[test]
     fn hours() {
         let labor = make_labor();
         let start: DateTime<Utc> = "2018-01-01T15:32:59.033Z".parse().unwrap();
@@ -155,6 +193,7 @@ pub mod tests {
         let labor2 = labor.update(None, Some(&start), Some(&end), &end, &hash2);
         // long day...
         assert_eq!(labor2.hours(), 11.736816666666666);
+        assert_eq!(labor2.wage_hours(), 11.736816666666666 * 1000.0);
     }
 
     #[test]

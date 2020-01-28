@@ -168,6 +168,7 @@ pub enum TransactionGroup {
 
     LaborCreate(labor::TxCreate),
     LaborSetTime(labor::TxUpdate),
+    LaborSetWage(labor::TxSetWage),
 
     ProductCreate(product::TxCreate),
     ProductUpdate(product::TxUpdate),

@@ -116,7 +116,7 @@ impl Transaction for TxCreatePrivate {
             let default_cost_tag_entries = self.founder.default_cost_tags.clone().into_iter()
                 .filter(|entry| cost_tag_id_map.contains_key(&entry.id))
                 .collect::<Vec<_>>();
-            schema.companies_members_create(&self.founder.member_id, &self.id, &user.id, &vec![CompanyRole::Owner], &self.founder.occupation, &default_cost_tag_entries, &self.created, &hash);
+            schema.companies_members_create(&self.founder.member_id, &self.id, &user.id, &vec![CompanyRole::Owner], &self.founder.occupation, self.founder.wage, &default_cost_tag_entries, &self.created, &hash);
             Ok(())
         }
     }

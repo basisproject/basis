@@ -66,6 +66,8 @@ deftransaction! {
         pub user_id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
+        #[validate(range(min = 0))]
+        pub wage: f64,
         pub default_cost_tags: Vec<CostTagEntry>,
         pub memo: String,
         #[validate(custom = "super::validate_date")]
@@ -105,7 +107,7 @@ impl Transaction for TxCreate {
         } else if !util::time::is_current(&self.created) {
             Err(CommonError::InvalidTime)?
         } else {
-            schema.companies_members_create(&self.id, &self.company_id, &self.user_id, &self.roles, &self.occupation, &default_cost_tags, &self.created, &hash);
+            schema.companies_members_create(&self.id, &self.company_id, &self.user_id, &self.roles, &self.occupation, self.wage, &default_cost_tags, &self.created, &hash);
             Ok(())
         }
     }
@@ -118,6 +120,7 @@ deftransaction! {
         pub id: String,
         pub roles: Vec<CompanyRole>,
         pub occupation: String,
+        pub wage: f64,
         pub default_cost_tags: Vec<CostTagEntry>,
         pub memo: String,
         #[validate(custom = "super::validate_date")]
@@ -161,13 +164,14 @@ impl Transaction for TxUpdate {
         } else {
             let roles = empty_opt(&self.roles);
             let occupation = empty_opt(&self.occupation).map(|x| x.as_str());
+            let wage = empty_opt(&self.wage).map(|x| x.clone());
             let default_cost_tags = if can_edit_cost_tags {
                 empty_opt(&self.default_cost_tags)
                     .map(|cost_tags| cost_tag::validate_cost_tags(&mut schema, &member.company_id, cost_tags))
             } else {
                 None
             };
-            schema.companies_members_update(member, roles, occupation, default_cost_tags.as_ref(), &self.updated, &hash);
+            schema.companies_members_update(member, roles, occupation, wage, default_cost_tags.as_ref(), &self.updated, &hash);
             Ok(())
         }
     }

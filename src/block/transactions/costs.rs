@@ -207,7 +207,7 @@ pub mod tests {
             &String::from("company1@basis.org"),
             &String::from("Widget Builders Inc"),
             &vec![company::TxCreatePrivateCostTag::new(&ctag1_op_id, "operating", "")],
-            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co1_founder_id, "Widget builder", 1.0, &vec![CostTagEntry::new(&ctag1_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -217,7 +217,7 @@ pub mod tests {
             &String::from("company2@basis.org"),
             &String::from("Widget Distributors Inc"),
             &vec![company::TxCreatePrivateCostTag::new(&ctag2_op_id, "operating", "")],
-            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget distributor", &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co2_founder_id, "Widget distributor", 1.0, &vec![CostTagEntry::new(&ctag2_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec
@@ -227,7 +227,7 @@ pub mod tests {
             &String::from("company3lol@basis.org"),
             &String::from("Widget BLOWOUT EMPORIUM!!!1"),
             &vec![company::TxCreatePrivateCostTag::new(&ctag3_op_id, "operating", "")],
-            &company::TxCreatePrivateFounder::new(&co3_founder_id, "Widget distributor", &vec![CostTagEntry::new(&ctag3_op_id, 1)]),
+            &company::TxCreatePrivateFounder::new(&co3_founder_id, "Widget distributor", 1.0, &vec![CostTagEntry::new(&ctag3_op_id, 1)]),
             &util::time::now(),
             &root_pub,
             &root_sec

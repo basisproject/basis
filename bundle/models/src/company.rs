@@ -32,6 +32,7 @@ pub enum Permission {
 
     LaborSetClock,
     LaborTagCost,
+    LaborSetWage,
 
     ProductCreate,
     ProductUpdate,
@@ -88,6 +89,7 @@ impl Role {
             Role::LaborAdmin => {
                 vec![
                     Permission::LaborSetClock,
+                    Permission::LaborSetWage,
                 ]
             }
             Role::ProductAdmin => {
@@ -204,14 +206,16 @@ impl TxCreatePrivateCostTag {
 pub struct TxCreatePrivateFounder {
     pub member_id: String,
     pub occupation: String,
+    pub wage: f64,
     pub default_cost_tags: Vec<CostTagEntry>,
 }
 
 impl TxCreatePrivateFounder {
-    pub fn new(member_id: &str, occupation: &str, default_cost_tags: &Vec<CostTagEntry>) -> Self {
+    pub fn new(member_id: &str, occupation: &str, wage: f64, default_cost_tags: &Vec<CostTagEntry>) -> Self {
         Self {
             member_id: member_id.to_owned(),
             occupation: occupation.to_owned(),
+            wage,
             default_cost_tags: default_cost_tags.clone(),
         }
     }

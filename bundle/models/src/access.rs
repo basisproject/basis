@@ -27,6 +27,7 @@ pub enum Permission {
     CompanyUpdateMembers,
     CompanyClockIn,
     CompanyClockOut,
+    CompanySetLaborWage,
     CompanyAdminClock,
 
     ProductCreate,
@@ -120,6 +121,7 @@ impl Role {
                     Permission::CompanyUpdateMembers,
                     Permission::CompanyClockIn,
                     Permission::CompanyClockOut,
+                    Permission::CompanySetLaborWage,
                     Permission::ProductCreate,
                     Permission::ProductUpdate,
                     Permission::ProductDelete,

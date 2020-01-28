@@ -10,11 +10,12 @@ message CompanyMember {
 	string user_id = 3;
 	repeated string roles = 4;
 	string occupation = 5;
-	repeated basis.cost_tag.CostTagEntry default_cost_tags = 6;
-	google.protobuf.Timestamp created = 7;
-	google.protobuf.Timestamp updated = 8;
-	uint64 history_len = 9;
-	exonum.Hash history_hash = 10;
+	double wage = 6;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 7;
+	google.protobuf.Timestamp created = 8;
+	google.protobuf.Timestamp updated = 9;
+	uint64 history_len = 10;
+	exonum.Hash history_hash = 11;
 }
 
 message TxCreate {
@@ -23,18 +24,20 @@ message TxCreate {
 	string user_id = 3;
 	repeated string roles = 4;
 	string occupation = 5;
-	repeated basis.cost_tag.CostTagEntry default_cost_tags = 6;
-	string memo = 7;
-	google.protobuf.Timestamp created = 8;
+	double wage = 6;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 7;
+	string memo = 8;
+	google.protobuf.Timestamp created = 9;
 }
 
 message TxUpdate {
 	string id = 1;
 	repeated string roles = 2;
 	string occupation = 3;
-	repeated basis.cost_tag.CostTagEntry default_cost_tags = 4;
-	string memo = 5;
-	google.protobuf.Timestamp updated = 6;
+	double wage = 4;
+	repeated basis.cost_tag.CostTagEntry default_cost_tags = 5;
+	string memo = 6;
+	google.protobuf.Timestamp updated = 7;
 }
 
 message TxDelete {

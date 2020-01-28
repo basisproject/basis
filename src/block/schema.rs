@@ -287,23 +287,23 @@ impl<T> Schema<T>
             .and_then(|member_id| { self.get_company_member(&member_id) })
     }
 
-    pub fn companies_members_create(&mut self, id: &str, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, default_cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_create(&mut self, id: &str, company_id: &str, user_id: &str, roles: &Vec<CompanyRole>, occupation: &str, wage: f64, default_cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            CompanyMember::new(id, company_id, user_id, roles, occupation, default_cost_tags, created, created, history.len(), &history_hash)
+            CompanyMember::new(id, company_id, user_id, roles, occupation, wage, default_cost_tags, created, created, history.len(), &history_hash)
         };
         self.companies_members().put(&crypto::hash(id.as_bytes()), member);
         self.companies_members_idx_company_id(company_id).put(&user_id.to_owned(), id.to_owned());
     }
 
-    pub fn companies_members_update(&mut self, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, default_cost_tags: Option<&Vec<CostTagEntry>>, updated: &DateTime<Utc>, transaction: &Hash) {
+    pub fn companies_members_update(&mut self, member: CompanyMember, roles: Option<&Vec<CompanyRole>>, occupation: Option<&str>, wage: Option<f64>, default_cost_tags: Option<&Vec<CostTagEntry>>, updated: &DateTime<Utc>, transaction: &Hash) {
         let member = {
             let mut history = self.companies_members_history(&member.id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            member.update(roles, occupation, default_cost_tags, updated, &history_hash)
+            member.update(roles, occupation, wage, default_cost_tags, updated, &history_hash)
         };
         self.companies_members().put(&crypto::hash(member.id.as_bytes()), member);
     }
@@ -321,7 +321,7 @@ impl<T> Schema<T>
             members.push((user_id, member_id));
         }
         for (user_id, member_id) in members {
-            let tmp_member = CompanyMember::new(&member_id, company_id, &user_id, &vec![], "tmp", &vec![], &util::time::now(), &util::time::now(), 0, &Default::default());
+            let tmp_member = CompanyMember::new(&member_id, company_id, &user_id, &vec![], "tmp", 0.0, &vec![], &util::time::now(), &util::time::now(), 0, &Default::default());
             self.companies_members_delete(tmp_member);
         }
         self.companies_members_idx_company_id(company_id).clear();
@@ -360,12 +360,12 @@ impl<T> Schema<T>
             .collect::<Vec<_>>()
     }
 
-    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, occupation: &str, cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
+    pub fn labor_create(&mut self, id: &str, company_id: &str, user_id: &str, occupation: &str, wage: f64, cost_tags: &Vec<CostTagEntry>, created: &DateTime<Utc>, transaction: &Hash) {
         let labor = {
             let mut history = self.labor_history(id);
             history.push(*transaction);
             let history_hash = history.object_hash();
-            Labor::new(id, company_id, user_id, occupation, cost_tags, Some(created), None, created, created, history.len(), &history_hash)
+            Labor::new(id, company_id, user_id, occupation, wage, cost_tags, Some(created), None, created, created, history.len(), &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
         self.labor_idx_company_id(company_id).push(id.to_owned());
@@ -380,6 +380,19 @@ impl<T> Schema<T>
             history.push(*transaction);
             let history_hash = history.object_hash();
             labor.update(cost_tags, start, end, updated, &history_hash)
+        };
+        self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
+        self.labor_update_rolling_index(&labor, Some(&labor_original));
+    }
+
+    pub fn labor_set_wage(&mut self, labor: Labor, wage: f64, updated: &DateTime<Utc>, transaction: &Hash) {
+        let id = labor.id.clone();
+        let labor_original = labor.clone();
+        let labor = {
+            let mut history = self.labor_history(&id);
+            history.push(*transaction);
+            let history_hash = history.object_hash();
+            labor.set_wage(wage, updated, &history_hash)
         };
         self.labor().put(&crypto::hash(id.as_bytes()), labor.clone());
         self.labor_update_rolling_index(&labor, Some(&labor_original));
