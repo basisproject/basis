@@ -74,6 +74,7 @@ describe('companies', function() {
 			founder: {
 				member_id: jerry_member_id,
 				occupation: 'Widget builder',
+				wage: 1.0,
 			},
 			created: new Date().toISOString(),
 		});
@@ -87,6 +88,7 @@ describe('companies', function() {
 			founder: {
 				member_id: jerry_member_id,
 				occupation: 'Widget builder',
+				wage: 1.0,
 			},
 			created: new Date().toISOString(),
 		});

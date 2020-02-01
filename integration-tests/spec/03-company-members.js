@@ -83,6 +83,7 @@ describe('company members', function() {
 			user_id: sandra_user_id,
 			roles: ['ProductAdmin'],
 			occupation: 'Apprentice Widget Builder',
+			wage: 100.0,
 			memo: 'Sandra seems trustworthy',
 			created: new Date().toISOString(),
 		});
@@ -125,6 +126,7 @@ describe('company members', function() {
 			id: sandra_member_id,
 			roles: ['MemberAdmin'],
 			occupation: 'Widget Builder',
+			wage: 10.0,
 			memo: 'be careful, sandra',
 			updated: new Date().toISOString(),
 		});
@@ -132,6 +134,7 @@ describe('company members', function() {
 		var sandra = await Members.get({id: sandra_member_id});
 		expect(sandra.roles).toEqual(['MemberAdmin']);
 		expect(sandra.occupation).toBe('Widget Builder');
+		expect(sandra.wage).toBe(10.0);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			id: sandra_member_id,
@@ -143,6 +146,7 @@ describe('company members', function() {
 		var sandra = await Members.get({id: sandra_member_id});
 		expect(sandra.roles).toEqual(['ProductAdmin']);
 		expect(sandra.occupation).toBe('Widget Builder');
+		expect(sandra.wage).toBe(10.0);
 
 		var res = await trans.send_as('sandra', tx.company_member.TxUpdate, {
 			id: jerry_member_id,

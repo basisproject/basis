@@ -61,6 +61,7 @@ describe('labor', function() {
 			founder: {
 				member_id: jerry_member_id,
 				occupation: 'Widget builder',
+				wage: 10.0,
 				default_cost_tags: [
 					// real tag
 					{id: ctag_op_id, weight: 5},
@@ -84,6 +85,7 @@ describe('labor', function() {
 		expect(res.success).toBe(true);
 
 		var labor = await Labor.get({id: labor1_id});
+		expect(labor.wage).toBe(10.0);
 		expect(labor.cost_tags[0]).toEqual({id: ctag_op_id, weight: 5});
 		expect(labor.cost_tags.length).toBe(1);
 		expect(Timestamp.from(labor.created).toISOString()).toBe(now1);
@@ -134,6 +136,18 @@ describe('labor', function() {
 		expect(labor.created).not.toEqual(labor.start);
 		expect(Timestamp.from(labor.start).toISOString()).toBe(now2);
 		expect(Timestamp.from(labor.end).toISOString()).toBe(now3);
+	});
+
+	it('can update labor wage', async () => {
+		var now1 = new Date().toISOString();
+		var res = await trans.send_as('jerry', tx.labor.TxSetWage, {
+			id: labor1_id,
+			wage: 100.0,
+			updated: now1,
+		});
+		expect(res.success).toBe(true);
+		var labor = await Labor.get({id: labor1_id});
+		expect(labor.wage).toBe(100.0);
 	});
 
 	it('can tear down', async () => {

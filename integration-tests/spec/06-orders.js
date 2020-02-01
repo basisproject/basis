@@ -91,6 +91,7 @@ describe('orders', function() {
 			founder: {
 				member_id: sandra_member_id,
 				occupation: 'Widget builder',
+				wage: 1.0,
 				default_cost_tags: [{id: ctag1_op_id, weight: 1}],
 			},
 			created: new Date().toISOString(),
@@ -107,6 +108,7 @@ describe('orders', function() {
 			founder: {
 				member_id: jerry_member_id,
 				occupation: 'Widget seller',
+				wage: 1.0,
 				default_cost_tags: [{id: ctag2_op_id, weight: 1}],
 			},
 			created: new Date().toISOString(),

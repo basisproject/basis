@@ -84,6 +84,7 @@ describe('products', function() {
 			founder: {
 				member_id: sandra_member_id,
 				occupation: 'Widget builder',
+				wage: 69.0,
 				default_cost_tags: [{id: ctag_op_id, weight: 10}],
 			},
 			created: new Date().toISOString(),
@@ -119,6 +120,8 @@ describe('products', function() {
 			company_id: company_id,
 			user_id: jerry_user_id,
 			roles: ['ProductAdmin', 'CostTaggerProduct'],
+			occupation: 'Data entry',
+			wage: 0.001,
 			default_cost_tags: [{id: ctag_op_id, weight: 10}],
 			memo: 'GET TO WORK, JERRY',
 			created: new Date().toISOString(),

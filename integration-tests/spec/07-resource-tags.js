@@ -37,6 +37,7 @@ describe('resource tags', function() {
 			founder: {
 				member_id: member_id,
 				occupation: 'Miner 49er',
+				wage: 1.0,
 			},
 			created: new Date().toISOString(),
 		});
